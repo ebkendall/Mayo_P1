@@ -3,8 +3,8 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 5 # CHANGE EVERY TIME ******************
-itNum = 4
+trialNum = 12 # CHANGE EVERY TIME ******************
+itNum = 5
 
 Dir = 'Model_out/'
 
@@ -21,6 +21,8 @@ pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 31010
             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
             769025, 777175, 794900, 799125, 819225)
 data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+data_format[which(data_format[,"EID"] == 100950)[15:18], 'map'] = 51
+data_format[which(data_format[,"EID"] == 100950)[18], 'hemo'] = 6
 use_data = data_format
 
 # load(paste0('../Data/Debug/use_data', 1, '_7.rda'))

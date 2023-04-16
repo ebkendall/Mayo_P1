@@ -8,7 +8,7 @@ print(ind)
 
 n_cores = 20
 
-steps  = 100000
+steps  = 50000
 burnin =  5000
 
 load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
@@ -18,6 +18,11 @@ pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 31010
             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
             769025, 777175, 794900, 799125, 819225)
 data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+
+# Manually perturbing instances to see if things change
+# 100950
+# data_format[which(data_format[,"EID"] == 100950)[15:18], 'map'] = 51
+# data_format[which(data_format[,"EID"] == 100950)[18], 'hemo'] = 6
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -84,11 +89,11 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 5 # CHANGE THIS EVERY TIME **********************
+trialNum = 13 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
 # index_post = 8000:10000
-load(paste0('Model_out/mcmc_out_interm_', 5, '_', trialNum - 1,'it5.rda'))
+load(paste0('Model_out/mcmc_out_interm_', 3, '_', trialNum - 1,'it5.rda'))
 # par_temp = colMeans(mcmc_out_temp$chain[index_post,])
 par_temp = colMeans(mcmc_out_temp$chain)
 rownames(par_temp) = NULL

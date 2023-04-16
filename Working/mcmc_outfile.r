@@ -34,17 +34,15 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)") 
 
 
-index_seeds = c(1:5)
-trialNum = 5 # Change this everytime!!!! ****************
-itNum = 4
+index_seeds = c(1:3)
+trialNum = 12 # Change this everytime!!!! ****************
+itNum = 5
 
-# load('true_par1.rda')
-# load('../_Developement/Model_out/mcmc_out_interm_4_11it10.rda')
-# true_par = colMeans(mcmc_out_temp$chain)
-# load('../Simulation/Data/Debug/true_pars_11.rda')
-# load('../Simulation/Data/Debug/true_par_index_11.rda')
-# true_par = true_pars
-true_par = NULL
+load(paste0('Model_out/mcmc_out_interm_', 5, '_', trialNum - 8,'it5.rda'))
+par_temp = colMeans(mcmc_out_temp$chain)
+rownames(par_temp) = NULL
+# true_par = NULL
+true_par = par_temp
 
 # Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
 # Lambda = diag(exp(true_par[par_index$log_lambda]))
@@ -139,7 +137,7 @@ for(s in names(par_index)){
 		hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
 			  xlab=paste0('Mean =',toString(parMean),' Median =',toString(parMedian)))
 		abline( v=upper, col='red', lwd=2, lty=2)
-		# abline( v=true_par[r], col='green', lwd=2, lty=2)
+		abline( v=true_par[r], col='green', lwd=2, lty=2)
 		abline( v=lower, col='purple', lwd=2, lty=2)
 	}
 }
@@ -182,3 +180,21 @@ for (s in 1:4) {
 
 dev.off()
 
+
+# Investigation into each plot -----------------------------------------------
+load('Model_out/final_debug3_it10_12.rda')
+barplot( rbind( colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 1),
+                colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 2),
+                colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 3)),
+         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+         xlab='time', xaxt='n', space=0,
+         col.main='green', border='gray')
+final_debug[[1]][[2]][[1]][,1:25]
+
+barplot( rbind( colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 1),
+                colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 2),
+                colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 3)),
+         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+         xlab='time', xaxt='n', space=0,
+         col.main='green', border='gray')
+final_debug[[2]][[2]][[10]][,25:65]

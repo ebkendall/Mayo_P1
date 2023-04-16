@@ -330,10 +330,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   //                     1->2,   2->3,   3->1, 3->2
   // arma::vec vec_zeta_mean = {-5.236006, -3.078241, -4, -5.23};
-  arma::vec vec_zeta_mean = {-5.236006, 2.006518, -3.078241, -1.688983,
-                             -4, -0.056713, -5.23, 2.044297};
+  // arma::vec vec_zeta_mean = {-5.236006, 2.006518, -3.078241, -1.688983,
+  //                            -4, -0.056713, -5.23, 2.044297};
+  arma::vec vec_zeta_mean(8, arma::fill::zeros);
   
-  arma::vec scalar_1 = {10, 10, 10, 10, 10, 10, 10, 10}; // UNINFORMATIVE
+  arma::vec scalar_1 = {100, 100, 100, 100, 100, 100, 100, 100}; // UNINFORMATIVE
   arma::mat zeta_sd = arma::diagmat(scalar_1);
 
   arma::vec prior_zeta = dmvnorm(vec_zeta_content.t(), vec_zeta_mean, zeta_sd, true);
@@ -450,7 +451,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 446450) {
+      if(i == 100950) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       if(i == 747025) {
@@ -491,7 +492,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 446450) {
+        if(i == 100950) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
@@ -512,7 +513,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 446450) {
+          if(i == 100950) {
               l1(4, k) = 1;
           }
           if(i == 747025) {
@@ -662,13 +663,15 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
   // The prior mean for vec_alpha_tilde
   arma::vec vec_alpha_tilde_0 = {9.57729783, -1, 0.1,
                                  88.69780576, 9.04150472, -2,
-                                 79.74903940, -7.42458547, 2,
+                                 88.69780576, -9.04150472, 2,
+                                 // 79.74903940, -7.42458547, 2,
                                  5.2113319, 0.5360813, -0.6866748};
 
 
   // The prior PRECISION matrix for vec_alpha_tilde
   // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-  arma::vec inv_Sigma_alpha_diag = {0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05};
+  arma::vec inv_Sigma_alpha_diag = {0.01, 0.1, 0.1,     0.01, 0.1, 0.1, 
+                                    0.01, 0.1, 0.1,     0.01, 0.1, 0.1};
   // {0.21, 12, 12,
   // 0.0043, 0.095, 0.095,
   // 0.008, 0.095, 0.095,
