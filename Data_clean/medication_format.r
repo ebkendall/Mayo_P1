@@ -65,6 +65,7 @@ clean_meds$map[clean_meds$map == "Down"] = -1
 # Medication formatting for the final dataset
 med_format = vector(mode = "list", length = length(select_id))
 for(i in 1:length(med_format)) {
+    print(paste0("ID: ", i))
     med_format[[i]] = matrix(0, nrow = sum(data_format[,'EID'] == select_id[i]), ncol = 8)
     sub_data = data_format[data_format[,'EID'] == select_id[i], ]
     clean_meds_sub = clean_meds[clean_meds[,'id'] == select_id[i], ]
@@ -122,7 +123,7 @@ for(i in 1:length(med_format)) {
 }
 
 save(med_format, file = 'Data/med_format.rda')
-save(med_key, file = 'Data/med_key.rda')
+# save(med_key, file = 'Data/med_key.rda')
 # if(j==1) {
 #     med_before_j = which(clean_meds_sub$time <= sub_data[j,"time"] & clean_meds_sub$time > 0)
 # } else {

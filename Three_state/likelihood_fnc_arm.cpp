@@ -166,9 +166,9 @@ arma::mat Omega_fun_cpp_new(const int k, const int n_i, const arma::vec &b_i,
 double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &par, 
                    const arma::field<arma::uvec> &par_index, const arma::vec &A, const arma::vec &B, 
                    const arma::mat &Y, const arma::mat &z, const arma::mat &Dn, 
-                   const arma::mat &Xn, const arma::sp_mat &invKn) {
+                   const arma::mat &Xn, const arma::sp_mat &invKn, const arma::mat &Dn_omega) {
   
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
@@ -189,6 +189,13 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::mat vec_beta = vec_beta_content;
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
   arma::mat zeta = arma::reshape(vec_zeta_content, 2, 4); // THREE STATE
+  
+  arma::vec vec_omega_content = par.elem(par_index(8) - 1);
+  arma::vec vec_omega(32, arma::fill::zeros);
+  vec_omega(8) = vec_omega_content(0); vec_omega(9) = vec_omega_content(1);
+  vec_omega(10) = vec_omega_content(2); vec_omega(11) = vec_omega_content(3);
+  vec_omega(20) = vec_omega_content(4); vec_omega(21) = vec_omega_content(5);
+  vec_omega(22) = vec_omega_content(6); vec_omega(23) = vec_omega_content(7);
   
   // The time-homogeneous probability transition matrix
   arma::uvec sub_ind = arma::find(eids == i);
@@ -252,10 +259,11 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   vecY_i = arma::join_vert(vecY_i, lac_sub);
   
   arma::mat Dn_ii = Dn;
+  arma::mat Dn_omega_ii = Dn_omega;
   arma::mat Xn_ii = Xn;
   arma::mat A_ii = A;
   
-  arma::mat dev = vecY_i - Dn_ii * A_ii - Xn_ii * vec_beta; 
+  arma::mat dev = vecY_i - Dn_ii * A_ii - Xn_ii * vec_beta - Dn_omega_ii * vec_omega; 
   
   arma::mat inv_R = inv(R);
   arma::sp_mat invKn_ii = invKn;
@@ -275,9 +283,10 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
 double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec &par, const arma::field<arma::uvec> &par_index, 
                          const arma::field <arma::vec> &A, const arma::field <arma::vec> &B, 
                          const arma::mat &Y, const arma::mat &z, const arma::field <arma::mat> &Dn, 
-                         const arma::field <arma::mat> &Xn, const arma::field <arma::sp_mat> &invKn) {
+                         const arma::field <arma::mat> &Xn, const arma::field <arma::sp_mat> &invKn,
+                         const arma::field <arma::mat> &Dn_omega) {
 
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
@@ -287,7 +296,7 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
 # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
-    in_vals(ii) = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), invKn(ii));
+    in_vals(ii) = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), invKn(ii), Dn_omega(ii));
   }
   
   double in_value = arma::accu(in_vals);
@@ -299,9 +308,10 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
 double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::field<arma::uvec> &par_index,
                     const arma::field<arma::vec> &A, const arma::field<arma::vec> &B,
                     const arma::mat &Y, const arma::mat &z, const arma::field<arma::mat> &Dn,
-                    const arma::field<arma::mat> &Xn, const arma::field<arma::sp_mat> &invKn) {
+                    const arma::field<arma::mat> &Xn, const arma::field<arma::sp_mat> &invKn,
+                    const arma::field <arma::mat> &Dn_omega) {
 
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
@@ -309,7 +319,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Compute the likelihood ----------------------------------------------------
   double value;
   arma::vec t_pts = {-1};
-  value = log_f_i_cpp_total(EIDs, t_pts, par, par_index, A, B, Y, z, Dn, Xn, invKn);
+  value = log_f_i_cpp_total(EIDs, t_pts, par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega);
   // ---------------------------------------------------------------------------
 
   // Compute prior densities of all necessary model parameters -----------------
@@ -330,10 +340,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   //                     1->2,   2->3,   3->1, 3->2
   // arma::vec vec_zeta_mean = {-5.236006, -3.078241, -4, -5.23};
-  arma::vec vec_zeta_mean = {-5.236006, 2.006518, -3.078241, -1.688983,
-                             -4, -0.056713, -5.23, 2.044297};
+  // arma::vec vec_zeta_mean = {-5.236006, 2.006518, -3.078241, -1.688983,
+  //                            -4, -0.056713, -5.23, 2.044297};
+  arma::vec vec_zeta_mean(8, arma::fill::zeros);
   
-  arma::vec scalar_1 = {10, 10, 10, 10, 10, 10, 10, 10}; // UNINFORMATIVE
+  arma::vec scalar_1 = {100, 100, 100, 100, 100, 100, 100, 100}; // UNINFORMATIVE
   arma::mat zeta_sd = arma::diagmat(scalar_1);
 
   arma::vec prior_zeta = dmvnorm(vec_zeta_content.t(), vec_zeta_mean, zeta_sd, true);
@@ -361,17 +372,25 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
     NumericVector prior_lambda = Rcpp::dlnorm(sub_vec, 0, 0.5, true);
     prior_log_lambda_val += prior_lambda(0);
   }
-  
   // arma::vec vec_log_lambda_mean = {   0,0,0,     0,0,0,     0,0,0,     0,0,0};
   // arma::vec scalar_lambda       = {1,1,1,  1,1,1,  1,1,1,  1,1,1};
   // arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
   
   // arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
-  // double prior_log_lambda_val = prior_log_lambda(0);
+  // double prior_log_lambda_val = prior_log_lambda(0); 
   
+  // Omega priors -------------------------------------------------------------
+  arma::vec vec_omega_content = par.elem(par_index(8) - 1);
+  arma::vec omega_mean(8, arma::fill::zeros);
+  arma::vec diag_omega_sd(8, arma::fill::ones);
+  diag_omega_sd = 20 * diag_omega_sd;
+  arma::mat omega_sd = arma::diagmat(diag_omega_sd);
+  
+  arma::vec prior_omega = dmvnorm(vec_omega_content.t(), omega_mean, omega_sd, true);
+  double prior_omega_val = arma::as_scalar(prior_omega);
   // ---------------------------------------------------------------------------
   
-  value = value + prior_theta_val + prior_zeta_val + prior_init_val + prior_log_lambda_val;
+  value = value + prior_theta_val + prior_zeta_val + prior_init_val + prior_log_lambda_val + prior_omega_val;
   return value;
 }
 
@@ -381,9 +400,9 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
                           const arma::field <arma::vec> A, arma::field <arma::vec> B, 
                           const arma::mat Y, const arma::mat z, arma::field <arma::mat> Dn, 
                           const arma::field <arma::mat> Xn, const arma::field <arma::sp_mat> invKn,
-                          arma::mat &l1, arma::mat &l2) {
+                          const arma::field <arma::mat> Dn_omega, arma::mat &l1, arma::mat &l2) {
 
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
@@ -413,6 +432,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
     // Subsetting fields
     arma::vec B_temp = B(ii);
     arma::mat Dn_temp = Dn(ii);
+    arma::mat Dn_omega_temp = Dn_omega(ii);
     arma::vec A_temp = A(ii);
     arma::mat Xn_temp = Xn(ii);
     arma::sp_mat invKn_temp = invKn(ii);
@@ -450,7 +470,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 446450) {
+      if(i == 100950) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       if(i == 747025) {
@@ -473,7 +493,9 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       }
       
       if(valid_prop) {
-        double log_target_prev = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,invKn_temp);
+        double log_target_prev = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
+                                             B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,
+                                             invKn_temp, Dn_omega_temp);
         
         arma::vec twos(b_i.n_elem, arma::fill::zeros);
         arma::vec threes = twos; // THREE STATE
@@ -487,11 +509,13 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
         
         pr_Dn = arma::kron(arma::eye(4,4), bigB);
-        double log_target = log_f_i_cpp( i,ii,t_pts,par,par_index,A_temp,pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,invKn_temp);
+        double log_target = log_f_i_cpp( i,ii,t_pts,par,par_index,A_temp,
+                                         pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
+                                         invKn_temp, Dn_omega_temp);
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 446450) {
+        if(i == 100950) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
@@ -512,7 +536,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 446450) {
+          if(i == 100950) {
               l1(4, k) = 1;
           }
           if(i == 747025) {
@@ -578,9 +602,10 @@ arma::field <arma::mat> update_Dn_cpp( const arma::vec EIDs,
 arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::vec par, 
                                             const arma::field<arma::uvec> par_index,
                                             const arma::mat Y, arma::field <arma::mat> Dn, 
-                                            const arma::field <arma::mat> Xn, const arma::field <arma::sp_mat> invKn){
+                                            const arma::field <arma::mat> Xn, const arma::field <arma::sp_mat> invKn,
+                                            const arma::field <arma::mat> Dn_omega){
 
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
@@ -598,6 +623,13 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
   
   arma::uvec vec_beta_ind = par_index(0);
   arma::vec vec_beta = par.elem(vec_beta_ind - 1);
+  
+  arma::vec vec_omega_content = par.elem(par_index(8) - 1);
+  arma::vec vec_omega(32, arma::fill::zeros);
+  vec_omega(8) = vec_omega_content(0); vec_omega(9) = vec_omega_content(1);
+  vec_omega(10) = vec_omega_content(2); vec_omega(11) = vec_omega_content(3);
+  vec_omega(20) = vec_omega_content(4); vec_omega(21) = vec_omega_content(5);
+  vec_omega(22) = vec_omega_content(6); vec_omega(23) = vec_omega_content(7);
   
   arma::vec sigma_upsilon_vec = par.elem(par_index(2) - 1);
   arma::mat sigma_upsilon = arma::reshape(sigma_upsilon_vec, 12, 12); // THREE STATE
@@ -622,6 +654,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
     arma::vec vecY_i = arma::vectorise(Y_i);
     
     arma::mat Dn_ii = Dn(ii);
+    arma::mat Dn_omega_ii = Dn_omega(ii);
     arma::mat Xn_ii = Xn(ii);
     arma::sp_mat invKn_ii = invKn(ii);
     
@@ -630,8 +663,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
     
     arma::mat hold = Dn_ii.t() * precision;
     
-    arma::mat V_i = hold*(vecY_i - Xn_ii*vec_beta) + inv_Upsilon*vec_alpha_tilde;
-    // arma::mat V_i = hold * (vecY_i ) + inv_Upsilon * vec_alpha_tilde;
+    arma::mat V_i = hold*(vecY_i - Dn_omega_ii*vec_omega - Xn_ii*vec_beta) + inv_Upsilon*vec_alpha_tilde;
 
     arma::mat inv_W_i = hold * Dn_ii + inv_Upsilon;
     arma::mat W_i = inv(inv_W_i);
@@ -662,13 +694,15 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
   // The prior mean for vec_alpha_tilde
   arma::vec vec_alpha_tilde_0 = {9.57729783, -1, 0.1,
                                  88.69780576, 9.04150472, -2,
-                                 79.74903940, -7.42458547, 2,
+                                 88.69780576, -9.04150472, 2,
+                                 // 79.74903940, -7.42458547, 2,
                                  5.2113319, 0.5360813, -0.6866748};
 
 
   // The prior PRECISION matrix for vec_alpha_tilde
   // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-  arma::vec inv_Sigma_alpha_diag = {0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05};
+  arma::vec inv_Sigma_alpha_diag = {0.01, 0.1, 0.1,     0.01, 0.1, 0.1, 
+                                    0.01, 0.1, 0.1,     0.01, 0.1, 0.1};
   // {0.21, 12, 12,
   // 0.0043, 0.095, 0.095,
   // 0.008, 0.095, 0.095,
@@ -712,14 +746,14 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
                                      const arma::field<arma::uvec> par_index,
                                      const arma::field <arma::vec> A, const arma::mat Y,
                                      arma::field <arma::mat> Dn, const arma::field <arma::mat> Xn, 
-                                     const arma::field <arma::sp_mat> invKn) {
+                                     const arma::field <arma::sp_mat> invKn,
+                                     const arma::field <arma::mat> Dn_omega) {
   // Conjugate updates for beta, sigma_upsilon, and R
   // beta, Upsilon, and R are conditionally independent
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
   // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
   // "i" is the numeric EID number
   // "ii" is the index of the EID
-  //  ALWAYS DOUBLE CHECK THESE INDICES. WE LOSE THE NAMES FEATURE
 
   // The prior mean for vec_beta
   arma::uvec vec_beta_ind = par_index(0);
@@ -766,6 +800,13 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
   arma::vec vec_alpha_tilde = par.elem(vec_alpha_tilde_ind - 1);
 
   arma::vec vec_beta = par.elem(vec_beta_ind - 1);
+  
+  arma::vec vec_omega_content = par.elem(par_index(8) - 1);
+  arma::vec vec_omega(32, arma::fill::zeros);
+  vec_omega(8) = vec_omega_content(0); vec_omega(9) = vec_omega_content(1);
+  vec_omega(10) = vec_omega_content(2); vec_omega(11) = vec_omega_content(3);
+  vec_omega(20) = vec_omega_content(4); vec_omega(21) = vec_omega_content(5);
+  vec_omega(22) = vec_omega_content(6); vec_omega(23) = vec_omega_content(7);
 
   arma::vec eids = Y.col(0);
 
@@ -791,13 +832,13 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     arma::mat Xn_ii = Xn(ii);
     arma::mat hold1 = Xn(ii).t() * precision;
 
-    arma::mat in_V = hold1 * (vecY_i - Dn(ii) * vec_alpha_i);
+    arma::mat in_V = hold1 * (vecY_i - Dn(ii) * vec_alpha_i - Dn_omega(ii) * vec_omega);
     arma::mat in_inv_W = hold1 * Xn(ii);
 
     arma::mat hold2 = vec_alpha_i - vec_alpha_tilde;
     arma::mat in_Upsilon_cov = hold2 * hold2.t();
 
-    arma::mat vec_E_Y_i = Dn(ii) * vec_alpha_i + Xn(ii) * vec_beta;
+    arma::mat vec_E_Y_i = Dn(ii) * vec_alpha_i + Dn_omega(ii) * vec_omega + Xn(ii) * vec_beta;
     arma::mat E_Y_i = arma::reshape(vec_E_Y_i, Y_i.n_rows, 4);
     arma::mat hold3 = Y_i - E_Y_i;
     arma::mat in_R_cov = hold3.t() * invKn(ii) * hold3;
@@ -842,13 +883,13 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                           const arma::field<arma::uvec> par_index, 
                           const arma::field <arma::vec> A, arma::mat Y,
                           arma::field <arma::mat> Dn, const arma::field <arma::mat> Xn, 
-                          const arma::field <arma::sp_mat> invKn, const arma::mat otype) {
+                          const arma::field <arma::sp_mat> invKn, const arma::mat otype,
+                          const arma::field <arma::mat> Dn_omega) {
 
-    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda
+    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) theta, (4) R, (5) zeta, (6) init, (7) log_lambda, (8) omega
     // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
     // "i" is the numeric EID number
     // "ii" is the index of the EID
-    //  ALWAYS DOUBLE CHECK THESE INDICES. WE LOSE THE NAMES FEATURE
 
     arma::mat newY(Y.n_rows, 4);
     arma::vec eids = Y.col(0);
@@ -861,6 +902,14 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
         arma::uvec sub_ind = arma::find(eids == i);
         
         arma::vec vec_beta = par.elem(par_index(0) - 1);
+        
+        arma::vec vec_omega_content = par.elem(par_index(8) - 1);
+        arma::vec vec_omega(32, arma::fill::zeros);
+        vec_omega(8) = vec_omega_content(0); vec_omega(9) = vec_omega_content(1);
+        vec_omega(10) = vec_omega_content(2); vec_omega(11) = vec_omega_content(3);
+        vec_omega(20) = vec_omega_content(4); vec_omega(21) = vec_omega_content(5);
+        vec_omega(22) = vec_omega_content(6); vec_omega(23) = vec_omega_content(7);
+        
         arma::vec vec_R = par.elem(par_index(4) - 1);
         arma::mat R = arma::reshape(vec_R, 4, 4);
         
@@ -872,7 +921,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
         arma::vec vecY_i = arma::vectorise(Y_i);
         arma::vec vec_alpha_i = A(ii);
         
-        arma::mat loc = Dn(ii) * vec_alpha_i + Xn(ii) * vec_beta;
+        arma::mat loc = Dn(ii) * vec_alpha_i + Dn_omega(ii) * vec_omega + Xn(ii) * vec_beta;
         arma::mat loc_0 = loc.rows(arma::find(otype_i == 0)); // mean for unobserved data
         arma::mat loc_1 = loc.rows(arma::find(otype_i == 1)); // mean for observed data
 
