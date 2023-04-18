@@ -31,18 +31,20 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "log(lambda): intercept (hemo)", "log(lambda): slope bleeding (hemo)", "log(lambda): slope recovery (hemo)",
            "log(lambda): intercept (hr)", "log(lambda): slope bleeding (hr)", "log(lambda): slope recovery (hr)",
            "log(lambda): intercept (map)", "log(lambda): slope bleeding (map)", "log(lambda): slope recovery (map)",
-           "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)") 
+           "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)",
+           "omega(1,1)", "omega(1,2)", "omega(2,1)", "omega(2,2)",
+           "omega(3,1)", "omega(3,2)", "omega(4,1)", "omega(5,2)") 
 
 
-index_seeds = c(1:3)
-trialNum = 12 # Change this everytime!!!! ****************
+index_seeds = c(3:5)
+trialNum = 1 # Change this everytime!!!! ****************
 itNum = 5
 
-load(paste0('Model_out/mcmc_out_interm_', 5, '_', trialNum - 8,'it5.rda'))
+load('Model_out/mcmc_out_interm_3_13it10.rda')
 par_temp = colMeans(mcmc_out_temp$chain)
 rownames(par_temp) = NULL
 # true_par = NULL
-true_par = par_temp
+true_par = c(par_temp, rep(0,8))
 
 # Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
 # Lambda = diag(exp(true_par[par_index$log_lambda]))
@@ -179,22 +181,3 @@ for (s in 1:4) {
 }
 
 dev.off()
-
-
-# Investigation into each plot -----------------------------------------------
-load('Model_out/final_debug3_it10_12.rda')
-barplot( rbind( colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 1),
-                colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 2),
-                colMeans(final_debug[[1]][[1]][1:4999, 1:25] == 3)),
-         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-         xlab='time', xaxt='n', space=0,
-         col.main='green', border='gray')
-final_debug[[1]][[2]][[1]][,1:25]
-
-barplot( rbind( colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 1),
-                colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 2),
-                colMeans(final_debug[[2]][[1]][1:4999, 25:65] == 3)),
-         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-         xlab='time', xaxt='n', space=0,
-         col.main='green', border='gray')
-final_debug[[2]][[2]][[10]][,25:65]

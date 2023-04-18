@@ -13,7 +13,7 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # -----------------------------------------------------------------------------
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
-mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, ind, trialNum, med_format){
+mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, med_format){
   
   EIDs = as.character(unique(Y[,'EID']))
   
@@ -33,8 +33,7 @@ mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, 
               c(par_index$vec_zeta[5:6]), c(par_index$vec_zeta[7:8]),
               c(par_index$log_lambda[c(1,4,7,10)]),
               c(par_index$log_lambda[c(2,5,8,11)]),
-              c(par_index$log_lambda[c(3,6,9,12)]),
-              c(par_index$omega[c(1,2,5,6)]), c(par_index$omega[c(3,4,7,8)]) )
+              c(par_index$log_lambda[c(3,6,9,12)]))
   n_group = length(mpi)
   
   # Loading an existing pcov and pscale ------------------------------
@@ -84,12 +83,16 @@ mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, 
     invKn = update_invKn_cpp( as.numeric(EIDs), par, par_index, Y)
     names(invKn) = EIDs
     
-    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, otype, Dn_omega)
+    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, otype, Dn_omega, W)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega)
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, W)
     names(A) = EIDs
+    
+    # Gibbs updates of the omega_i
+    W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, A)
+    names(W) = EIDs
     
     if(chain_ind %% A_check == 0) {
       A_chain[[chain_ind / A_check]] = A
@@ -101,7 +104,7 @@ mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, 
     # -------------------------------------------------------
     
     # Metropolis-within-Gibbs update of the state space
-    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega,
+    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W,
                           debug_temp1, debug_temp2)
     B = B_Dn[[1]]; names(B) = EIDs
     Dn = B_Dn[[2]]; names(Dn) = EIDs
@@ -133,8 +136,9 @@ mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, 
     # # -------------------------------------------------------
     
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters
-    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega) 
+    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W) 
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
+    par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
     chain[chain_ind,] = par
@@ -154,9 +158,9 @@ mcmc_routine = function( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, 
       proposal = par
       proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
       
-      log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega)
+      log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W)
       
-      log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega)
+      log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W)
       if( log_target - log_target_prev > log(runif(1,0,1)) ){
         log_target_prev = log_target
         par[ind_j] = proposal[ind_j]

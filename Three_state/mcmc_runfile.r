@@ -6,8 +6,6 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-n_cores = 20
-
 steps  = 50000
 burnin =  5000
 
@@ -60,12 +58,14 @@ zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
                  2.006518, -1.688983, -0.056713,  2.044297), nrow = 2, byrow = T)
 
 omega = rep(0, 8)
+upsilon_omega = c(diag(8))
 
 # init_logit = c(0, par_means[par_index$vec_init])
 init_logit = c(0,-5,0.5)
 init_logit = exp(init_logit)
 
-par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(log(theta)), c(R), c(zeta), c(-5,0.5), log(diag(Lambda)), omega)
+par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(log(theta)), c(R), c(zeta), 
+        c(-5,0.5), log(diag(Lambda)), omega, upsilon_omega)
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -75,13 +75,16 @@ par_index$vec_R = 162:177
 par_index$vec_zeta = 178:185
 par_index$vec_init = 186:187
 par_index$log_lambda = 188:199
-par_index$omega = 200:207
+par_index$omega_tilde = 200:207
+par_index$vec_upsilon_omega = 208:271
 # -----------------------------------------------------------------------------
 
 A = list()
+W = list()
 B = list()
 for(i in EIDs){
   A[[i]] = c(alpha_tilde)
+  W[[i]] = c(omega)
   
   temp = data_format[data_format[,'EID']==as.numeric(i), ]
   b_temp = matrix( 3, sum(Y[,'EID']==as.numeric(i)), 1)
@@ -92,7 +95,7 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 1 # CHANGE THIS EVERY TIME **********************
+trialNum = 2 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
 # index_post = 8000:10000
@@ -108,7 +111,7 @@ rm(mcmc_out_temp)
 print(par)
 
 s_time = Sys.time()
-mcmc_out = mcmc_routine( par, par_index, A, B, Y, x, z, steps, burnin, n_cores, ind, trialNum, med_format)
+mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, med_format)
 e_time = Sys.time() - s_time; print(e_time)
 
 # save( mcmc_out, file=paste0('Model_out/post_mcmc_out_dev',ind,'_', trialNum, '.rda'))
