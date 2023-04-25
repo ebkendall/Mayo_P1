@@ -13,7 +13,7 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # -----------------------------------------------------------------------------
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
-mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, med_format){
+mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega){
   
   EIDs = as.character(unique(Y[,'EID']))
   
@@ -66,8 +66,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   Dn = update_Dn_cpp( as.numeric(EIDs), B, Y)
   names(Dn) = EIDs
   
-  Dn_omega = list()
-  for(i in 1:length(EIDs)) Dn_omega[[i]] = diag(4) %x% med_format[[i]]
+  # Dn_omega = list()
+  # for(i in 1:length(EIDs)) Dn_omega[[i]] = diag(c(1,1,1,1)) %x% med_format[[i]]
   names(Dn_omega) = EIDs
   
   for(ttt in 1:steps){
@@ -136,7 +136,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # # -------------------------------------------------------
     
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters
-    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W) 
+    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W)
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     

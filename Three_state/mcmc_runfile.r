@@ -10,7 +10,7 @@ steps  = 50000
 burnin =  5000
 
 load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
-load('Data/med_format.rda')
+load('Data/Dn_omega.rda')
 
 # Removing pacing patients
 pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
@@ -57,7 +57,7 @@ R = matrix( c(    .2, -.1,  .1, -.1,
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
                  2.006518, -1.688983, -0.056713,  2.044297), nrow = 2, byrow = T)
 
-omega = rep(0, 8)
+omega = c(3, -3,   -3, 3,   3, -3,   -3, 3)
 upsilon_omega = c(diag(8))
 
 # init_logit = c(0, par_means[par_index$vec_init])
@@ -111,7 +111,7 @@ rm(mcmc_out_temp)
 print(par)
 
 s_time = Sys.time()
-mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, med_format)
+mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega)
 e_time = Sys.time() - s_time; print(e_time)
 
 # save( mcmc_out, file=paste0('Model_out/post_mcmc_out_dev',ind,'_', trialNum, '.rda'))

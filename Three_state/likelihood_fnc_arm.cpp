@@ -254,12 +254,7 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   vecY_i = arma::join_vert(vecY_i, map_sub);
   vecY_i = arma::join_vert(vecY_i, lac_sub);
   
-  arma::vec vec_omega_content = W;
-  arma::vec vec_omega_ii(32, arma::fill::zeros);
-  vec_omega_ii(8) = vec_omega_content(0); vec_omega_ii(9) = vec_omega_content(1);
-  vec_omega_ii(10) = vec_omega_content(2); vec_omega_ii(11) = vec_omega_content(3);
-  vec_omega_ii(20) = vec_omega_content(4); vec_omega_ii(21) = vec_omega_content(5);
-  vec_omega_ii(22) = vec_omega_content(6); vec_omega_ii(23) = vec_omega_content(7);
+  arma::vec vec_omega_ii = W;
   
   arma::mat Dn_ii = Dn;
   arma::mat Dn_omega_ii = Dn_omega;
@@ -657,12 +652,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
     arma::mat Y_i = Y_temp.cols(1, 4);
     arma::vec vecY_i = arma::vectorise(Y_i);
     
-    arma::vec vec_omega_content = W(ii);
-    arma::vec vec_omega_ii(32, arma::fill::zeros);
-    vec_omega_ii(8) = vec_omega_content(0); vec_omega_ii(9) = vec_omega_content(1);
-    vec_omega_ii(10) = vec_omega_content(2); vec_omega_ii(11) = vec_omega_content(3);
-    vec_omega_ii(20) = vec_omega_content(4); vec_omega_ii(21) = vec_omega_content(5);
-    vec_omega_ii(22) = vec_omega_content(6); vec_omega_ii(23) = vec_omega_content(7);
+    arma::vec vec_omega_ii = W(ii);
     
     arma::mat Dn_ii = Dn(ii);
     arma::mat Dn_omega_ii = Dn_omega(ii);
@@ -725,8 +715,8 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec EIDs, const arma::ve
     
     arma::field<arma::vec> W(EIDs.n_elem);
     
-    omp_set_num_threads(16) ;
-    # pragma omp parallel for
+    // omp_set_num_threads(16) ;
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         
@@ -746,9 +736,20 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec EIDs, const arma::ve
         
         arma::mat hold = Dn_omega_ii.t() * precision;
         
+        // Rcpp::Rcout << size(vecY_i) << std::endl;
+        // Rcpp::Rcout << size(Dn_ii) << std::endl;
+        // Rcpp::Rcout << size(A(ii)) << std::endl;
+        // Rcpp::Rcout << size(Xn_ii) << std::endl;
+        // Rcpp::Rcout << size(vec_beta) << std::endl;
+        // Rcpp::Rcout << size(inv_Upsilon) << std::endl;
+        // Rcpp::Rcout << size(vec_omega_tilde) << std::endl;
+        // arma::mat temp_hold = hold*(vecY_i - Dn_ii*A(ii) - Xn_ii*vec_beta);
+        
         arma::mat V_i = hold*(vecY_i - Dn_ii*A(ii) - Xn_ii*vec_beta) + inv_Upsilon*vec_omega_tilde;
         
+        // Rcpp::Rcout << "issue2" << std::endl;
         arma::mat inv_W_i = hold * Dn_omega_ii + inv_Upsilon;
+        // Rcpp::Rcout << "issue3" << std::endl;
         arma::mat W_i = inv(inv_W_i);
         
         arma::vec mu = W_i * V_i;
@@ -954,12 +955,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 
     arma::uvec sub_ind = arma::find(eids == i);
     
-    arma::vec vec_omega_content = W(ii);
-    arma::vec vec_omega_ii(32, arma::fill::zeros);
-    vec_omega_ii(8) = vec_omega_content(0); vec_omega_ii(9) = vec_omega_content(1);
-    vec_omega_ii(10) = vec_omega_content(2); vec_omega_ii(11) = vec_omega_content(3);
-    vec_omega_ii(20) = vec_omega_content(4); vec_omega_ii(21) = vec_omega_content(5);
-    vec_omega_ii(22) = vec_omega_content(6); vec_omega_ii(23) = vec_omega_content(7);
+    arma::vec vec_omega_ii = W(ii);
 
     arma::mat Y_temp = Y.rows(sub_ind);
     arma::mat Y_i = Y_temp.cols(1, 4);
@@ -1065,12 +1061,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
         arma::vec vecY_i = arma::vectorise(Y_i);
         arma::vec vec_alpha_i = A(ii);
         
-        arma::vec vec_omega_content = W(ii);
-        arma::vec vec_omega_ii(32, arma::fill::zeros);
-        vec_omega_ii(8) = vec_omega_content(0); vec_omega_ii(9) = vec_omega_content(1);
-        vec_omega_ii(10) = vec_omega_content(2); vec_omega_ii(11) = vec_omega_content(3);
-        vec_omega_ii(20) = vec_omega_content(4); vec_omega_ii(21) = vec_omega_content(5);
-        vec_omega_ii(22) = vec_omega_content(6); vec_omega_ii(23) = vec_omega_content(7);
+        arma::vec vec_omega_ii = W(ii);
         
         arma::mat loc = Dn(ii) * vec_alpha_i + Dn_omega(ii) * vec_omega_ii + Xn(ii) * vec_beta;
         arma::mat loc_0 = loc.rows(arma::find(otype_i == 0)); // mean for unobserved data
