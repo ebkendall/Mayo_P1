@@ -32,12 +32,13 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "log(lambda): intercept (hr)", "log(lambda): slope bleeding (hr)", "log(lambda): slope recovery (hr)",
            "log(lambda): intercept (map)", "log(lambda): slope bleeding (map)", "log(lambda): slope recovery (map)",
            "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)",
-           "omega(1,1)", "omega(1,2)", "omega(2,1)", "omega(2,2)",
-           "omega(3,1)", "omega(3,2)", "omega(4,1)", "omega(5,2)") 
+           "omega_tilde(1,1)", "omega_tilde(1,2)", "omega_tilde(2,1)", "omega_tilde(2,2)",
+           "omega_tilde(3,1)", "omega_tilde(3,2)", "omega_tilde(4,1)", "omega_tilde(5,2)",
+           paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")) 
 
 
-index_seeds = c(3:5)
-trialNum = 1 # Change this everytime!!!! ****************
+index_seeds = c(1:5)
+trialNum = 2 # Change this everytime!!!! ****************
 itNum = 5
 
 load('Model_out/mcmc_out_interm_3_13it10.rda')

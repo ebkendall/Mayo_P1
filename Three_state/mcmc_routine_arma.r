@@ -51,17 +51,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   A_chain = vector(mode = "list", length = 10)
   accept = rep( 0, n_group)
   
-  # # Debugging strategy -------------------------------------------------------
-  # # id's of interest: 100950, 747025
-  # debug_info_100950 = vector(mode = "list", length = 2)
-  # debug_info_747025 = vector(mode = "list", length = 2)
-  # # The first index will be a matrix will all state updates
-  # debug_info_100950[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==100950))
-  # debug_info_747025[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==747025))
-  # # The second index will track the likelihood before, after, the proposed state, and whether it accepted
-  # debug_info_100950[[2]] = vector(mode = "list", length = 5000)
-  # debug_info_747025[[2]] = vector(mode = "list", length = 5000)
-  # # --------------------------------------------------------------------------
+  # Debugging strategy -------------------------------------------------------
+  debug_info_1 = vector(mode = "list", length = 2)
+  debug_info_2 = vector(mode = "list", length = 2)
+  # The first index will be a matrix will all state updates
+  debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==60350))
+  debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==108625))
+  # The second index will track the likelihood before, after, the proposed state, and whether it accepted
+  debug_info_1[[2]] = vector(mode = "list", length = 5000)
+  debug_info_2[[2]] = vector(mode = "list", length = 5000)
+  # --------------------------------------------------------------------------
   
   Dn = update_Dn_cpp( as.numeric(EIDs), B, Y)
   names(Dn) = EIDs
@@ -90,17 +89,17 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, W)
     names(A) = EIDs
     
-    # Gibbs updates of the omega_i
-    W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, A)
-    names(W) = EIDs
+    # # Gibbs updates of the omega_i
+    # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, A)
+    # names(W) = EIDs
     
     if(chain_ind %% A_check == 0) {
       A_chain[[chain_ind / A_check]] = A
     }
     
     # Debug information -------------------------------------------------------
-    debug_temp1 = matrix(nrow = 5, ncol = sum(Y[,'EID']==100950) - 1)
-    debug_temp2 = matrix(nrow = 5, ncol = sum(Y[,'EID']==747025) - 1)
+    debug_temp1 = matrix(nrow = 7, ncol = sum(Y[,'EID']==60350) - 1)
+    debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==108625) - 1)
     # -------------------------------------------------------
     
     # Metropolis-within-Gibbs update of the state space
@@ -109,36 +108,36 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     B = B_Dn[[1]]; names(B) = EIDs
     Dn = B_Dn[[2]]; names(Dn) = EIDs
     
-    # # Debug information -------------------------------------------------------
-    # if(ttt %% 5000 == 0) {
-    #     final_debug = list("l_100950" = debug_info_100950,
-    #                        "l_747025" = debug_info_747025)
-    #     save(final_debug, file = paste0('Model_out/final_debug',ind,'_it', ttt/5000, '_11.rda'))
+    # Debug information -------------------------------------------------------
+    if(ttt %% 5000 == 0) {
+        final_debug = list("l_1" = debug_info_1,
+                           "l_2" = debug_info_2)
+        save(final_debug, file = paste0('Model_out/final_debug',ind,'_it', ttt/5000, '_11.rda'))
         
-    #     debug_info_100950[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==100950))
-    #     debug_info_747025[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==747025))
-    #     debug_info_100950[[2]] = vector(mode = "list", length = 5000)
-    #     debug_info_747025[[2]] = vector(mode = "list", length = 5000)
-    # } else {
-    #     debug_info_100950[[1]][ttt %% 5000, ] = c(B[['100950']])
-    #     debug_info_747025[[1]][ttt %% 5000, ] = c(B[['747025']])
+        debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==60350))
+        debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==108625))
+        debug_info_1[[2]] = vector(mode = "list", length = 5000)
+        debug_info_2[[2]] = vector(mode = "list", length = 5000)
+    } else {
+        debug_info_1[[1]][ttt %% 5000, ] = c(B[['1']])
+        debug_info_2[[1]][ttt %% 5000, ] = c(B[['2']])
         
-    #     debug_info_100950[[2]][[ttt %% 5000]] = B_Dn[[3]]
-    #     y_sub = t(Y[Y[,'EID'] == 100950, c('hemo', 'hr', 'map', 'lactate')])
-    #     debug_info_100950[[2]][[ttt %% 5000]] = rbind(debug_info_100950[[2]][[ttt %% 5000]],
-    #                                                   y_sub[,-1])
+        debug_info_1[[2]][[ttt %% 5000]] = B_Dn[[3]]
+        y_sub = t(Y[Y[,'EID'] == 60350, c('hemo', 'hr', 'map', 'lactate')])
+        debug_info_1[[2]][[ttt %% 5000]] = rbind(debug_info_1[[2]][[ttt %% 5000]],
+                                                      y_sub[,-1])
         
-    #     debug_info_747025[[2]][[ttt %% 5000]] = B_Dn[[4]]
-    #     y_sub = t(Y[Y[,'EID'] == 747025, c('hemo', 'hr', 'map', 'lactate')])
-    #     debug_info_747025[[2]][[ttt %% 5000]] = rbind(debug_info_747025[[2]][[ttt %% 5000]],
-    #                                                   y_sub[,-1])
-    # }
-    # # -------------------------------------------------------
+        debug_info_2[[2]][[ttt %% 5000]] = B_Dn[[4]]
+        y_sub = t(Y[Y[,'EID'] == 108625, c('hemo', 'hr', 'map', 'lactate')])
+        debug_info_2[[2]][[ttt %% 5000]] = rbind(debug_info_2[[2]][[ttt %% 5000]],
+                                                      y_sub[,-1])
+    }
+    # -------------------------------------------------------
     
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters
     par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W)
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
-    par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
+    # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
     chain[chain_ind,] = par

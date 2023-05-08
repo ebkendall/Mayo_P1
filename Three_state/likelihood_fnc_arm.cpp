@@ -473,10 +473,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 100950) {
+      if(i == 60350) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
-      if(i == 747025) {
+      if(i == 108625) {
           l2(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       // ----------------------------------------------------------------------
@@ -518,15 +518,17 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 100950) {
+        if(i == 60350) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
+            l1(arma::span(5, 6), k) = B_temp.rows(k, k + 1);
         }
-        if(i == 747025) {
+        if(i == 108625) {
             l2(0, k) = log_target_prev;
             l2(1, k) = log_target;
             l2(4, k) = 0;
+            l1(arma::span(5, 6), k) = B_temp.rows(k, k + 1);
         }
         // ----------------------------------------------------------------------
         
@@ -539,10 +541,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 100950) {
+          if(i == 60350) {
               l1(4, k) = 1;
           }
-          if(i == 747025) {
+          if(i == 108625) {
               l2(4, k) = 1;
           }
           // ----------------------------------------------------------------------
@@ -778,16 +780,16 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
 
   // The prior mean for vec_alpha_tilde
   arma::vec vec_alpha_tilde_0 = {9.57729783, -1, 0.1,
-                                 88.69780576, 9.04150472, -2,
-                                 88.69780576, -9.04150472, 2,
+                                 88.69780576, 9.04150472, -4,
+                                 88.69780576, -9.04150472, 4,
                                  // 79.74903940, -7.42458547, 2,
                                  5.2113319, 0.5360813, -0.6866748};
 
 
   // The prior PRECISION matrix for vec_alpha_tilde
   // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-  arma::vec inv_Sigma_alpha_diag = {0.01, 0.1, 0.1,     0.01, 0.1, 0.1, 
-                                    0.01, 0.1, 0.1,     0.01, 0.1, 0.1};
+  arma::vec inv_Sigma_alpha_diag = {0.01, 0.3, 0.5,     0.01, 0.3, 0.5, 
+                                    0.01, 0.3, 0.5,     0.01, 0.3, 0.5};
   // {0.21, 12, 12,
   // 0.0043, 0.095, 0.095,
   // 0.008, 0.095, 0.095,
@@ -838,11 +840,11 @@ arma::vec update_omega_tilde_cpp( const arma::vec EIDs, arma::vec par,
     // "ii" is the index of the EID
     
     // The prior mean for vec_omega_tilde
-    arma::vec vec_omega_tilde_0 = {3, -3,   -3, 3,   3, -3,   -3, 3};
+    arma::vec vec_omega_tilde_0 = {4, -4,   -4, 4,   4, -4,   -4, 4};
     
     
     // The prior PRECISION matrix for vec_omega_tilde
-    arma::vec inv_Sigma_omega_diag = {0.1,0.1,   0.1,0.1,   0.1,0.1,   0.1,0.1};
+    arma::vec inv_Sigma_omega_diag = {0.5,0.5,   0.5,0.5,   0.5,0.5,   0.5,0.5};
  
     arma::mat inv_Sigma_omega = arma::diagmat(inv_Sigma_omega_diag);
     
@@ -1017,7 +1019,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     
     par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
     par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
-    par.elem(vec_upsilon_omega_ind - 1) = arma::vectorise(riwish(nu_upsilon_omega + n_sub, upsilon_omega_cov));
+    // par.elem(vec_upsilon_omega_ind - 1) = arma::vectorise(riwish(nu_upsilon_omega + n_sub, upsilon_omega_cov));
     par.elem(vec_R_ind - 1) = arma::vectorise(riwish(nu_R + N, R_cov));
     
     return par;

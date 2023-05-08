@@ -38,7 +38,7 @@ beta = c(0.6261, -1.3286, 1.6741, -0.1)
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
                                  -1,  9.04150472, -7.42458547,  0.5360813,
-					                      0.1,          -2,           2, -0.6866748), ncol=4, byrow=T)
+					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
 sigma_upsilon = diag(12)
 Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
@@ -84,7 +84,7 @@ W = list()
 B = list()
 for(i in EIDs){
   A[[i]] = c(alpha_tilde)
-  W[[i]] = c(omega)
+  W[[i]] = rep(0, length(omega))
   
   temp = data_format[data_format[,'EID']==as.numeric(i), ]
   b_temp = matrix( 3, sum(Y[,'EID']==as.numeric(i)), 1)
@@ -95,17 +95,17 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 2 # CHANGE THIS EVERY TIME **********************
+trialNum = 4 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
 # index_post = 8000:10000
-load('Model_out/mcmc_out_interm_3_13it10.rda')
+# load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain[index_post,])
-par_temp = colMeans(mcmc_out_temp$chain)
-rownames(par_temp) = NULL
-par[1:199] = par_temp
+# par_temp = colMeans(mcmc_out_temp$chain)
+# rownames(par_temp) = NULL
+# par[1:199] = par_temp
 
-rm(mcmc_out_temp)
+# rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print(par)
