@@ -310,8 +310,8 @@ update_invKn = function( EIDs, par, par_index, Y){
 }
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-load('Model_out/mcmc_out_interm_1_1it6.rda')
-test_fnc(colMeans(mcmc_out_temp$chain), mcmc_out_temp$par_index);
+# load('Model_out/mcmc_out_interm_1_1it6.rda')
+test_fnc(5);
 
 # EIDs = names(test_post$Dn)
 

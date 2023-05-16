@@ -28,12 +28,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # Metropolis Parameter Index for MH within Gibbs updates
   # Ordering of the transition rate parameters:
   # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-  mpi = list( c(par_index$log_theta, par_index$vec_init), 
-              c(par_index$vec_zeta[1:2]), c(par_index$vec_zeta[3:4]),
-              c(par_index$vec_zeta[5:6]), c(par_index$vec_zeta[7:8]),
-              c(par_index$log_lambda[c(1,4,7,10)]),
-              c(par_index$log_lambda[c(2,5,8,11)]),
-              c(par_index$log_lambda[c(3,6,9,12)]))
+  # mpi = list( c(par_index$log_theta, par_index$vec_init), 
+  #             c(par_index$vec_zeta[1:2]), c(par_index$vec_zeta[3:4]),
+  #             c(par_index$vec_zeta[5:6]), c(par_index$vec_zeta[7:8]),
+  #             c(par_index$log_lambda[c(1,4,7,10)]),
+  #             c(par_index$log_lambda[c(2,5,8,11)]),
+  #             c(par_index$log_lambda[c(3,6,9,12)]))
+  mpi = list(c(par_index$log_theta))
   n_group = length(mpi)
   
   # Loading an existing pcov and pscale ------------------------------
@@ -55,8 +56,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   debug_info_1 = vector(mode = "list", length = 2)
   debug_info_2 = vector(mode = "list", length = 2)
   # The first index will be a matrix will all state updates
-  debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==60350))
-  debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==108625))
+  debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==14375))
+  debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==144950))
   # The second index will track the likelihood before, after, the proposed state, and whether it accepted
   debug_info_1[[2]] = vector(mode = "list", length = 5000)
   debug_info_2[[2]] = vector(mode = "list", length = 5000)
@@ -86,8 +87,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, W)
-    names(A) = EIDs
+    # A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, W)
+    # names(A) = EIDs
     
     # # Gibbs updates of the omega_i
     # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, A)
@@ -98,8 +99,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     }
     
     # Debug information -------------------------------------------------------
-    debug_temp1 = matrix(nrow = 7, ncol = sum(Y[,'EID']==60350) - 1)
-    debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==108625) - 1)
+    debug_temp1 = matrix(nrow = 7, ncol = sum(Y[,'EID']==14375) - 1)
+    debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==144950) - 1)
     # -------------------------------------------------------
     
     # Metropolis-within-Gibbs update of the state space
@@ -112,23 +113,23 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     if(ttt %% 5000 == 0) {
         final_debug = list("l_1" = debug_info_1,
                            "l_2" = debug_info_2)
-        save(final_debug, file = paste0('Model_out/final_debug',ind,'_it', ttt/5000, '_11.rda'))
+        save(final_debug, file = paste0('Model_out/final_debug',ind, '_', trialNum, 'it', ttt/5000, '.rda'))
         
-        debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==60350))
-        debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==108625))
+        debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==14375))
+        debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==144950))
         debug_info_1[[2]] = vector(mode = "list", length = 5000)
         debug_info_2[[2]] = vector(mode = "list", length = 5000)
     } else {
-        debug_info_1[[1]][ttt %% 5000, ] = c(B[['1']])
-        debug_info_2[[1]][ttt %% 5000, ] = c(B[['2']])
+        debug_info_1[[1]][ttt %% 5000, ] = c(B[['14375']])
+        debug_info_2[[1]][ttt %% 5000, ] = c(B[['144950']])
         
         debug_info_1[[2]][[ttt %% 5000]] = B_Dn[[3]]
-        y_sub = t(Y[Y[,'EID'] == 60350, c('hemo', 'hr', 'map', 'lactate')])
+        y_sub = t(Y[Y[,'EID'] == 14375, c('hemo', 'hr', 'map', 'lactate')])
         debug_info_1[[2]][[ttt %% 5000]] = rbind(debug_info_1[[2]][[ttt %% 5000]],
                                                       y_sub[,-1])
         
         debug_info_2[[2]][[ttt %% 5000]] = B_Dn[[4]]
-        y_sub = t(Y[Y[,'EID'] == 108625, c('hemo', 'hr', 'map', 'lactate')])
+        y_sub = t(Y[Y[,'EID'] == 144950, c('hemo', 'hr', 'map', 'lactate')])
         debug_info_2[[2]][[ttt %% 5000]] = rbind(debug_info_2[[2]][[ttt %% 5000]],
                                                       y_sub[,-1])
     }
@@ -136,7 +137,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters
     par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W)
-    par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
+    # par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
@@ -155,7 +156,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       
       ind_j = mpi[[j]]
       proposal = par
-      proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+      if(length(ind_j) > 1) {
+          proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+      } else {
+          proposal[ind_j] = rnorm( n=1, mean=par[ind_j],sd=sqrt(pcov[[j]]*pscale[j]))
+      }
       
       log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W)
       
@@ -175,14 +180,26 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         # transition.  This helps with mixing.
         if(ttt == 100)  pscale[j] = 1
         
-        if(100 <= ttt & ttt <= 2000){
-          temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-          pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-          
-        } else if(2000 < ttt){
-          temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-          pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+        if (length(ind_j) > 1) {
+            if(100 <= ttt & ttt <= 2000){
+              temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+              pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+              
+            } else if(2000 < ttt){
+              temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+              pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+            }
+        } else {
+            if(100 <= ttt & ttt <= 2000){
+                temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+                pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+                
+            } else if(2000 < ttt){
+                temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+                pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+            }
         }
+        
         if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
         
         # Tune the proposal covariance for each transition to achieve

@@ -473,10 +473,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 60350) {
+      if(i == 14375) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
-      if(i == 108625) {
+      if(i == 144950) {
           l2(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       // ----------------------------------------------------------------------
@@ -518,17 +518,19 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 60350) {
+        if(i == 14375) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
-            l1(arma::span(5, 6), k) = B_temp.rows(k, k + 1);
+            l1(5, k) = B_temp(k);
+            l1(6, k) = B_temp(k+1);
         }
-        if(i == 108625) {
+        if(i == 144950) {
             l2(0, k) = log_target_prev;
             l2(1, k) = log_target;
             l2(4, k) = 0;
-            l1(arma::span(5, 6), k) = B_temp.rows(k, k + 1);
+            l2(5, k) = B_temp(k);
+            l2(6, k) = B_temp(k + 1);
         }
         // ----------------------------------------------------------------------
         
@@ -541,10 +543,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 60350) {
+          if(i == 14375) {
               l1(4, k) = 1;
           }
-          if(i == 108625) {
+          if(i == 144950) {
               l2(4, k) = 1;
           }
           // ----------------------------------------------------------------------
@@ -1017,8 +1019,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     
     arma::mat upsilon_omega_cov = Psi_omega + sum_in_Upsilon_omega;
     
-    par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
-    par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
+    // par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
+    // par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
     // par.elem(vec_upsilon_omega_ind - 1) = arma::vectorise(riwish(nu_upsilon_omega + n_sub, upsilon_omega_cov));
     par.elem(vec_R_ind - 1) = arma::vectorise(riwish(nu_R + N, R_cov));
     
@@ -1125,7 +1127,6 @@ arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::ve
     // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
     // "i" is the numeric EID number
     // "ii" is the index of the EID
-    //  ALWAYS DOUBLE CHECK THESE INDICES. WE LOSE THE NAMES FEATURE
 
     double log_theta = arma::as_scalar(par.elem(par_index(3) - 1));
     double theta = exp(log_theta);
@@ -1134,7 +1135,7 @@ arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::ve
     arma::field <arma::sp_mat> invKn(EIDs.n_elem);
     
     omp_set_num_threads(16);
-# pragma omp parallel for
+    # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {			
         int i = EIDs(ii);
         arma::uvec sub_ind = arma::find(eids == i);
@@ -1146,11 +1147,11 @@ arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::ve
         arma::vec d_1(n_i, arma::fill::ones);
         d_1 = (1+exp(-2*theta)) * d_1;
         d_1(0) = d_1(n_i-1) = 1;
-        d_1 = d_1 * 2*theta /(1 - exp(-2*theta));
+        d_1 = d_1 / (1 - exp(-2*theta));
         
         arma::vec d_2(n_i - 1, arma::fill::ones);
         d_2 = -exp(-theta) * d_2;
-        d_2 = d_2 * 2*theta /(1 - exp(-2*theta));
+        d_2 = d_2 / (1 - exp(-2*theta));
         
         int N = 3*n_i - 2;
         arma::vec values = d_1;
@@ -1169,11 +1170,6 @@ arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::ve
         arma::sp_mat invK_i(loc, values);
         
         invKn(ii) = invK_i;
-        // Recall the form of Kn[[i]]
-        // Kn[[i]] = matrix( 0, n_i, n_i)
-        // for(k in 1:n_i){
-        // 	for(l in 1:n_i)  Kn[[i]][k,l] = .5 * exp(-theta *abs(k-l)) /theta
-        // }
     }
     
     return invKn;
@@ -1182,13 +1178,11 @@ arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::ve
 
 
 // [[Rcpp::export]]
-void test_fnc(const arma::vec par,
-              const arma::field<arma::uvec> par_index,
-              arma::mat &A) {
+void test_fnc(int n_i) {
 
-    A(0,0) = -100;
-    Rcpp::Rcout << "A in the function" << std::endl;
-    Rcpp::Rcout << A << std::endl;
+    // A(0,0) = -100;
+    // Rcpp::Rcout << "A in the function" << std::endl;
+    // Rcpp::Rcout << A << std::endl;
   // Rcpp::Rcout << "Case (c) Full" << std::endl;
   // for(int w=0; w < N; w++) {
   //   Rcpp::Rcout << "() -> () -> " << w+1 << std::endl;
@@ -1288,4 +1282,43 @@ void test_fnc(const arma::vec par,
   // Rcpp::Rcout << prior_theta_val  << std::endl;
   // Rcpp::Rcout << arma::as_scalar(prior_theta) << std::endl;
 
+    double theta = 1;
+
+    arma::field<arma::vec> diagonals(2);
+
+    arma::vec d_1(n_i, arma::fill::ones);
+    d_1 = (1 + exp(-2 * theta)) * d_1;
+    d_1(0) = d_1(n_i - 1) = 1;
+    d_1 = d_1 / (1 - exp(-2 * theta));
+
+    arma::vec d_2(n_i - 1, arma::fill::ones);
+    d_2 = -exp(-theta) * d_2;
+    d_2 = d_2 / (1 - exp(-2 * theta));
+
+    int N = 3 * n_i - 2;
+    arma::vec values = d_1;
+    values = arma::join_vert(values, d_2);
+    values = arma::join_vert(values, d_2);
+
+    arma::umat loc(2, N);
+    // Setting the locations
+    for (int j = 0; j < n_i; j++)
+    {
+        loc(0, j) = j;
+        loc(1, j) = j;
+        if (j < n_i - 1)
+        {
+            loc(0, n_i + j) = j + 1;
+            loc(1, n_i + j) = j;
+            loc(0, 2 * n_i + j - 1) = j;
+            loc(1, 2 * n_i + j - 1) = j + 1;
+        }
+    }
+
+    arma::sp_mat invK_i(loc, values);
+    arma::mat dense_invK_i = arma::mat(invK_i);
+
+    Rcpp::Rcout << dense_invK_i << std::endl;
+    Rcpp::Rcout << invK_i << std::endl;
+    Rcpp::Rcout << arma::inv(dense_invK_i) << std::endl;
 }

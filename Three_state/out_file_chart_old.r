@@ -3,7 +3,7 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 2 # CHANGE EVERY TIME ******************
+trialNum = 4 # CHANGE EVERY TIME ******************
 itNum = 5
 
 Dir = 'Model_out/'
@@ -86,14 +86,14 @@ for(i in EIDs){
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 
-		abline(v = hr_up, col = 'turquoise', lwd = 1)
-		abline(v = hr_down, col = 'yellow', lwd = 1)
-		legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-			legend=c( 'Upper', 'Downer'), pch=15, pt.cex=1.5, 
-					col=c( 'turquoise', 'yellow'))	
-		legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-			legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
-					col=c( 'darkorchid2', 'deeppink'))
+		# abline(v = hr_up, col = 'turquoise', lwd = 1)
+		# abline(v = hr_down, col = 'yellow', lwd = 1)
+		# legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+		# 	legend=c( 'Upper', 'Downer'), pch=15, pt.cex=1.5, 
+		# 			col=c( 'turquoise', 'yellow'))	
+		# legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+		# 	legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
+		# 			col=c( 'darkorchid2', 'deeppink'))
 	}
 	if(simulation){
 		abline( v=to_s1, col='dodgerblue', lwd=2)
@@ -117,14 +117,14 @@ for(i in EIDs){
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 
-		abline(v = map_up, col = 'turquoise', lwd = 1)
-		abline(v = map_down, col = 'yellow', lwd = 1)
-		legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-			legend=c( 'Upper', 'Downer'), pch=15, pt.cex=1.5, 
-					col=c( 'turquoise', 'yellow'))
-		legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-			legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
-					col=c( 'darkorchid2', 'deeppink'))
+		# abline(v = map_up, col = 'turquoise', lwd = 1)
+		# abline(v = map_down, col = 'yellow', lwd = 1)
+		# legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+		# 	legend=c( 'Upper', 'Downer'), pch=15, pt.cex=1.5, 
+		# 			col=c( 'turquoise', 'yellow'))
+		# legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+		# 	legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
+		# 			col=c( 'darkorchid2', 'deeppink'))
 	}
 	if(simulation){
 		abline( v=to_s1, col='dodgerblue', lwd=2)

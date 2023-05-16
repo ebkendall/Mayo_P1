@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-steps  = 50000
+steps  = 10000
 burnin =  5000
 
 load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
@@ -95,17 +95,15 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 4 # CHANGE THIS EVERY TIME **********************
+trialNum = 6 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
-# index_post = 8000:10000
-# load('Model_out/mcmc_out_interm_3_13it10.rda')
-# par_temp = colMeans(mcmc_out_temp$chain[index_post,])
-# par_temp = colMeans(mcmc_out_temp$chain)
-# rownames(par_temp) = NULL
-# par[1:199] = par_temp
+load('Model_out/mcmc_out_interm_4_4it5.rda')
+par_temp = colMeans(mcmc_out_temp$chain)
+rownames(par_temp) = NULL
+par = par_temp
 
-# rm(mcmc_out_temp)
+rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print(par)

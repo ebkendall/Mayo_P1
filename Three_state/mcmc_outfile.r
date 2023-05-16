@@ -37,8 +37,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")) 
 
 
-index_seeds = c(1:5)
-trialNum = 2 # Change this everytime!!!! ****************
+index_seeds = c(4:5)
+trialNum = 4 # Change this everytime!!!! ****************
 itNum = 5
 
 load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -124,18 +124,18 @@ for(s in names(par_index)){
 	for(r in temp_par){
         # lab_ind = lab_ind + 1
         lab_ind = r
+        parMean = round( mean(stacked_chains[,r]), 4)
+        parMedian = round( median(stacked_chains[,r]), 4)
+        upper = quantile( stacked_chains[,r], prob=.975)
+        lower = quantile( stacked_chains[,r], prob=.025)
         # stacked_chains[,r]
 		plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
-              ylim=range(stacked_chains[,r]), xlab = "")
+              ylim=range(stacked_chains[,r]), xlab = paste0("95% CI: [", round(lower, 4),
+                                                            ", ", round(upper, 4), "]"))
               # xlab=paste0("true val: ", round(true_par[r], 4)))
             #   paste0('Accept Rat: ',toString(round( accept_rat, 4)))
 
         for(seed in 1:length(chain_list)) lines( chain_list[[seed]][,r], type='l', col=seed)
-
-		parMean = round( mean(stacked_chains[,r]), 4)
-		parMedian = round( median(stacked_chains[,r]), 4)
-		upper = quantile( stacked_chains[,r], prob=.975)
-		lower = quantile( stacked_chains[,r], prob=.025)
 
 		hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
 			  xlab=paste0('Mean =',toString(parMean),' Median =',toString(parMedian)))
