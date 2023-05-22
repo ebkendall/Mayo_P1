@@ -1282,7 +1282,7 @@ void test_fnc(int n_i) {
   // Rcpp::Rcout << prior_theta_val  << std::endl;
   // Rcpp::Rcout << arma::as_scalar(prior_theta) << std::endl;
 
-    double theta = 1;
+    double theta = 10;
 
     arma::field<arma::vec> diagonals(2);
 

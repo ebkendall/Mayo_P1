@@ -5,7 +5,7 @@ library(MASS)
 dir = 'Model_out/' # Change this everytime!!!! ****************
 
 # Size of posterior sample from mcmc chains
-n_post = 700
+n_post = 1000
 # Step number at 3ich the adaptive tuning scheme was frozen
 burnin = 0
 # Total number of steps the mcmc algorithm is computed for
@@ -37,9 +37,9 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")) 
 
 
-index_seeds = c(4:5)
-trialNum = 4 # Change this everytime!!!! ****************
-itNum = 5
+index_seeds = c(1,3:5)
+trialNum = 5 # Change this everytime!!!! ****************
+itNum = 7
 
 load('Model_out/mcmc_out_interm_3_13it10.rda')
 par_temp = colMeans(mcmc_out_temp$chain)
@@ -140,7 +140,7 @@ for(s in names(par_index)){
 		hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
 			  xlab=paste0('Mean =',toString(parMean),' Median =',toString(parMedian)))
 		abline( v=upper, col='red', lwd=2, lty=2)
-		abline( v=true_par[r], col='green', lwd=2, lty=2)
+		# abline( v=true_par[r], col='green', lwd=2, lty=2)
 		abline( v=lower, col='purple', lwd=2, lty=2)
 	}
 }
@@ -182,3 +182,22 @@ for (s in 1:4) {
 }
 
 dev.off()
+
+# Investigation into each plot -----------------------------------------------
+load('Model_out/final_debug1_6it1i.rda')
+barplot( rbind( colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 1),
+                colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 2),
+                colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 3)),
+         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+         xlab='time', xaxt='n', space=0,
+         col.main='green', border='gray')
+final_debug[["l_1"]][[2]][[1]][,136:162]
+
+load('Model_out/final_debug1_6it1g.rda')
+barplot( rbind( colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 1),
+                colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 2),
+                colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 3)),
+         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+         xlab='time', xaxt='n', space=0,
+         col.main='green', border='gray')
+final_debug[["l_2"]][[2]][[1]][,90:116]
