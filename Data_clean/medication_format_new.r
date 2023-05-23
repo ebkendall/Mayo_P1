@@ -17,6 +17,7 @@ med_select_id = rbind(med_select_id, jw18[jw18$key %in% select_id, ])
 med_select_id = rbind(med_select_id, jw19[jw19$key %in% select_id, ])
 med_select_id$administered_dtm = med_select_id$administered_dtm / 60
 med_select_id = med_select_id[!is.na(med_select_id[,1]),]
+rownames(med_select_id) = NULL
 
 # Summary Status
 all_status = unique(c(jw15$Status, jw16$Status, jw17$Status, jw18$Status, jw19$Status))
@@ -39,9 +40,10 @@ status_update[["Changed"]]  = c("Rate Change", "Anesthesia Volume Adjustment")
 # Simplifying the medication names **** DOUBLE CHECK to make sure we are labelled the correct one
 med_key = read.csv('Med_chart.csv', na.strings = "")
 colnames(med_key) = c('id', 'hr', 'map', 'onset', 'offset', 'time_check', 'X1')
+med_key$id = paste0(" ", med_key$id)
 library(stringr)
 
-med_name_simple = med_select_id$Med_Name_Desc
+med_name_simple = paste0(" ", med_select_id$Med_Name_Desc)
 hr_map = matrix(0, ncol = 2, nrow = length(med_name_simple))
 colnames(hr_map) = c("hr", "map")
 for(i in 1:nrow(med_key)) {
@@ -72,9 +74,16 @@ for(i in unique(med_select_id_sub$key)) {
     med_select_id_sub[med_select_id_sub$key == i, ] = re_ordered_sub
 }
 
-# First, make a binary matrix of when a hr or map medication is active
-#   This means anytime between "Start" and "Stop"
+# making the strength numeric
+Strength_num = as.numeric(gsub("\\D", "", med_select_id_sub$Strength))
+med_select_id_sub = cbind(med_select_id_sub, Strength_num)
+med_select_id_sub$Dose[is.na(med_select_id_sub$Dose)] = 0
+med_select_id_sub$Strength_num[is.na(med_select_id_sub$Strength_num)] = 0
 
+# Verifying that the dose * strength = 0 for "Stopped"
+print(unique(med_select_id_sub$Dose[med_select_id_sub$Status == "Stopped"]))
+
+# First, make a binary matrix of when a hr or map medication is active
 hr_med  = med_select_id_sub[med_select_id_sub$hr  != 0, ]
 map_med = med_select_id_sub[med_select_id_sub$map != 0, ] 
 
@@ -97,11 +106,25 @@ map_binary_s = matrix(0, nrow = nrow(data_format),
                      ncol = length(unique(map_single_dose$med_name_simple)))
 colnames(map_binary_s) = unique(map_single_dose$med_name_simple)
 
-# Filling in the relative dose (between 0 and 1)
 for(i in 1:ncol(hr_binary_c)) {
     for(j in unique(hr_continuous$key)) {
         sub_dat = hr_continuous[hr_continuous$key == j, , drop = F]
         med_specific = sub_dat[sub_dat$med_name_simple == colnames(hr_binary_c)[i], , drop = F]
+        doses = as.matrix(table(med_specific$Dose_Units))
+        dose_name = rownames(doses)[which.max(doses)]
+        
+        if(length(unique(med_specific$Dose_Units)) > 1) {
+            print(paste0(i, ": ", colnames(hr_binary_c)[i], " Patient: ", j))
+            print(dose_name)
+            print(unique(med_specific$Dose_Units))
+            
+            # INITIAL FIX! Come back later! ***********************************
+            # mean_dose          = mean(med_specific$Dose[med_specific$Dose_Units == dose_name])
+            # mean_dose_strength = mean(med_specific$Strength_num[med_specific$Dose_Units == dose_name])
+            # med_specific$Dose[med_specific$Dose_Units != dose_name] = mean_dose
+            # med_specific$Strength_num[med_specific$Dose_Units != dose_name] = mean_dose_strength
+            med_specific$Dose[med_specific$Dose_Units != dose_name] = 0
+        }
         
         slot = matrix(0, ncol = 2, nrow = sum(data_format[,"EID"] == j))
         slot[,1] = data_format[data_format[,"EID"] == j, "time"]
@@ -114,11 +137,11 @@ for(i in 1:ncol(hr_binary_c)) {
                     first_ind = min(which(slot[,1] >= med_specific$administered_dtm[k]))
                     if(first_ind == 1) slot[first_ind, 2] = (slot[first_ind, 1] - med_specific$administered_dtm[k]) / slot[first_ind, 1]
                     else if(first_ind < nrow(slot)) {
-                        slot[first_ind, 2] = (slot[first_ind, 1] - med_specific$administered_dtm[k]) / 
+                        slot[first_ind, 2] = (slot[first_ind, 1] - med_specific$administered_dtm[k]) /
                             (slot[first_ind, 1] - slot[first_ind-1, 1])
                     }
                     started = 1
-                    
+
                 } else if(med_specific$Status[k] %in% status_update[["Stop"]]) {
                     # med_specific$administered_dtm[k]
                     slot[slot[,1] > med_specific$administered_dtm[k], 2] = 0
@@ -126,7 +149,7 @@ for(i in 1:ncol(hr_binary_c)) {
                     if(first_ind == 1) {
                         slot[first_ind, 2] = med_specific$administered_dtm[k] / slot[first_ind, 1]
                     } else {
-                        slot[first_ind, 2] = (med_specific$administered_dtm[k] - slot[first_ind-1, 1]) / 
+                        slot[first_ind, 2] = (med_specific$administered_dtm[k] - slot[first_ind-1, 1]) /
                             (slot[first_ind, 1] - slot[first_ind - 1, 1])
                         if(started == 0) {
                             # This means we don't have a starting time associated with this end time
@@ -137,18 +160,16 @@ for(i in 1:ncol(hr_binary_c)) {
                 } else if(med_specific$Status[k] %in% status_update[["Changed"]]) {
                     # This means we are to assume that medication has carried over
                     if(started == 0) slot[,2] = 1
-                    
+
                     started = 1
                 } else if(med_specific$Status[k] %in% status_update[["Continue"]]) {
                     # This means we are to assume that medication has carried over
                     if(started == 0) slot[,2] = 1
-                    
+
                     started = 1
                 }
             }
         }
-        
-        slot
     }
 }
 
