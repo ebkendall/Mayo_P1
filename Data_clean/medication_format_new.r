@@ -106,6 +106,7 @@ map_binary_s = matrix(0, nrow = nrow(data_format),
                      ncol = length(unique(map_single_dose$med_name_simple)))
 colnames(map_binary_s) = unique(map_single_dose$med_name_simple)
 
+# Continuous: Heart Rate Medication --------------------------------------------
 for(i in 1:ncol(hr_binary_c)) {
     for(j in unique(hr_continuous$key)) {
         sub_dat = hr_continuous[hr_continuous$key == j, , drop = F]
@@ -130,49 +131,200 @@ for(i in 1:ncol(hr_binary_c)) {
         slot[,1] = data_format[data_format[,"EID"] == j, "time"]
         
         if(nrow(med_specific > 0)) {
-            started = 0
-            for(k in 1:nrow(med_specific)) {
-                if(med_specific$Status[k] %in% status_update[["Start"]]) {
-                    slot[slot[,1] >= med_specific$administered_dtm[k], 2] = 1
-                    first_ind = min(which(slot[,1] >= med_specific$administered_dtm[k]))
-                    if(first_ind == 1) slot[first_ind, 2] = (slot[first_ind, 1] - med_specific$administered_dtm[k]) / slot[first_ind, 1]
-                    else if(first_ind < nrow(slot)) {
-                        slot[first_ind, 2] = (slot[first_ind, 1] - med_specific$administered_dtm[k]) /
-                            (slot[first_ind, 1] - slot[first_ind-1, 1])
+            for (k in 1:nrow(slot)) {
+                main_effect = 0
+                if(k == 1) {
+                    # First entry
+                    sub_med = med_specific[med_specific$administered_dtm >= 0 & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
                     }
-                    started = 1
-
-                } else if(med_specific$Status[k] %in% status_update[["Stop"]]) {
-                    # med_specific$administered_dtm[k]
-                    slot[slot[,1] > med_specific$administered_dtm[k], 2] = 0
-                    first_ind = min(which(slot[,1] > med_specific$administered_dtm[k]))
-                    if(first_ind == 1) {
-                        slot[first_ind, 2] = med_specific$administered_dtm[k] / slot[first_ind, 1]
-                    } else {
-                        slot[first_ind, 2] = (med_specific$administered_dtm[k] - slot[first_ind-1, 1]) /
-                            (slot[first_ind, 1] - slot[first_ind - 1, 1])
-                        if(started == 0) {
-                            # This means we don't have a starting time associated with this end time
-                            slot[1:(first_ind - 1), 2] = 1
-                        }
+                } else {
+                    # Last entry
+                    sub_med = med_specific[med_specific$administered_dtm >= slot[k-1] & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
                     }
-                    started = 1
-                } else if(med_specific$Status[k] %in% status_update[["Changed"]]) {
-                    # This means we are to assume that medication has carried over
-                    if(started == 0) slot[,2] = 1
-
-                    started = 1
-                } else if(med_specific$Status[k] %in% status_update[["Continue"]]) {
-                    # This means we are to assume that medication has carried over
-                    if(started == 0) slot[,2] = 1
-
-                    started = 1
                 }
+                slot[k, 2] = main_effect
             }
         }
+        
+        hr_binary_c[data_format[,"EID"] == j, i] = c(slot[,2])
+        
     }
 }
 
+# Continuous: MAP Medication --------------------------------------------------
+for(i in 1:ncol(map_binary_c)) {
+    for(j in unique(map_continuous$key)) {
+        sub_dat = map_continuous[map_continuous$key == j, , drop = F]
+        med_specific = sub_dat[sub_dat$med_name_simple == colnames(map_binary_c)[i], , drop = F]
+        doses = as.matrix(table(med_specific$Dose_Units))
+        dose_name = rownames(doses)[which.max(doses)]
+        
+        if(length(unique(med_specific$Dose_Units)) > 1) {
+            print(paste0(i, ": ", colnames(map_binary_c)[i], " Patient: ", j))
+            print(dose_name)
+            print(unique(med_specific$Dose_Units))
+            
+            # INITIAL FIX! Come back later! ***********************************
+            # mean_dose          = mean(med_specific$Dose[med_specific$Dose_Units == dose_name])
+            # mean_dose_strength = mean(med_specific$Strength_num[med_specific$Dose_Units == dose_name])
+            # med_specific$Dose[med_specific$Dose_Units != dose_name] = mean_dose
+            # med_specific$Strength_num[med_specific$Dose_Units != dose_name] = mean_dose_strength
+            med_specific$Dose[med_specific$Dose_Units != dose_name] = 0
+        }
+        
+        slot = matrix(0, ncol = 2, nrow = sum(data_format[,"EID"] == j))
+        slot[,1] = data_format[data_format[,"EID"] == j, "time"]
+        
+        if(nrow(med_specific > 0)) {
+            for (k in 1:nrow(slot)) {
+                main_effect = 0
+                if(k == 1) {
+                    # First entry
+                    sub_med = med_specific[med_specific$administered_dtm >= 0 & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                } else {
+                    # Last entry
+                    sub_med = med_specific[med_specific$administered_dtm >= slot[k-1] & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                }
+                slot[k, 2] = main_effect
+            }
+        }
+        
+        map_binary_c[data_format[,"EID"] == j, i] = c(slot[,2])
+        
+    }
+}
+
+# Single Dose: Heart Rate Medication -------------------------------------------
+for(i in 1:ncol(hr_binary_s)) {
+    for(j in unique(hr_single_dose$key)) {
+        sub_dat = hr_single_dose[hr_single_dose$key == j, , drop = F]
+        med_specific = sub_dat[sub_dat$med_name_simple == colnames(hr_binary_s)[i], , drop = F]
+        doses = as.matrix(table(med_specific$Dose_Units))
+        dose_name = rownames(doses)[which.max(doses)]
+        
+        if(length(unique(med_specific$Dose_Units)) > 1) {
+            print(paste0(i, ": ", colnames(hr_binary_s)[i], " Patient: ", j))
+            print(dose_name)
+            print(unique(med_specific$Dose_Units))
+            
+            # INITIAL FIX! Come back later! ***********************************
+            # mean_dose          = mean(med_specific$Dose[med_specific$Dose_Units == dose_name])
+            # mean_dose_strength = mean(med_specific$Strength_num[med_specific$Dose_Units == dose_name])
+            # med_specific$Dose[med_specific$Dose_Units != dose_name] = mean_dose
+            # med_specific$Strength_num[med_specific$Dose_Units != dose_name] = mean_dose_strength
+            med_specific$Dose[med_specific$Dose_Units != dose_name] = 0
+        }
+        
+        slot = matrix(0, ncol = 2, nrow = sum(data_format[,"EID"] == j))
+        slot[,1] = data_format[data_format[,"EID"] == j, "time"]
+        
+        if(nrow(med_specific > 0)) {
+            for (k in 1:nrow(slot)) {
+                main_effect = 0
+                if(k == 1) {
+                    # First entry
+                    sub_med = med_specific[med_specific$administered_dtm >= 0 & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                } else {
+                    # Last entry
+                    sub_med = med_specific[med_specific$administered_dtm >= slot[k-1] & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                }
+                slot[k, 2] = main_effect
+            }
+        }
+        
+        hr_binary_s[data_format[,"EID"] == j, i] = c(slot[,2])
+        
+    }
+}
+
+# Single Dose: MAP Medication --------------------------------------------------
+for(i in 1:ncol(map_binary_s)) {
+    for(j in unique(map_single_dose$key)) {
+        sub_dat = map_single_dose[map_single_dose$key == j, , drop = F]
+        med_specific = sub_dat[sub_dat$med_name_simple == colnames(map_binary_s)[i], , drop = F]
+        doses = as.matrix(table(med_specific$Dose_Units))
+        dose_name = rownames(doses)[which.max(doses)]
+        
+        if(length(unique(med_specific$Dose_Units)) > 1) {
+            print(paste0(i, ": ", colnames(map_binary_s)[i], " Patient: ", j))
+            print(dose_name)
+            print(unique(med_specific$Dose_Units))
+            
+            # INITIAL FIX! Come back later! ***********************************
+            # mean_dose          = mean(med_specific$Dose[med_specific$Dose_Units == dose_name])
+            # mean_dose_strength = mean(med_specific$Strength_num[med_specific$Dose_Units == dose_name])
+            # med_specific$Dose[med_specific$Dose_Units != dose_name] = mean_dose
+            # med_specific$Strength_num[med_specific$Dose_Units != dose_name] = mean_dose_strength
+            med_specific$Dose[med_specific$Dose_Units != dose_name] = 0
+        }
+        
+        slot = matrix(0, ncol = 2, nrow = sum(data_format[,"EID"] == j))
+        slot[,1] = data_format[data_format[,"EID"] == j, "time"]
+        
+        if(nrow(med_specific > 0)) {
+            for (k in 1:nrow(slot)) {
+                main_effect = 0
+                if(k == 1) {
+                    # First entry
+                    sub_med = med_specific[med_specific$administered_dtm >= 0 & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                } else {
+                    # Last entry
+                    sub_med = med_specific[med_specific$administered_dtm >= slot[k-1] & med_specific$administered_dtm < slot[k], , drop = F]
+                    if(nrow(sub_med) > 0) {
+                        time_scale = c(sub_med$administered_dtm, slot[k, 1])
+                        time_scale = diff(time_scale)
+                        main_effect = time_scale * (sub_med$Dose * sub_med$Strength_num)
+                        main_effect = mean(main_effect)
+                    }
+                }
+                slot[k, 2] = main_effect
+            }
+        }
+        
+        map_binary_s[data_format[,"EID"] == j, i] = c(slot[,2])
+        
+    }
+}
 
 
 
