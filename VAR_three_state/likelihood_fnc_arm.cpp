@@ -563,7 +563,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
 }
 
 // [[Rcpp::export]]
-arma::field <arma::mat> update_Dn_cpp( const arma::vec EIDs, 
+arma::field <arma::field<arma::mat>> update_Dn_cpp( const arma::vec EIDs, 
                                        arma::field <arma::vec> B,
                                        const arma::mat Y) {
 
@@ -574,7 +574,7 @@ arma::field <arma::mat> update_Dn_cpp( const arma::vec EIDs,
   // "ii" is the index of the EID
 
   arma::vec eids = Y.col(0);
-  arma::field <arma::mat> Dn(EIDs.n_elem);
+  arma::field <arma::field<arma::mat>> Dn(EIDs.n_elem);
   
   omp_set_num_threads(16) ;
   # pragma omp parallel for
@@ -582,6 +582,8 @@ arma::field <arma::mat> update_Dn_cpp( const arma::vec EIDs,
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
     int n_i = sub_ind.n_elem;
+    
+    arma::field<arma::mat> D_i(n_i);
     
     arma::vec b_i = B(ii);
     
@@ -597,8 +599,11 @@ arma::field <arma::mat> update_Dn_cpp( const arma::vec EIDs,
     bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
     
     arma::mat I = arma::eye(4,4);
-    
-    arma::mat D_i = arma::kron(I, bigB);
+
+    for(int jj = 0; jj < n_i; jj++) {
+        arma::rowvec z_1 = bigB.row(jj);
+        D_i(jj) = arma::kron(I, z_1);
+    }
     
     Dn(ii) = D_i;
   }
@@ -1044,7 +1049,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
     // "i" is the numeric EID number
     // "ii" is the index of the EID
 
-    arma::mat newY(Y.n_rows, 4);
+    arma::mat newY(Y.n_rows, 4); 
     arma::vec eids = Y.col(0);
     
     omp_set_num_threads(14) ;
@@ -1059,12 +1064,18 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
         arma::vec vec_R = par.elem(par_index(4) - 1);
         arma::mat R = arma::reshape(vec_R, 4, 4);
         
+        arma::vec vec_A_diags = par.elem(par_index(3) - 1);
+        arma::mat A_diags = arma::reshape(vec_A_diags, 4, 3);
+        
         // Index of observed versus missing data
         // 1 = observed, 0 = missing
         arma::vec otype_i = arma::vectorise(otype.rows(sub_ind));
         arma::mat Y_temp = Y.rows(sub_ind);
         arma::mat Y_i = Y_temp.cols(1,4);
-        arma::vec vecY_i = arma::vectorise(Y_i);
+        
+        // VAR change *********************************************************
+        arma::mat Y_i_trans = Y_i.t();
+        arma::vec vecY_i = arma::vectorise(Y_i_trans); //arma::vectorise(Y_i);
         arma::vec vec_alpha_i = A(ii);
         
         arma::vec vec_omega_ii = W(ii);
@@ -1116,66 +1127,6 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
     
     Y.cols(1,4) = newY;
     return Y;
-}
-
-
-// [[Rcpp::export]]
-arma::field <arma::sp_mat> update_invKn_cpp(const arma::vec EIDs, const arma::vec par, 
-                                            const arma::field<arma::uvec> par_index,
-                                            const arma::mat Y) {
-
-    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
-    //                (6) init, (7) log_lambda, (8) omega_tilde, (9) vec_upsilon_omega
-    // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
-    // "i" is the numeric EID number
-    // "ii" is the index of the EID
-
-    double log_theta = arma::as_scalar(par.elem(par_index(3) - 1));
-    double theta = exp(log_theta);
-    arma::vec eids = Y.col(0);
-    
-    arma::field <arma::sp_mat> invKn(EIDs.n_elem);
-    
-    omp_set_num_threads(16);
-    # pragma omp parallel for
-    for (int ii = 0; ii < EIDs.n_elem; ii++) {			
-        int i = EIDs(ii);
-        arma::uvec sub_ind = arma::find(eids == i);
-        
-        int n_i = sub_ind.n_elem;
-        
-        arma::field<arma::vec> diagonals(2);
-        
-        arma::vec d_1(n_i, arma::fill::ones);
-        d_1 = (1+exp(-2*theta)) * d_1;
-        d_1(0) = d_1(n_i-1) = 1;
-        d_1 = d_1 / (1 - exp(-2*theta));
-        
-        arma::vec d_2(n_i - 1, arma::fill::ones);
-        d_2 = -exp(-theta) * d_2;
-        d_2 = d_2 / (1 - exp(-2*theta));
-        
-        int N = 3*n_i - 2;
-        arma::vec values = d_1;
-        values = arma::join_vert(values, d_2); values = arma::join_vert(values, d_2);
-        
-        arma::umat loc(2, N); 
-        // Setting the locations
-        for(int j=0; j < n_i; j++) {
-            loc(0,j) = j; loc(1,j) = j;
-            if (j < n_i - 1) {
-                loc(0,n_i+j) = j+1; loc(1,n_i+j) = j;
-                loc(0,2*n_i+j - 1) = j; loc(1,2*n_i+j - 1) = j+1;
-            }
-        }
-        
-        arma::sp_mat invK_i(loc, values);
-        
-        invKn(ii) = invK_i;
-    }
-    
-    return invKn;
-    
 }
 
 

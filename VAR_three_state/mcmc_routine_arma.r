@@ -77,10 +77,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    # Update the inverse OU covariance matrix (function of theta)
-    invKn = update_invKn_cpp( as.numeric(EIDs), par, par_index, Y)
-    names(invKn) = EIDs
-    
     Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, otype, Dn_omega, W)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
