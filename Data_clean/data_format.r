@@ -412,10 +412,6 @@ save(long_data_rd, file = "Data/long_data_rd.rda")
 save(timing_issues, file = "Data/timing_issues.rda")
 
 
-
-
-
-
 # (5) Cleaning and reorganizing ------------------------------------------------
 long_data_clean <- vector(mode = 'list', length = length(long_data_rd))
 
@@ -438,18 +434,24 @@ for (i in 1:length(long_data_clean)) {
     }
     
     # Filter out any extreme values
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] > 150), 
-                                    "resultn_map1"] = NA
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] < 25), 
-                                    "resultn_map1"] = NA
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] > 200), 
-                                    "resultn_hr1"] = NA
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] < 20), 
-                                    "resultn_hr1"] = NA
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] > 20), 
-                                    "resultn_hemo1"] = NA
-    long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] < 0), 
-                                    "resultn_hemo1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_map1"] > 150, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] > 150), 
+    #                                 "resultn_map1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_map1"] < 25, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] < 25), 
+    #                                 "resultn_map1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hr1"] > 200, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] > 200), 
+    #                                 "resultn_hr1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hr1"] < 20, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] < 20), 
+    #                                 "resultn_hr1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hemo1"] > 20, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] > 20), 
+    #                                 "resultn_hemo1"] = NA
+    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hemo1"] < 0, na.rm = T)))
+    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] < 0), 
+    #                                 "resultn_hemo1"] = NA
 }
 
 # Add number of n_labs up to that time point
@@ -471,9 +473,8 @@ for (i in 1:length(long_data_clean)) {
                            by = 15)
         }
         
-        covariates = matrix(nrow = length(time_seq), ncol = 13)
-        colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], 
-                                 "n_labs", "n_RBC", "vasopressor", "upper", "downer", "sedative")
+        covariates = matrix(nrow = length(time_seq), ncol = 9)
+        colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], "n_labs", "n_RBC")
         
         n_labs = sum(!is.na(long_data_clean[[i]]$covariates[1, c("resultn_creat1", "resultn_plate1", 
                                                                  "resultn_inr1", "resultn_hemo1", "resultn_lactate1")]))
@@ -481,8 +482,7 @@ for (i in 1:length(long_data_clean)) {
         n_RBC = sum(!is.na(long_data_clean[[i]]$covariates[1, "resultn_tranfus_rbc1"]))
         
         
-        covariates[1, ] = c(long_data_clean[[i]]$covariates[1, 1:7], n_labs, n_RBC,
-                            long_data_clean[[i]]$covariates[1, 13:16])
+        covariates[1, ] = c(long_data_clean[[i]]$covariates[1, 1:7], n_labs, n_RBC)
         covariates[ , "TIME"] = time_seq
         
         for(j in 2:length(time_seq)) {
@@ -537,25 +537,10 @@ for (i in 1:length(long_data_clean)) {
                 # n_RBC  ---------------------------------------------------------------
                 n_RBC = sum(!is.na(long_data_clean[[i]]$covariates[indices, "resultn_tranfus_rbc1"]))
                 
-                # Medication  ----------------------------------------------------------
-                if(length(indices) > 1) {
-                    meds = colSums(!is.na(long_data_clean[[i]]$covariates[indices, c("vasopressor", 
-                                                                                     "upper", 
-                                                                                     "downer",
-                                                                                     "sedative")]))
-                } else {
-                    meds = long_data_clean[[i]]$covariates[indices, c("vasopressor", 
-                                                                      "upper", 
-                                                                      "downer",
-                                                                      "sedative")]
-                }
-                
-                meds[meds==0] = NA
                 
                 covariates[j, 2:7] = c(temp, hemo, map, hr, lact, rbc)
                 covariates[j, "n_labs"] = covariates[j-1, "n_labs"] + n_labs
                 covariates[j, "n_RBC"] = covariates[j-1, "n_RBC"] + n_RBC
-                covariates[j, c("vasopressor", "upper", "downer", "sedative")] = meds
                 
             } else {
                 covariates[j, "n_labs"] = covariates[j-1, "n_labs"]
@@ -576,8 +561,7 @@ for (i in 1:length(long_data_clean)) {
     }
     
     covariates = cbind(rep(key, nrow(covariates)), covariates)
-    colnames(covariates) = c('EID', 'time', 'temp', 'hemo', 'map', 'hr', 'lactate', 'RBC', 'n_labs', 'n_RBC',
-                             "vasopressor", "upper", "downer", "sedative")
+    colnames(covariates) = c('EID', 'time', 'temp', 'hemo', 'map', 'hr', 'lactate', 'RBC', 'n_labs', 'n_RBC')
     
     long_data_agg[[i]] <- list("key" = key, "covariates" = covariates)
     
@@ -588,19 +572,14 @@ timing_issues = unique(timing_issues)
 t_i_ind = which(all_keys %in% timing_issues)
 for(i in 1:length(long_data_agg)) {
     if (i %in% t_i_ind) {
+        print("Time issue")
         long_data_agg[[i]]$time_flag = 1
     } else {
         long_data_agg[[i]]$time_flag = 0
     }
 }
 
-save(long_data_agg, file = "Data/long_data_clean3.rda")
-
-
-# (6) Add the new RBC transfusions ---------------------------------------------
-
-# (7) Add and edit the medications ---------------------------------------------
-
+save(long_data_agg, file = "Data/long_data_agg.rda")
 
 
 
