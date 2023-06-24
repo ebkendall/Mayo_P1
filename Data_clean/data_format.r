@@ -550,13 +550,11 @@ for (i in 1:length(long_data_clean)) {
         
     } else {
         if(nrow(long_data_clean[[i]]$covariates) == 0) {
-            covariates = matrix(nrow = 1, ncol = 13)
-            colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], "n_labs", "n_RBC", 
-                                     "vasopressor", "upper", "downer", "sedative")
+            covariates = matrix(nrow = 1, ncol = 9)
+            colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], "n_labs", "n_RBC")
         } else {
-            covariates = matrix(c(long_data_clean[[i]]$covariates[,1:7], rep(NA, 6)),nrow = 1, ncol = 13)
-            colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], "n_labs", "n_RBC",
-                                     "vasopressor", "upper", "downer", "sedative")
+            covariates = matrix(c(long_data_clean[[i]]$covariates[,1:7], rep(NA, 2)),nrow = 1, ncol = 9)
+            colnames(covariates) = c(colnames(long_data_clean[[i]]$covariates)[1:7], "n_labs", "n_RBC")
         }
     }
     

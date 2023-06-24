@@ -26,8 +26,12 @@ max_times[,1] = all_keys_temp
 
 for(i in 1:length(long_data_agg)) {
     if(long_data_agg[[i]]$key %in% all_keys_temp) {
-        max_times[max_times[,1] == long_data_agg[[i]]$key, 2] = 
+        if(nrow(long_data_agg[[i]]$covariates) > 1) {
+            max_times[max_times[,1] == long_data_agg[[i]]$key, 2] = 
                 max(long_data_agg[[i]]$covariates[, "time"], na.rm = T)
+        } else {
+            max_times[max_times[,1] == long_data_agg[[i]]$key, 2] = 0
+        }
     }
 }
 
@@ -208,9 +212,27 @@ for(i in unique(data_format[,'EID'])){
     data_format[data_format[,'EID'] == i, 'n_RBC_admin'] = cumsum(data_format[data_format[,'EID'] == i, 'RBC_admin'])
 }
 
+# ------------------------------------------------------------------------------
+# (4) Temporarily saving the data_format with subset of IDs --------------------
+# ------------------------------------------------------------------------------
+load('Data/curr_id.rda')
+rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
+no_rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
+clinic_rule = unique(data_format[data_format[,"clinic_rule"] != 0, "EID"])
+
+curr_id = curr_id[curr_id %in% data_format[,"EID"]]
+
+curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
+
+add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
+
+curr_id = c(curr_id, sample(add_id, 200 - length(curr_id)))
+curr_id = sort(unique(curr_id))
+data_format_sub = data_format[data_format[,"EID"] %in% curr_id, ]
+save(data_format_sub, file = 'Data/data_format_new.rda')
 
 # ------------------------------------------------------------------------------
-# (4) Filter based on level of care --------------------------------------------
+# (5) Filter based on level of care --------------------------------------------
 # ------------------------------------------------------------------------------
 
 level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
