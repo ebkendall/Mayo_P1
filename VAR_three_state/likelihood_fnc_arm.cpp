@@ -1065,8 +1065,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par, 
                           const arma::field<arma::uvec> par_index, 
                           const arma::field <arma::vec> A, arma::mat Y,
-                          arma::field <arma::field<arma::mat>> Dn, const arma::field <arma::vec> Xn, 
-                          const arma::mat otype,
+                          arma::field <arma::field<arma::mat>> Dn, 
+                          const arma::field <arma::vec> Xn, const arma::mat otype,
                           const arma::field <arma::mat> Dn_omega,
                           const arma::field <arma::vec> W) {
 
@@ -1091,6 +1091,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
         arma::vec vec_R = par.elem(par_index(4) - 1);
         // arma::mat R = arma::reshape(vec_R, 4, 4);
         arma::mat R = arma::diagmat(arma::exp(vec_R));
+        arma::mat invR = arma::inv_sympd(R);
         
         arma::vec vec_A_logit = par.elem(par_index(3) - 1);
         arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
@@ -1099,62 +1100,81 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                            exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
         arma::mat A_1 = arma::diagmat(vec_A);
         
+        arma::vec vec_coeff_gamma = { (1 - vec_A(0) * vec_A(0)) / vec_R(0),
+                                      (1 - vec_A(1) * vec_A(1)) / vec_R(1),
+                                      (1 - vec_A(2) * vec_A(2)) / vec_R(2),
+                                      (1 - vec_A(3) * vec_A(3)) / vec_R(3)};
+        arma::mat inv_Gamma = arma::diagmat(vec_coeff_gamma);
+        
+        arma::field<arma::mat> Dn_ii = Dn(ii);
+        arma::vec vec_alpha_ii = A(ii);
+        
+        arma::vec Xn_ii = Xn(ii);
+        
         // Index of observed versus missing data
         // 1 = observed, 0 = missing
         arma::vec otype_i = arma::vectorise(otype.rows(sub_ind));
         arma::mat Y_temp = Y.rows(sub_ind);
         arma::mat Y_i = Y_temp.cols(1,4);
+        Y_i = Y_i.t();
+        arma::mat Y_i_new = Y_i;
         
-        // VAR change *********************************************************
-        arma::mat Y_i_trans = Y_i.t();
-        arma::vec vecY_i = arma::vectorise(Y_i_trans); //arma::vectorise(Y_i);
-        arma::vec vec_alpha_i = A(ii);
+        for(int k = 0; k < Y_i.n_cols; k++) {
+            if(otype_i(k) == 1) {
+                Y_i_new.col(k) = Y_i.col(k);
+            } else {
+                if(k == 0) {
+                    arma::vec Xn_ii_k_vec = {Xn_ii(k), Xn_ii(k), Xn_ii(k), Xn_ii(k)};
+                    arma::mat Xn_ii_k = arma::diagmat(Xn_ii_k_vec);
+                    arma::vec Xn_ii_kp1_vec = {Xn_ii(k+1), Xn_ii(k+1), Xn_ii(k+1), Xn_ii(k+1)};
+                    arma::mat Xn_ii_kp1 = arma::diagmat(Xn_ii_kp1_vec);
+                    
+                    arma::vec nu_i_k = Dn_ii(k) * vec_alpha_ii + Xn_ii_k * vec_beta;
+                    arma::vec nu_i_kp1 = Dn_ii(k+1) * vec_alpha_ii + Xn_ii_kp1 * vec_beta;
+                    
+                    arma::mat inv_W_i = inv_Gamma + A_1.t() * invR * A_1;
+                    arma::mat W_i = inv(inv_W_i);
+                    arma::vec V_i = inv_Gamma*nu_i_k + A_1.t() * invR * (A_1*nu_i_k + Y_i_new.col(k+1) - nu_i_kp1);
+                    
+                    arma::vec y_i_mean = W_i * V_i;
+                    Y_i_new.col(k) = arma::mvnrnd(y_i_mean, W_i, 1);
+                } else if(k == Y_i.n_cols - 1) {
+                    arma::vec Xn_ii_k_vec = {Xn_ii(k), Xn_ii(k), Xn_ii(k), Xn_ii(k)};
+                    arma::mat Xn_ii_k = arma::diagmat(Xn_ii_k_vec);
+                    arma::vec Xn_ii_km1_vec = {Xn_ii(k-1), Xn_ii(k-1), Xn_ii(k-1), Xn_ii(k-1)};
+                    arma::mat Xn_ii_km1 = arma::diagmat(Xn_ii_km1_vec);
+                    
+                    arma::vec nu_i_k = Dn_ii(k) * vec_alpha_ii + Xn_ii_k * vec_beta;
+                    arma::vec nu_i_km1 = Dn_ii(k-1) * vec_alpha_ii + Xn_ii_km1 * vec_beta;
+                    
+                    arma::vec y_i_mean = nu_i_k + A_1 * (Y_i_new.col(k-1) - nu_i_km1);
+                    Y_i_new.col(k) = arma::mvnrnd(y_i_mean, R, 1);
+                } else {
+                    arma::vec Xn_ii_k_vec = {Xn_ii(k), Xn_ii(k), Xn_ii(k), Xn_ii(k)};
+                    arma::mat Xn_ii_k = arma::diagmat(Xn_ii_k_vec);
+                    arma::vec Xn_ii_kp1_vec = {Xn_ii(k+1), Xn_ii(k+1), Xn_ii(k+1), Xn_ii(k+1)};
+                    arma::mat Xn_ii_kp1 = arma::diagmat(Xn_ii_kp1_vec);
+                    arma::vec Xn_ii_km1_vec = {Xn_ii(k-1), Xn_ii(k-1), Xn_ii(k-1), Xn_ii(k-1)};
+                    arma::mat Xn_ii_km1 = arma::diagmat(Xn_ii_km1_vec);
+                    
+                    arma::vec nu_i_k = Dn_ii(k) * vec_alpha_ii + Xn_ii_k * vec_beta;
+                    arma::vec nu_i_kp1 = Dn_ii(k+1) * vec_alpha_ii + Xn_ii_kp1 * vec_beta;
+                    arma::vec nu_i_km1 = Dn_ii(k-1) * vec_alpha_ii + Xn_ii_km1 * vec_beta;
+                    
+                    arma::mat inv_W_i = invR + A_1.t() * invR * A_1;
+                    arma::mat W_i = inv(inv_W_i);
+                    
+                    arma::vec V_i = A_1.t() * invR * (Y_i_new.col(k+1) - nu_i_kp1 + A_1 * nu_i_k) +
+                                        invR * (nu_i_k + A_1 * (Y_i_new.col(k-1) - nu_i_km1));
+                    
+                    arma::vec y_i_mean = W_i * V_i;
+                    Y_i_new.col(k) = arma::mvnrnd(y_i_mean, W_i, 1);
+                }
+            }
+        }
         
-        arma::vec vec_omega_ii = W(ii);
-        
-        arma::mat loc = Dn(ii) * vec_alpha_i + Dn_omega(ii) * vec_omega_ii + Xn(ii) * vec_beta;
-        arma::mat loc_0 = loc.rows(arma::find(otype_i == 0)); // mean for unobserved data
-        arma::mat loc_1 = loc.rows(arma::find(otype_i == 1)); // mean for observed data
-
-        arma::mat inv_R = arma::inv_sympd(R);
-        arma::sp_mat inv_R_fill = arma::sp_mat(inv_R);
-        arma::sp_mat precision = arma::kron(inv_R_fill, invKn(ii));
-        
-        arma::mat prec_0(precision.cols(arma::find(otype_i == 0)));
-        arma::mat prec_1(precision.cols(arma::find(otype_i == 1)));
-        arma::mat cond_prec = prec_0.rows(arma::find(otype_i == 0));
-        arma::mat block_12 = prec_1.rows(arma::find(otype_i == 0));
-        
-        arma::mat dev = vecY_i.rows(arma::find(otype_i == 1)) - loc_1;
-        
-        // Largest computational burden right here!!!!!! ********************   
-        // 1)
-        arma::mat L = arma::chol(cond_prec, "lower");  // MAKE SPARSE
-        // arma::sp_mat L = arma::sp_mat(L_temp);
-        
-        // 2)
-        arma::vec b = cond_prec * loc_0 - block_12 * dev; // DOUBLE CHECK!
-        // arma::vec w = arma::spsolve(L, b, "lapack");
-        arma::vec w = arma::solve(arma::trimatl(L), b);
-        
-        // 3)
-        // arma::mat mu_cond = arma::spsolve(L.t(), w, "lapack");
-        arma::mat mu_cond = arma::solve(arma::trimatu(L.t()), w);
-        
-        // 4)
-        arma::vec zz_mu = arma::vec(loc_0.n_elem, arma::fill::zeros);
-        arma::vec zz = arma::mvnrnd(zz_mu, arma::eye(zz_mu.n_elem, zz_mu.n_elem), 1);
-        
-        // 5) 
-        // arma::vec v = arma::spsolve(L.t(), zz, "lapack");
-        arma::vec v = arma::solve(arma::trimatu(L.t()), zz);
-        
-        // 6) 
-        arma::vec xx = mu_cond + v;
-        vecY_i.elem(arma::find(otype_i == 0)) = xx;
-
-        arma::mat new_Y_i = arma::reshape(vecY_i, sub_ind.n_elem, 4);
-        newY.rows(sub_ind) = new_Y_i;
+        Y_i_new = Y_i_new.t();
+        newY.rows(sub_ind) = Y_i_new;
     }
     
     Y.cols(1,4) = newY;
