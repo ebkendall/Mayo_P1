@@ -22,7 +22,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   otype = !is.na(Y[, c('hemo','hr','map','lactate')])
   colnames(otype) = c('hemo','hr','map','lactate')
   
-  # Update the Xn with VAR update
+  # Update the Xn (*** VAR UPDATED ***)
   Xn = list()
   for(i in EIDs)  Xn[[i]] = x[ Y[,'EID']==as.numeric(i),, drop=F]
   
@@ -63,7 +63,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # debug_info_2[[2]] = vector(mode = "list", length = 5000)
   # # --------------------------------------------------------------------------
   
-  Dn = update_Dn_cpp( as.numeric(EIDs), B, Y) # *** VAR UPDATED ***
+  # (*** VAR UPDATED ***)
+  Dn = update_Dn_cpp( as.numeric(EIDs), B, Y)
   names(Dn) = EIDs
   
   # Dn_omega = list()
@@ -79,15 +80,15 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, otype, Dn_omega, W)
+    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
-    # Gibbs updates of the alpha_i
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, W) # *** VAR UPDATED ***
+    # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W) 
     names(A) = EIDs
     
     # # Gibbs updates of the omega_i
-    # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, invKn, Dn_omega, A)
+    # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A)
     # names(W) = EIDs
     
     if(chain_ind %% A_check == 0) {
@@ -99,8 +100,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==144950) - 1)
     # -------------------------------------------------------
     
-    # Metropolis-within-Gibbs update of the state space
-    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W,
+    # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
+    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
                           debug_temp1, debug_temp2)
     B = B_Dn[[1]]; names(B) = EIDs
     Dn = B_Dn[[2]]; names(Dn) = EIDs
@@ -131,8 +132,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # }
     # -------------------------------------------------------
     
-    # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters
-    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, invKn, Dn_omega, W)
+    # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
+    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W)
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
@@ -158,9 +159,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           proposal[ind_j] = rnorm( n=1, mean=par[ind_j],sd=sqrt(pcov[[j]]*pscale[j]))
       }
 
-      log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W)
+      log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
 
-      log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, invKn, Dn_omega, W)
+      log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
       if( log_target - log_target_prev > log(runif(1,0,1)) ){
         log_target_prev = log_target
         par[ind_j] = proposal[ind_j]
