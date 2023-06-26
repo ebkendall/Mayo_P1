@@ -79,10 +79,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # Thinning the saved chain index
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
-    
+    print('checkpoint1')
     Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
+    print('checkpoint2')
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
     A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W) 
     names(A) = EIDs
@@ -100,6 +101,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==144950) - 1)
     # -------------------------------------------------------
     
+    print('checkpoint3')
     # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
     B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
                           debug_temp1, debug_temp2)
@@ -132,8 +134,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # }
     # -------------------------------------------------------
     
+    print('checkpoint4')
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
     par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W)
+    print('checkpoint5')
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
@@ -148,6 +152,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # save(test_post, file = "test_post_24.rda")
     # return(0);
     
+    print('checkpoint6')
     # Metropolis-within-Gibbs update of the theta and zeta parameters
     for(j in 1:n_group) {
 

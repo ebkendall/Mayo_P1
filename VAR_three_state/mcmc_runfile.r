@@ -30,7 +30,8 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
 sigma_upsilon = diag(12)
-Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
+# Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
+Lambda = diag(rep(1, 12))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 # columns correspond to the different states
@@ -70,9 +71,11 @@ par_index$vec_upsilon_omega = 199:262
 A = list()
 W = list()
 B = list()
+Dn_omega = list()
 for(i in EIDs){
   A[[i]] = c(alpha_tilde)
   W[[i]] = rep(0, length(omega))
+  Dn_omega[[i]] = diag(4)
   
   temp = data_format[data_format[,'EID']==as.numeric(i), ]
   b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
@@ -94,8 +97,6 @@ trialNum = 1 # CHANGE THIS EVERY TIME **********************
 # par[par_index$vec_R] = par[par_index$vec_R] * 25
 # rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
-
-print(par)
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega)
