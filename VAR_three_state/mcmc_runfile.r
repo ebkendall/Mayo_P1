@@ -30,18 +30,18 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
 sigma_upsilon = diag(12)
-# Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
-Lambda = diag(rep(1, 12))
+Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
+# Lambda = diag(rep(1, 12))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 # columns correspond to the different states
 # Each column corresponds to a different state
 # vec_A = matrix( 0 , nrow = 4, ncol = 3) 
-vec_A = rep(0, 4)
+vec_A = rep(-5, 4)
 
 # columns: hemo, hr, map, lactate
 # diagonal elements only (because R is a diagonal matrix)
-R = rep(2, 4)
+R = rep(1, 4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
@@ -50,7 +50,7 @@ zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
 omega = c(3, -3,   -3, 3,   3, -3,   -3, 3)
 upsilon_omega = c(diag(8))
 
-init_logit = c(-5,0.5)
+init_logit = c(-5,-5)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), log(R), c(zeta), 
