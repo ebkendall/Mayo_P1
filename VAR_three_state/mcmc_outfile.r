@@ -12,6 +12,16 @@ burnin = 0
 steps = 1000
 # Matrix row indices for the posterior sample to use for GFF computation
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
+# par_index$vec_beta = 1:4
+# par_index$vec_alpha_tilde = 5:16
+# par_index$vec_sigma_upsilon = 17:160
+# par_index$vec_logit_A = 161:164
+# par_index$vec_R = 165:168
+# par_index$vec_zeta = 169:176
+# par_index$vec_init = 177:178
+# par_index$log_lambda = 179:190
+# par_index$omega_tilde = 191:198
+# par_index$vec_upsilon_omega = 199:262
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -19,11 +29,13 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (hr)", "slope bleeding (hr)", "slope recovery (hr)",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
-           paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), "log theta",
-           "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
-           "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
-           "Cov(map, hemo)", "Cov(map, hr)", "Var(map)", "Cov(map, lact)",
-           "Cov(lact, hemo)", "Cov(lact, hr)", "Cov(lact, map)", "Var(lact)",
+           paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
+           "logit A1", "logit A2", "logit A3", "logit A4",
+           "log Var(hemo)", "log Var(hr)", "log Var(map)", "log Var(lact)",
+        #    "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
+        #    "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
+        #    "Cov(map, hemo)", "Cov(map, hr)", "Var(map)", "Cov(map, lact)",
+        #    "Cov(lact, hemo)", "Cov(lact, hr)", "Cov(lact, map)", "Var(lact)",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
         #    "intercept: S1 --> S2", "intercept: S2 --> S3",  "intercept: S3 --> S1", "intercept: S3 --> S2",
@@ -37,15 +49,15 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")) 
 
 
-index_seeds = c(1,3:5)
-trialNum = 5 # Change this everytime!!!! ****************
-itNum = 7
+index_seeds = c(1:3)
+trialNum = 1 # Change this everytime!!!! ****************
+itNum = 2
 
-load('Model_out/mcmc_out_interm_3_13it10.rda')
-par_temp = colMeans(mcmc_out_temp$chain)
-rownames(par_temp) = NULL
-# true_par = NULL
-true_par = c(par_temp, rep(0,8))
+# load('Model_out/mcmc_out_interm_3_13it10.rda')
+# par_temp = colMeans(mcmc_out_temp$chain)
+# rownames(par_temp) = NULL
+true_par = NULL
+# true_par = c(par_temp, rep(0,8))
 
 # Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
 # Lambda = diag(exp(true_par[par_index$log_lambda]))
@@ -55,7 +67,7 @@ true_par = c(par_temp, rep(0,8))
 par_index = NULL
 accept_rat = rep(NA, length(index_seeds))
 
-n_subjects = 177
+n_subjects = 200
 chain_base = chain_bleed = chain_recov = 
     chain_NBE = chain_l_recov = vector(mode = 'list', length = 4)
 
@@ -184,20 +196,20 @@ for (s in 1:4) {
 dev.off()
 
 # Investigation into each plot -----------------------------------------------
-load('Model_out/final_debug1_6it1i.rda')
-barplot( rbind( colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 1),
-                colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 2),
-                colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 3)),
-         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-         xlab='time', xaxt='n', space=0,
-         col.main='green', border='gray')
-final_debug[["l_1"]][[2]][[1]][,136:162]
+# load('Model_out/final_debug1_6it1i.rda')
+# barplot( rbind( colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 1),
+#                 colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 2),
+#                 colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 3)),
+#          col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+#          xlab='time', xaxt='n', space=0,
+#          col.main='green', border='gray')
+# final_debug[["l_1"]][[2]][[1]][,136:162]
 
-load('Model_out/final_debug1_6it1g.rda')
-barplot( rbind( colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 1),
-                colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 2),
-                colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 3)),
-         col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-         xlab='time', xaxt='n', space=0,
-         col.main='green', border='gray')
-final_debug[["l_2"]][[2]][[1]][,90:116]
+# load('Model_out/final_debug1_6it1g.rda')
+# barplot( rbind( colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 1),
+#                 colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 2),
+#                 colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 3)),
+#          col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
+#          xlab='time', xaxt='n', space=0,
+#          col.main='green', border='gray')
+# final_debug[["l_2"]][[2]][[1]][,90:116]

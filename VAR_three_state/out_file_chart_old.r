@@ -3,8 +3,8 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 5 # CHANGE EVERY TIME ******************
-itNum = 7
+trialNum = 1 # CHANGE EVERY TIME ******************
+itNum = 2
 
 Dir = 'Model_out/'
 
@@ -16,13 +16,7 @@ mcmc_out_temp$hc_chain = mcmc_out_temp$hc_chain[300:1000, ]
 mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 
 simulation=F
-load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
-pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
-            382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
-            769025, 777175, 794900, 799125, 819225)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-data_format[which(data_format[,"EID"] == 100950)[15:18], 'map'] = 51
-data_format[which(data_format[,"EID"] == 100950)[18], 'hemo'] = 6
+load('Data/data_format_new.rda')
 use_data = data_format
 
 load('Data/clean_meds.rda')

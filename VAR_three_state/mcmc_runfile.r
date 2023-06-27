@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-steps  = 20000
+steps  = 30000
 burnin =  5000
 
 load('Data/data_format_new.rda')
@@ -37,7 +37,7 @@ Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 # columns correspond to the different states
 # Each column corresponds to a different state
 # vec_A = matrix( 0 , nrow = 4, ncol = 3) 
-vec_A = rep(-5, 4)
+vec_A = rep(2.3, 4)
 
 # columns: hemo, hr, map, lactate
 # diagonal elements only (because R is a diagonal matrix)
@@ -86,7 +86,7 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 1 # CHANGE THIS EVERY TIME **********************
+trialNum = 2 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
 # load('Model_out/mcmc_out_interm_1_5it7.rda')
