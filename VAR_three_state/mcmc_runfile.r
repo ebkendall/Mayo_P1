@@ -86,16 +86,16 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 2 # CHANGE THIS EVERY TIME **********************
+trialNum = 4 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
-# load('Model_out/mcmc_out_interm_1_5it7.rda')
+# load('Model_out/mcmc_out_interm_2_2it3.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
 # rownames(par_temp) = NULL
 # par = par_temp
 # par[par_index$log_theta] = 9
 # par[par_index$vec_R] = par[par_index$vec_R] * 25
-# rm(mcmc_out_temp)
+# rm(mcmc_out_temp) 
 # -----------------------------------------------------------------------------
 
 s_time = Sys.time()

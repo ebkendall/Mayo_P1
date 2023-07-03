@@ -3,8 +3,8 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 1 # CHANGE EVERY TIME ******************
-itNum = 2
+trialNum = 4 # CHANGE EVERY TIME ******************
+itNum = 3
 
 Dir = 'Model_out/'
 
@@ -19,8 +19,13 @@ simulation=F
 load('Data/data_format_new.rda')
 use_data = data_format
 
-load('Data/clean_meds.rda')
+# load('Data/clean_meds.rda')
 # load(paste0('../Data/Debug/use_data', 1, '_7.rda'))
+load('Data/care_time_df.rda')
+care_time_df = cbind(care_time_df, 'green')
+care_time_df[care_time_df[,3] == "Intensive Care", 4] = 'red'
+
+level_of_care = read.csv('../Data_clean/Data/_raw_data_new/jw_patient_level_of_care.csv')
 
 EIDs = unique(use_data[,'EID'])
 
@@ -56,8 +61,10 @@ for(i in EIDs){
 	map_up    = med_df$time[med_df$map == 1] / 60
 	map_down  = med_df$time[med_df$map == -1] / 60
 	
+	care_time_df_i = care_time_df[care_time_df[,1] == i, 4]
+	
 	# true_state = use_data[ indices_i, 'b_true']
-	b_i_check = use_data[ indices_i,'clinic_rule']
+	b_i_check = use_data[ indices_i,'RBC_rule']
 	if(simulation){
 		b_i = use_data[ indices_i,'b_true']
 		to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
@@ -72,13 +79,14 @@ for(i in EIDs){
 		hr_lower = colQuantiles( mcmc_out_temp$hr_chain[, indices_i, drop=F], probs=.025)
 	
 		plotCI( x = t_grid, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), ui=hr_upper, li=hr_lower,
-				main=paste0('Bleeding Clinic Rule: ', b_i_check[1], '\n',
+				main=paste0('Bleeding RBC Rule: ', b_i_check[1], '\n',
 				'heart rate: ', i), xlab='time', ylab=NA, xaxt='n', col.main='green',
 						col.axis='green', pch=20, cex=1, sfrac=.0025)
 		grid( nx=20, NULL, col='white')
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		points(x = t_grid, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), col = care_time_df_i)
 
 		# abline(v = hr_up, col = 'turquoise', lwd = 1)
 		# abline(v = hr_down, col = 'yellow', lwd = 1)
@@ -110,6 +118,7 @@ for(i in EIDs){
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		points(x = t_grid, y = colMeans(mcmc_out_temp$bp_chain[, indices_i, drop=F]), col = care_time_df_i)
 
 		# abline(v = map_up, col = 'turquoise', lwd = 1)
 		# abline(v = map_down, col = 'yellow', lwd = 1)
@@ -141,6 +150,7 @@ for(i in EIDs){
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		points(x = t_grid, y = colMeans(mcmc_out_temp$hc_chain[, indices_i, drop=F]), col = care_time_df_i)
 	}
 	if(simulation){
 		abline( v=to_s1, col='dodgerblue', lwd=2)
@@ -163,6 +173,7 @@ for(i in EIDs){
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		points(x = t_grid, y = colMeans(mcmc_out_temp$la_chain[, indices_i, drop=F]), col = care_time_df_i)
 	}
 	if(simulation){
 		abline( v=to_s1, col='dodgerblue', lwd=2)

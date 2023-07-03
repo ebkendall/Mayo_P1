@@ -50,8 +50,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
 
 
 index_seeds = c(1:3)
-trialNum = 1 # Change this everytime!!!! ****************
-itNum = 2
+trialNum = 4 # Change this everytime!!!! ****************
+itNum = 3
 
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)

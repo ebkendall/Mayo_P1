@@ -665,8 +665,8 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
 
   arma::field<arma::vec> A(EIDs.n_elem);
   
-  omp_set_num_threads(16) ;
-  # pragma omp parallel for
+  // omp_set_num_threads(16) ;
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
       int i = EIDs(ii);
 
@@ -956,14 +956,14 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
     // The prior info for sigma_upsilon ----------------------------------------
-    int nu_Upsilon = 13;
-    // int nu_Upsilon = EIDs.n_elem;
-    // nu_Upsilon = nu_Upsilon * 10;
+    // int nu_Upsilon = 13;
+    int nu_Upsilon = EIDs.n_elem;
+    nu_Upsilon = nu_Upsilon * 10;
 
     // The prior scale matrix for sigma_upsilon
-    arma::vec scalar_mult2(12, arma::fill::ones);
-    // arma::vec scalar_mult2 = {4, 0.01, 0.01, 9, 0.01, 0.01, 16, 0.0625, 0.0625, 4, 0.01, 0.01};
-    // scalar_mult2 = scalar_mult2 * nu_Upsilon;
+    // arma::vec scalar_mult2(12, arma::fill::ones);
+    arma::vec scalar_mult2 = {4, 0.01, 0.01, 9, 0.01, 0.01, 16, 0.0625, 0.0625, 4, 0.01, 0.01};
+    scalar_mult2 = scalar_mult2 * nu_Upsilon;
     arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
 
     // Calculating the inverse of Lambda
@@ -1062,7 +1062,6 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 
     arma::mat Upsilon_cov = Psi_Upsilon + inv_Lambda * sum_in_Upsilon_cov * inv_Lambda;
 
-    int N = Y.n_cols;
     int n_sub = EIDs.n_elem;
     
     // arma::mat upsilon_omega_cov = Psi_omega + sum_in_Upsilon_omega;
@@ -1152,11 +1151,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                     arma::vec nu_i_k = Dn_ii(k) * vec_alpha_ii + Xn_ii_k * vec_beta;
                     arma::vec nu_i_kp1 = Dn_ii(k+1) * vec_alpha_ii + Xn_ii_kp1 * vec_beta;
                     
-                    // making up values if not there
-                    arma::uvec ind_replace_kp1 = arma::find(otype_i.col(k+1) == 0);
-                    arma::vec y_gen_kp1 = arma::mvnrnd(nu_i_kp1, Gamma, 1);
                     arma::vec y_val_kp1 = Y_i_new.col(k+1);
-                    y_val_kp1.elem(ind_replace_kp1) = y_gen_kp1.elem(ind_replace_kp1);
 
                     arma::mat inv_W_i = inv_Gamma + A_1.t() * invR * A_1;
                     arma::mat W_i = inv(inv_W_i);
@@ -1179,11 +1174,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                     arma::vec nu_i_k = Dn_ii(k) * vec_alpha_ii + Xn_ii_k * vec_beta;
                     arma::vec nu_i_km1 = Dn_ii(k-1) * vec_alpha_ii + Xn_ii_km1 * vec_beta;
                     
-                    // making up values if not there
-                    arma::uvec ind_replace_km1 = arma::find(otype_i.col(k-1) == 0);
-                    arma::vec y_gen_km1 = arma::mvnrnd(nu_i_km1, Gamma, 1);
                     arma::vec y_val_km1 = Y_i_new.col(k-1);
-                    y_val_km1.elem(ind_replace_km1) = y_gen_km1.elem(ind_replace_km1);
 
                     arma::vec y_i_mean = nu_i_k + A_1 * (y_val_km1 - nu_i_km1);
 
@@ -1205,16 +1196,8 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                     arma::vec nu_i_kp1 = Dn_ii(k+1) * vec_alpha_ii + Xn_ii_kp1 * vec_beta;
                     arma::vec nu_i_km1 = Dn_ii(k-1) * vec_alpha_ii + Xn_ii_km1 * vec_beta;
                     
-                    // making up values if not there
-                    arma::uvec ind_replace_km1 = arma::find(otype_i.col(k-1) == 0);
-                    arma::vec y_gen_km1 = arma::mvnrnd(nu_i_km1, Gamma, 1);
                     arma::vec y_val_km1 = Y_i_new.col(k-1);
-                    y_val_km1.elem(ind_replace_km1) = y_gen_km1.elem(ind_replace_km1);
-                    arma::uvec ind_replace_kp1 = arma::find(otype_i.col(k+1) == 0);
-                    arma::vec y_gen_kp1 = arma::mvnrnd(nu_i_kp1, Gamma, 1);
                     arma::vec y_val_kp1 = Y_i_new.col(k+1);
-                    y_val_kp1.elem(ind_replace_kp1) = y_gen_kp1.elem(ind_replace_kp1);
-                    
 
                     arma::mat inv_W_i = invR + A_1.t() * invR * A_1;
                     arma::mat W_i = inv(inv_W_i);
