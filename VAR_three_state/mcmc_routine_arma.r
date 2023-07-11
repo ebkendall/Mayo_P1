@@ -21,40 +21,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # 1 = observed, 0 = missing
   otype = !is.na(Y[, c('hemo','hr','map','lactate')])
   colnames(otype) = c('hemo','hr','map','lactate')
-
-  # Setting initial values for Y
-  print("Initializing the missing Y's for imputation")
-  for(i in EIDs) {
-      heading_names = c('hemo','hr','map','lactate')
-      sub_dat = Y[Y[,"EID"] == i, ]
-      
-      for(k in 1:length(heading_names)) {
-          # hemo interpolation
-          if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
-              sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
-          } else {
-              if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
-                  sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
-              } else {
-                  obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
-                  miss_indices = which(is.na(sub_dat[,heading_names[k]]))
-                  for(j in miss_indices) {
-                      if(j < obs_indices[1]) {
-                          sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
-                      } else if(j > tail(obs_indices,1)) {
-                          sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
-                      } else {
-                          end_pts = c(max(obs_indices[obs_indices < j]), 
-                                      min(obs_indices[obs_indices > j]))
-                          slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
-                          sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
-                      }
-                  }
-              }
-          }
-          Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
-      }
-  }
   
   # Update the Xn (*** VAR UPDATED ***)
   Xn = list()
@@ -72,12 +38,25 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   n_group = length(mpi)
   
   # Loading an existing pcov and pscale ------------------------------
-  # load('Model_out/mcmc_out_interm_3_12it5.rda')
+  load('Model_out/mcmc_out_interm_2_5it3.rda')
   # pcov = mcmc_out_temp$pcov
   # pscale = mcmc_out_temp$pscale
-  # rm(mcmc_out_temp)
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(mpi[[j]]))*.001
   pscale = rep( 1, n_group)
+
+  load('Data/data_format_new.rda')
+  pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+              417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+              732525, 758025, 763050, 843000)
+  new_ind = which(!(data_format[,'EID'] %in% pace_id))
+  rm(data_format)
+
+  # Setting initial values for Y
+  Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, new_ind])
+  Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, new_ind])
+  Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, new_ind])
+  Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, new_ind])
+  rm(mcmc_out_temp)
   
   # Begin the MCMC algorithm -------------------------------------------------
   chain_length_MASTER = 1001
@@ -116,11 +95,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     
     # print(diag(exp(par[par_index$vec_R])))
     # print(diag(exp(par[par_index$vec_logit_A]) / (1+exp(par[par_index$vec_logit_A]))))
-    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W)
+    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W)
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
     names(A) = EIDs
     
     # # Gibbs updates of the omega_i
@@ -169,7 +148,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # -------------------------------------------------------
 
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
-    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W)
+    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)
     par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     

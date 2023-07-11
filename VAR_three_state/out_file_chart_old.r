@@ -3,7 +3,7 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 4 # CHANGE EVERY TIME ******************
+trialNum = 6 # CHANGE EVERY TIME ******************
 itNum = 3
 
 Dir = 'Model_out/'
@@ -17,9 +17,13 @@ mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 
 simulation=F
 load('Data/data_format_new.rda')
+pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+            732525, 758025, 763050, 843000)
+data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 use_data = data_format
 
-# load('Data/clean_meds.rda')
+load('Data/clean_meds.rda')
 # load(paste0('../Data/Debug/use_data', 1, '_7.rda'))
 load('Data/care_time_df.rda')
 care_time_df = cbind(care_time_df, 'green')

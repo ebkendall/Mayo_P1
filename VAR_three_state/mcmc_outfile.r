@@ -30,7 +30,9 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
            paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
-           "logit A1", "logit A2", "logit A3", "logit A4",
+           "logit A1 (baseline)", "logit A2 (baseline)", "logit A3 (baseline)", "logit A4 (baseline)",
+           "logit A1 (bleed)", "logit A2 (bleed)", "logit A3 (bleed)", "logit A4 (bleed)",
+           "logit A1 (recovery)", "logit A2 (recovery)", "logit A3 (recovery)", "logit A4 (recovery)",
            "log Var(hemo)", "log Var(hr)", "log Var(map)", "log Var(lact)",
         #    "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
         #    "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
@@ -49,8 +51,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")) 
 
 
-index_seeds = c(1:3)
-trialNum = 4 # Change this everytime!!!! ****************
+index_seeds = c(1:5)
+trialNum = 6 # Change this everytime!!!! ****************
 itNum = 3
 
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -67,7 +69,13 @@ true_par = NULL
 par_index = NULL
 accept_rat = rep(NA, length(index_seeds))
 
-n_subjects = 200
+load('Data/data_format_new.rda')
+pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+            732525, 758025, 763050, 843000)
+data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+n_subjects = length(unique(data_format[,'EID']))
+
 chain_base = chain_bleed = chain_recov = 
     chain_NBE = chain_l_recov = vector(mode = 'list', length = 4)
 

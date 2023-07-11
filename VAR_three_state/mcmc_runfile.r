@@ -10,6 +10,10 @@ steps  = 30000
 burnin =  5000
 
 load('Data/data_format_new.rda')
+pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+            732525, 758025, 763050, 843000)
+data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 # load('Data/Dn_omega.rda')
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -36,12 +40,12 @@ Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 # columns correspond to the different states
 # Each column corresponds to a different state
-# vec_A = matrix( 0 , nrow = 4, ncol = 3) 
-vec_A = rep(2.3, 4)
+vec_A = matrix( 2.3 , nrow = 4, ncol = 3) 
+# vec_A = rep(2.3, 4)
 
 # columns: hemo, hr, map, lactate
 # diagonal elements only (because R is a diagonal matrix)
-R = rep(1, 4)
+R = diag(1, 4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
@@ -53,19 +57,19 @@ upsilon_omega = c(diag(8))
 init_logit = c(-5,-5)
 init_logit = exp(init_logit)
 
-par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), log(R), c(zeta), 
+par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
         log(init_logit), log(diag(Lambda)), omega, upsilon_omega)
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
 par_index$vec_sigma_upsilon = 17:160
-par_index$vec_logit_A = 161:164
-par_index$vec_R = 165:168
-par_index$vec_zeta = 169:176
-par_index$vec_init = 177:178
-par_index$log_lambda = 179:190
-par_index$omega_tilde = 191:198
-par_index$vec_upsilon_omega = 199:262
+par_index$vec_logit_A = 161:172
+par_index$vec_R = 173:188
+par_index$vec_zeta = 189:196
+par_index$vec_init = 197:198
+par_index$log_lambda = 199:210
+par_index$omega_tilde = 211:218
+par_index$vec_upsilon_omega = 219:282
 # -----------------------------------------------------------------------------
 
 A = list()
@@ -86,16 +90,17 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 4 # CHANGE THIS EVERY TIME **********************
+trialNum = 7 # CHANGE THIS EVERY TIME **********************
 
 # -----------------------------------------------------------------------------
-# load('Model_out/mcmc_out_interm_2_2it3.rda')
-# par_temp = colMeans(mcmc_out_temp$chain)
-# rownames(par_temp) = NULL
-# par = par_temp
-# par[par_index$log_theta] = 9
-# par[par_index$vec_R] = par[par_index$vec_R] * 25
-# rm(mcmc_out_temp) 
+load('Model_out/mcmc_out_interm_5_6it3.rda')
+par_temp = colMeans(mcmc_out_temp$chain)
+rownames(par_temp) = NULL
+par[1:172] = par_temp[1:172]
+par[189:282] = par_temp[177:270]
+rm(mcmc_out_temp) 
+# adjust for R
+
 # -----------------------------------------------------------------------------
 
 s_time = Sys.time()
