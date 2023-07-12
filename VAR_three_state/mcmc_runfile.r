@@ -6,14 +6,25 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
+simulation = T
+
 steps  = 30000
 burnin =  5000
 
-load('Data/data_format_new.rda')
-pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-            732525, 758025, 763050, 843000)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+data_format = NULL
+if(simulation) {
+  load('Data/use_data1_1.rda')
+  data_format = use_data
+  trialNum = 1
+} else {
+  load('Data/data_format_new.rda')
+  pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+              417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+              732525, 758025, 763050, 843000)
+  data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+  trialNum = 7 # CHANGE THIS EVERY TIME **********************
+}
+
 # load('Data/Dn_omega.rda')
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -90,19 +101,20 @@ for(i in EIDs){
   B[[i]] = b_temp
 }
 
-trialNum = 7 # CHANGE THIS EVERY TIME **********************
-
 # -----------------------------------------------------------------------------
-load('Model_out/mcmc_out_interm_5_6it3.rda')
-par_temp = colMeans(mcmc_out_temp$chain)
-rownames(par_temp) = NULL
-par[1:172] = par_temp[1:172]
-par[189:282] = par_temp[177:270]
-rm(mcmc_out_temp) 
-# adjust for R
-
+if(simulation) {
+  load('Data/true_pars_1.rda')
+  par[1:210] = true_pars
+} else {
+  load('Model_out/mcmc_out_interm_5_6it3.rda')
+  par_temp = colMeans(mcmc_out_temp$chain)
+  rownames(par_temp) = NULL
+  par[1:172] = par_temp[1:172]
+  par[189:282] = par_temp[177:270]
+  rm(mcmc_out_temp) 
+}
 # -----------------------------------------------------------------------------
 
 s_time = Sys.time()
-mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega)
+mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)
 e_time = Sys.time() - s_time; print(e_time)

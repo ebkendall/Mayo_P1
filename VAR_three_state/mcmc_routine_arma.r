@@ -13,7 +13,7 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # -----------------------------------------------------------------------------
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
-mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega){
+mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation){
   
   EIDs = as.character(unique(Y[,'EID']))
   
@@ -38,25 +38,30 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   n_group = length(mpi)
   
   # Loading an existing pcov and pscale ------------------------------
-  load('Model_out/mcmc_out_interm_2_5it3.rda')
-  # pcov = mcmc_out_temp$pcov
-  # pscale = mcmc_out_temp$pscale
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(mpi[[j]]))*.001
   pscale = rep( 1, n_group)
 
-  load('Data/data_format_new.rda')
-  pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-              417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-              732525, 758025, 763050, 843000)
-  new_ind = which(!(data_format[,'EID'] %in% pace_id))
-  rm(data_format)
+  # load('Model_out/mcmc_out_interm_2_5it3.rda')
+  # pcov = mcmc_out_temp$pcov
+  # pscale = mcmc_out_temp$pscale
 
-  # Setting initial values for Y
-  Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, new_ind])
-  Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, new_ind])
-  Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, new_ind])
-  Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, new_ind])
-  rm(mcmc_out_temp)
+  if(!simulation) {
+    print('Real data analysis')
+    load('Model_out/mcmc_out_interm_2_5it3.rda')
+    load('Data/data_format_new.rda')
+    pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+                417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+                732525, 758025, 763050, 843000)
+    new_ind = which(!(data_format[,'EID'] %in% pace_id))
+    rm(data_format)
+
+    # Setting initial values for Y
+    Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, new_ind])
+    Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, new_ind])
+    Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, new_ind])
+    Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, new_ind])
+    rm(mcmc_out_temp)
+  }
   
   # Begin the MCMC algorithm -------------------------------------------------
   chain_length_MASTER = 1001
@@ -93,9 +98,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    # print(diag(exp(par[par_index$vec_R])))
-    # print(diag(exp(par[par_index$vec_logit_A]) / (1+exp(par[par_index$vec_logit_A]))))
-    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+    # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
@@ -251,8 +254,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
                             otype=otype, accept=accept/length(burnin:ttt), 
                             pscale=pscale, pcov = pcov, par_index=par_index)
       if(ttt/10000 > 1) {
-        save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+        if(simulation) {
+          save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+                                        trialNum, 'it', ttt/10000, '_sim.rda'))
+        } else {
+          save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
                                         trialNum, 'it', ttt/10000, '.rda'))
+        }
       }
       # Reset the chains
       chain = matrix( NA, chain_length_MASTER, length(par)) 
