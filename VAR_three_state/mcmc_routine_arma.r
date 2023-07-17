@@ -24,7 +24,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   
   # Update the Xn (*** VAR UPDATED ***)
   Xn = list()
-  for(i in EIDs)  Xn[[i]] = x[ Y[,'EID']==as.numeric(i),, drop=F]
+  for(i in EIDs)  {
+      length_i = sum(Y[,'EID']==as.numeric(i))
+      x_i = x[ Y[,'EID']==as.numeric(i),, drop=F]
+      Xn[[i]] = diag(4) %x% x_i[1,,drop = F]
+      for(j in 2:length_i) {
+          Xn[[i]] = rbind(Xn[[i]], diag(4) %x% x_i[j,,drop = F])
+      }
+  }
   
   # Metropolis Parameter Index for MH within Gibbs updates
   # Ordering of the transition rate parameters:
@@ -32,7 +39,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
-              c(par_index$vec_logit_A),
+              c(par_index$vec_logit_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -81,7 +88,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # debug_info_2[[2]] = vector(mode = "list", length = 5000)
   # # --------------------------------------------------------------------------
   
-  # (*** VAR UPDATED ***)
   Dn = update_Dn_cpp( as.numeric(EIDs), B, Y)
   names(Dn) = EIDs
   
@@ -102,7 +108,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
+    A_old = A
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B, A_old)
     names(A) = EIDs
     
     # # Gibbs updates of the omega_i
