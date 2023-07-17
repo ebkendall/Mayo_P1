@@ -387,22 +387,19 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   // A_1 priors ----------------------------------------------------------------
   arma::vec vec_A1_content = par.elem(par_index(3) - 1);
-  arma::vec vec_A1_mean = {0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0}; 
-  arma::vec scalar_2_A1 = {1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1}; 
-  arma::mat A1_sd = arma::diagmat(scalar_2_A1);
-  
-  arma::vec prior_A1 = dmvnorm(vec_A1_content.t(), vec_A1_mean, A1_sd, true);
-  double prior_A1_val = arma::as_scalar(prior_A1);
+  double prior_A1_val = 0;
+  for(int l = 0; l < vec_A1_content.n_elem; l++) {
+    double a_val = exp(vec_A1_content(l)) / (1 + exp(vec_A1_content(l)));
+    prior_A1_val += d_4beta(a_val, 0.5, 0.5, 0, 1, 1);
+  }
   
   // R priors ------------------------------------------------------------------
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
-  arma::vec vec_R_mean(16, arma::fill::ones); 
-  arma::vec scalar_2_R(16, arma::fill::ones);
-  scalar_2_R = 10 * scalar_2_R;
-  arma::mat R_sd = arma::diagmat(scalar_2_R);
+  arma::mat sqrt_R = arma::reshape(vec_R_content, 4, 4);
+  arma::mat R = sqrt_R * sqrt_R.t();
+  arma::mat Psi_R = arma::eye(4, 4);
   
-  arma::vec prior_R = dmvnorm(vec_R_content.t(), vec_R_mean, R_sd, true);
-  double prior_R_val = arma::as_scalar(prior_R);
+  double prior_R_val = diwish(R, 100, Psi_R, true);
   
   // Omega priors -------------------------------------------------------------
   // arma::vec vec_omega_content = par.elem(par_index(8) - 1);
@@ -1059,7 +1056,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
         arma::mat inv_Gamma = arma::inv_sympd(Gamma);
 
         arma::vec vec_alpha_i = A(ii);
-        arma::vec vec_omega_ii = W(ii);
+        // arma::vec vec_omega_ii = W(ii);
     
         arma::mat Y_temp = Y.rows(sub_ind);
         arma::mat Y_i = Y_temp.cols(1, 4);
@@ -1341,15 +1338,13 @@ void test_fnc(const arma::vec EIDs, arma::mat Y, const arma::mat otype) {
     //     
     // }
     
-    arma::mat test(4, 4, arma::fill::eye);
-    Rcpp::Rcout << test << std::endl;
-    arma::vec subdiag = {-1,-1,-1};
-    test.diag(1) = subdiag;
-    test.diag(-1) = subdiag;
-    
+    arma::mat test(4, 4, arma::fill::ones);
     Rcpp::Rcout << test << std::endl;
     
-    Rcpp::Rcout << arma::inv_sympd(test) << std::endl;
+    arma::mat test2 = 4*test;
+    Rcpp::Rcout << test2 << std::endl;
+    test += test2;
+    Rcpp::Rcout << test << std::endl;
     // A(0,0) = -100;
     // Rcpp::Rcout << "A in the function" << std::endl;
     // Rcpp::Rcout << A << std::endl;

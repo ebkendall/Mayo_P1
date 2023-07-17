@@ -157,7 +157,26 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
     chain[chain_ind,] = par
-    if (ttt %% 100 == 0) print(round(chain[chain_ind,], 3))
+
+    if (ttt %% 100 == 0){
+      print("alpha_tilde")
+      print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
+      
+      print("mean alpha_i")
+      A_stacked = do.call( cbind, A)
+      print(apply(A_stacked, 1, mean))
+
+      print("single alpha_i")
+      a_ind = sample(size = 1, 1:180)
+      print(a_ind)
+      print(c(A[[a_ind]]))
+
+      print("diag of Upsilon")
+      Sigma = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 12)
+      Lambda = diag(exp(chain[chain_ind,par_index$log_lambda]))
+      Upsilon = Lambda %*% Sigma %*% Lambda
+      print(round(diag(Upsilon), 3))
+    }
 
     # Testing Data for development of functions ------------------------------
     # test_post = list("EIDs" = EIDs, "par" = par, "par_index" = par_index,
@@ -180,7 +199,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
 
       log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+      
       if( log_target - log_target_prev > log(runif(1,0,1)) ){
+        # print(paste0("Previous: ", log_target_prev))
+        # print(paste0("New: ", log_target))
         log_target_prev = log_target
         par[ind_j] = proposal[ind_j]
         accept[j] = accept[j] +1

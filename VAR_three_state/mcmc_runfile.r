@@ -92,13 +92,14 @@ for(i in EIDs){
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
   
-  temp = data_format[data_format[,'EID']==as.numeric(i), ]
-  b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
-  
-  # b_length = nrow(b_temp)
-  # b_temp[(b_length-5):b_length, ] = 1
-  
-  B[[i]] = b_temp
+  if(simulation) {
+      B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
+  } else {
+      b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
+      # b_length = nrow(b_temp)
+      # b_temp[(b_length-5):b_length, ] = 1
+      B[[i]] = b_temp
+  }
 }
 
 # -----------------------------------------------------------------------------

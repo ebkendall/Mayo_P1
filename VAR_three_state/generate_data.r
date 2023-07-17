@@ -1,7 +1,7 @@
 # library(MASS, quietly=T)
 library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
-library(Matrix, quietly=T)
+library(expm, quietly=T)
 
 it_num = 1
 
@@ -52,6 +52,7 @@ R = 8 * matrix( c( .2, -.1,  .1, -.1,
                   -.1,   2, -.1,  .1,
                    .1, -.1,   2, -.1,
                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
+sqrt_R = sqrtm(R)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-4, -2.578241, -5.000000, -5.230000,
@@ -61,7 +62,7 @@ zeta = matrix(c(-4, -2.578241, -5.000000, -5.230000,
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3], 
+true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(sqrt_R), c(zeta), log(init_logit)[2:3], 
               log(diag(Lambda)))
 par_index = list()
 par_index$vec_beta = 1:4
@@ -178,6 +179,11 @@ for (www in 1:1) {
         # rules = Y[ Y[,'EID']==as.numeric(i), c('RBC_rule', 'clinic_rule'), drop=F]
         rules = Y[ Y[,'EID']==as.numeric(i), c('RBC_rule'), drop=F]
         rules = cbind(rules, 0)
+
+        if((1 %in% rules[,1]) & !(2 %in% b_i)) {
+            rules[,1] = 0
+            print("changed rule")
+        }
         
         use_data = rbind( use_data, cbind( i, t_i, Y_i, b_i, 
                                            z_i[,2],
