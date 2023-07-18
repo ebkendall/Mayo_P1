@@ -129,7 +129,9 @@ for (www in 1:1) {
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         for(k in 1:n_i) {
             if(k==1)  {
-                state_k = b_i[k]
+                # FIXING ONE A Matrix
+                # state_k = b_i[k]
+                state_k = 1
                 A_state_k = c(A_mat[,state_k])
                 A_state_k = exp(A_state_k) / (1 + exp(A_state_k))
                 
@@ -153,7 +155,9 @@ for (www in 1:1) {
                 mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
-                state_k = b_i[k]
+                # FIXING ONE A Matrix
+                # state_k = b_i[k]
+                state_k = 1
                 A_state_k = c(A_mat[,state_k])
                 A_state_k = exp(A_state_k) / (1 + exp(A_state_k))
                 A_mat = diag(A_state_k)
