@@ -1022,13 +1022,13 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
     // The prior info for sigma_upsilon ----------------------------------------
-    // int nu_Upsilon = 13;
-    int nu_Upsilon = EIDs.n_elem;
-    nu_Upsilon = nu_Upsilon * 10;
+    int nu_Upsilon = 14;
+    // int nu_Upsilon = EIDs.n_elem;
+    // nu_Upsilon = nu_Upsilon * 10;
 
     // The prior scale matrix for sigma_upsilon
-    // arma::vec scalar_mult2(12, arma::fill::ones);
-    arma::vec scalar_mult2 = {4, 0.01, 0.01, 9, 0.01, 0.01, 16, 0.0625, 0.0625, 4, 0.01, 0.01};
+    // arma::vec scalar_mult2 = {4, 0.01, 0.01, 9, 0.01, 0.01, 16, 0.0625, 0.0625, 4, 0.01, 0.01};
+    arma::vec scalar_mult2 = {4, 0.36, 0.36, 36, 4, 4, 64, 5.0625, 5.0625, 4, 0.25, 0.25};
     scalar_mult2 = scalar_mult2 * nu_Upsilon;
     arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
 

@@ -66,17 +66,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   A_chain = vector(mode = "list", length = 10)
   accept = rep( 0, n_group)
   
-  # # Debugging strategy -------------------------------------------------------
-  # debug_info_1 = vector(mode = "list", length = 2)
-  # debug_info_2 = vector(mode = "list", length = 2)
-  # # The first index will be a matrix will all state updates
-  # debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==14375))
-  # debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==144950))
-  # # The second index will track the likelihood before, after, the proposed state, and whether it accepted
-  # debug_info_1[[2]] = vector(mode = "list", length = 5000)
-  # debug_info_2[[2]] = vector(mode = "list", length = 5000)
-  # # --------------------------------------------------------------------------
-  
   Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x)
   Dn = Dn_Xn[[1]]; names(Dn) = EIDs
   Xn = Dn_Xn[[2]]
@@ -119,32 +108,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
                           debug_temp1, debug_temp2)
     B = B_Dn[[1]]; names(B) = EIDs
     Dn = B_Dn[[2]]; names(Dn) = EIDs
-    
-    # Debug information -------------------------------------------------------
-    # if(ttt %% 5000 == 0) {
-    #     final_debug = list("l_1" = debug_info_1,
-    #                        "l_2" = debug_info_2)
-    #     save(final_debug, file = paste0('Model_out/final_debug',ind, '_', trialNum, 'it', ttt/5000, 'j.rda'))
-    #     
-    #     debug_info_1[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==14375))
-    #     debug_info_2[[1]] = matrix(nrow = 5000, ncol = sum(Y[,'EID']==144950))
-    #     debug_info_1[[2]] = vector(mode = "list", length = 5000)
-    #     debug_info_2[[2]] = vector(mode = "list", length = 5000)
-    # } else {
-    #     debug_info_1[[1]][ttt %% 5000, ] = c(B[['14375']])
-    #     debug_info_2[[1]][ttt %% 5000, ] = c(B[['144950']])
-    #     
-    #     debug_info_1[[2]][[ttt %% 5000]] = B_Dn[[3]]
-    #     y_sub = t(Y[Y[,'EID'] == 14375, c('hemo', 'hr', 'map', 'lactate')])
-    #     debug_info_1[[2]][[ttt %% 5000]] = rbind(debug_info_1[[2]][[ttt %% 5000]],
-    #                                                   y_sub[,-1])
-    #     
-    #     debug_info_2[[2]][[ttt %% 5000]] = B_Dn[[4]]
-    #     y_sub = t(Y[Y[,'EID'] == 144950, c('hemo', 'hr', 'map', 'lactate')])
-    #     debug_info_2[[2]][[ttt %% 5000]] = rbind(debug_info_2[[2]][[ttt %% 5000]],
-    #                                                   y_sub[,-1])
-    # }
-    # -------------------------------------------------------
 
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
     par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)
@@ -173,13 +136,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       Upsilon = Lambda %*% Sigma %*% Lambda
       print(round(diag(Upsilon), 3))
     }
-
-    # Testing Data for development of functions ------------------------------
-    # test_post = list("EIDs" = EIDs, "par" = par, "par_index" = par_index,
-    #                  "A" = A, "B" = B, "Y" = Y, "z" = z, "Dn" = Dn,
-    #                  "Xn" = Xn, "invKn" = invKn, "otype" = otype)
-    # save(test_post, file = "test_post_24.rda")
-    # return(0);
     
     log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
     
@@ -194,7 +150,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           proposal[ind_j] = rnorm( n=1, mean=par[ind_j],sd=sqrt(pcov[[j]]*pscale[j]))
       }
       
-      if (j == 4) {
+      if(j == 4) {
           # Updating A_1
           Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
           Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
