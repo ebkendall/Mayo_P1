@@ -428,6 +428,15 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
   arma::vec rbc_rule_vec = Y.col(5);
   arma::vec clinic_rule_vec = Y.col(6); 
   
+  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
+  arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
+  arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
+                     exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
+                     exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
+                     exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+  arma::mat A_1 = arma::diagmat(vec_A);
+  
   arma::field<arma::vec> B_return(EIDs.n_elem);
   arma::field<arma::mat> Dn_return(EIDs.n_elem);
   
@@ -526,6 +535,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         pr_Dn = arma::kron(I, bigB.row(0));
         for(int jj = 1; jj < n_i; jj++) {
             arma::mat temp_mat = arma::kron(I, bigB.row(jj));
+            arma::mat temp_mat_prev = arma::kron(I, bigB.row(jj-1));
+            temp_mat_prev = A_1 * temp_mat_prev;
+            
+            temp_mat = temp_mat - temp_mat_prev;
             pr_Dn = arma::join_cols(pr_Dn, temp_mat);
         }
         
@@ -580,9 +593,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
 }
 
 // [[Rcpp::export]]
-arma::field<arma::mat> update_Dn_cpp( const arma::vec EIDs, 
-                                       arma::field <arma::vec> B,
-                                       const arma::mat Y) {
+Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B, 
+                             const arma::mat Y, const arma::vec par, 
+                             const arma::field<arma::uvec> par_index,
+                             const arma::vec x) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) log_lambda, (8) omega_tilde, (9) vec_upsilon_omega
@@ -590,8 +604,28 @@ arma::field<arma::mat> update_Dn_cpp( const arma::vec EIDs,
   // "i" is the numeric EID number
   // "ii" is the index of the EID
 
+  // Xn = list()
+  //   A_1_mat = matrix(par[par_index$vec_logit_A], nrow = 4)
+  //   for(i in EIDs)  {
+  //       length_i = sum(Y[,'EID']==as.numeric(i))
+  //       x_i = x[ Y[,'EID']==as.numeric(i),, drop=F]
+  //       Xn[[i]] = diag(4) %x% x_i[1,,drop = F]
+  //       for(j in 2:length_i) {
+  //           Xn[[i]] = rbind(Xn[[i]], diag(4) %x% x_i[j,,drop = F])
+  //       }
+  //   }
   arma::vec eids = Y.col(0);
   arma::field<arma::mat> Dn(EIDs.n_elem);
+  arma::field<arma::mat> Xn(EIDs.n_elem);
+  
+  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
+  arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
+  arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
+                     exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
+                     exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
+                     exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+  arma::mat A_1 = arma::diagmat(vec_A);
   
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
@@ -599,6 +633,7 @@ arma::field<arma::mat> update_Dn_cpp( const arma::vec EIDs,
     int n_i = sub_ind.n_elem;
     
     arma::vec b_i = B(ii);
+    arma::vec x_i = x.elem(sub_ind);
     
     arma::vec twos(b_i.n_elem, arma::fill::zeros);
     arma::vec threes = twos; // THREE STATE
@@ -614,15 +649,30 @@ arma::field<arma::mat> update_Dn_cpp( const arma::vec EIDs,
     arma::mat I = arma::eye(4,4);
 
     arma::mat D_i = arma::kron(I, bigB.row(0));
+    arma::mat X_i = x_i(0) * I;
     for(int jj = 1; jj < n_i; jj++) {
         arma::mat temp_mat = arma::kron(I, bigB.row(jj));
+        arma::mat temp_mat_prev = arma::kron(I, bigB.row(jj-1));
+        temp_mat_prev = A_1 * temp_mat_prev;
+        
+        temp_mat = temp_mat - temp_mat_prev;
         D_i = arma::join_cols(D_i, temp_mat);
+        
+        arma::mat temp_mat_X = x_i(jj) * I;
+        arma::mat temp_mat_prev_X = x_i(jj-1) * I;
+        temp_mat_prev_X = A_1 * temp_mat_prev_X;
+        
+        temp_mat_X = temp_mat_X - temp_mat_prev_X;
+        X_i = arma::join_cols(X_i, temp_mat_X);
     }
     
     Dn(ii) = D_i;
+    Xn(ii) = X_i;
   }
   
-  return Dn;
+  List Dn_Xn = List::create(Dn, Xn);
+  
+  return Dn_Xn;
 }
 
 // [[Rcpp::export]]
@@ -632,8 +682,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
                                             const arma::field <arma::mat> Xn,
                                             const arma::field <arma::mat> Dn_omega, 
                                             const arma::field <arma::vec> W, 
-                                            arma::field <arma::vec> B,
-                                            const arma::field <arma::vec> A_old){
+                                            arma::field <arma::vec> B){
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) log_lambda, (8) omega_tilde, (9) vec_upsilon_omega
@@ -660,7 +709,6 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
   
   arma::vec log_lambda_vec = par.elem(par_index(7) - 1); 
   arma::mat Lambda = arma::diagmat(exp(log_lambda_vec));
-  
   
   arma::mat Upsilon = Lambda * sigma_upsilon * Lambda;
   arma::mat inv_Upsilon = arma::inv_sympd(Upsilon);
@@ -712,14 +760,10 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
       arma::mat Dn_alpha_full = Dn(ii);
       arma::mat Xn_full = Xn(ii);
       
-      arma::vec script_N_full = Dn_alpha_full * A_old(ii) + Xn_full * vec_beta;
-      arma::vec bold_Z_vec = vec_Y_i - script_N_full;
-      arma::mat bold_Z = arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
-      bold_Z = bold_Z.cols(0, Y_i.n_cols - 2);
+      arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2);
       arma::mat I_4(4,4,arma::fill::eye);
       
       arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
-      arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
       arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
       arma::vec y_1 = vec_Y_i.subvec(0, 3);
       
@@ -1059,14 +1103,10 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
         arma::mat Dn_alpha_full = Dn(ii);
         arma::mat Xn_full = Xn(ii);
         
-        arma::vec script_N_full = Dn_alpha_full * vec_alpha_i + Xn_full * vec_beta;
-        arma::vec bold_Z_vec = vec_Y_i - script_N_full;
-        arma::mat bold_Z = arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
-        bold_Z = bold_Z.cols(0, Y_i.n_cols - 2);
+        arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2);
         arma::mat I_4(4,4,arma::fill::eye);
         
         arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
-        arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
         arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
         arma::vec y_1 = vec_Y_i.subvec(0, 3);
         

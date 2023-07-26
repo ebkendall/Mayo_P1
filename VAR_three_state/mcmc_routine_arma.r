@@ -22,17 +22,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   otype = !is.na(Y[, c('hemo','hr','map','lactate')])
   colnames(otype) = c('hemo','hr','map','lactate')
   
-  # Update the Xn (*** VAR UPDATED ***)
-  Xn = list()
-  for(i in EIDs)  {
-      length_i = sum(Y[,'EID']==as.numeric(i))
-      x_i = x[ Y[,'EID']==as.numeric(i),, drop=F]
-      Xn[[i]] = diag(4) %x% x_i[1,,drop = F]
-      for(j in 2:length_i) {
-          Xn[[i]] = rbind(Xn[[i]], diag(4) %x% x_i[j,,drop = F])
-      }
-  }
-  
   # Metropolis Parameter Index for MH within Gibbs updates
   # Ordering of the transition rate parameters:
   # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
@@ -88,8 +77,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # debug_info_2[[2]] = vector(mode = "list", length = 5000)
   # # --------------------------------------------------------------------------
   
-  Dn = update_Dn_cpp( as.numeric(EIDs), B, Y)
-  names(Dn) = EIDs
+  Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x)
+  Dn = Dn_Xn[[1]]; names(Dn) = EIDs
+  Xn = Dn_Xn[[2]]
   
   # Dn_omega = list()
   # for(i in 1:length(EIDs)) Dn_omega[[i]] = diag(c(1,1,1,1)) %x% med_format[[i]]
@@ -108,8 +98,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
-    A_old = A
-    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B, A_old)
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
     names(A) = EIDs
     
     # # Gibbs updates of the omega_i
@@ -192,6 +181,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # save(test_post, file = "test_post_24.rda")
     # return(0);
     
+    log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+    
     # Metropolis-within-Gibbs update of the theta and zeta parameters
     for(j in 1:n_group) {
 
@@ -202,17 +193,30 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       } else {
           proposal[ind_j] = rnorm( n=1, mean=par[ind_j],sd=sqrt(pcov[[j]]*pscale[j]))
       }
-
-      log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
-
-      log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
       
-      if( log_target - log_target_prev > log(runif(1,0,1)) ){
-        # print(paste0("Previous: ", log_target_prev))
-        # print(paste0("New: ", log_target))
-        log_target_prev = log_target
-        par[ind_j] = proposal[ind_j]
-        accept[j] = accept[j] +1
+      if (j == 4) {
+          # Updating A_1
+          Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
+          Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
+          Xn_prop = Dn_Xn_prop[[2]]
+          
+          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
+          
+          if( log_target - log_target_prev > log(runif(1,0,1)) ){
+              log_target_prev = log_target
+              par[ind_j] = proposal[ind_j]
+              accept[j] = accept[j] +1
+              Dn = Dn_prop
+              Xn = Xn_prop
+          }
+      } else {
+          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+          
+          if( log_target - log_target_prev > log(runif(1,0,1)) ){
+              log_target_prev = log_target
+              par[ind_j] = proposal[ind_j]
+              accept[j] = accept[j] +1
+          }
       }
 
       chain[chain_ind,ind_j] = par[ind_j]
