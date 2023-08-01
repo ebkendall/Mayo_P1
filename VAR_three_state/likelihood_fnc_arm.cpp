@@ -344,7 +344,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   int m = zeta.n_rows;
 
   arma::vec vec_zeta_mean(8, arma::fill::zeros);
-  arma::vec scalar_1 = {100, 100, 100, 100, 100, 100, 100, 100}; // UNINFORMATIVE
+  arma::vec scalar_1 = {10, 10, 10, 10, 10, 10, 10, 10}; // UNINFORMATIVE
   arma::mat zeta_sd = arma::diagmat(scalar_1);
 
   arma::vec prior_zeta = dmvnorm(vec_zeta_content.t(), vec_zeta_mean, zeta_sd, true);
@@ -391,9 +391,12 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat sqrt_R = arma::reshape(vec_R_content, 4, 4);
   arma::mat R = sqrt_R * sqrt_R.t();
-  arma::mat Psi_R = arma::eye(4, 4);
+  arma::mat Psi_R = { { 1.6, -0.8,  0.8, -0.8},
+                      {-0.8,   16, -0.8,  0.8},
+                      { 0.8, -0.8,   16, -0.8},
+                      {-0.8,  0.8, -0.8,  1.6}};
   
-  double prior_R_val = diwish(R, 100, Psi_R, true);
+  double prior_R_val = diwish(R, 6, Psi_R, true);
   
   // Omega priors -------------------------------------------------------------
   // arma::vec vec_omega_content = par.elem(par_index(8) - 1);
@@ -405,6 +408,13 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // arma::vec prior_omega = dmvnorm(vec_omega_content.t(), omega_mean, omega_sd, true);
   // double prior_omega_val = arma::as_scalar(prior_omega);
   // ---------------------------------------------------------------------------
+  
+  // Rcpp::Rcout << "zeta:    " << prior_zeta_val << std::endl;
+  // Rcpp::Rcout << "init:    " << prior_init_val << std::endl;
+  // Rcpp::Rcout << "lambda:  " << prior_log_lambda_val << std::endl;
+  // Rcpp::Rcout << "A1:      " << prior_A1_val << std::endl;
+  // Rcpp::Rcout << "R:       " << prior_R_val << std::endl;
+  
   
   value = value + prior_zeta_val + prior_init_val + prior_log_lambda_val + prior_A1_val + prior_R_val;
   return value;

@@ -28,7 +28,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
-              c(par_index$vec_logit_A[1:4]),
+              # c(par_index$vec_logit_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -131,11 +131,45 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print(c(A[[a_ind]]))
 
       print("diag of Upsilon")
-      Sigma = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 12)
-      Lambda = diag(exp(chain[chain_ind,par_index$log_lambda]))
-      Upsilon = Lambda %*% Sigma %*% Lambda
-      print(round(diag(Upsilon), 3))
+      Sigma_t = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 12)
+      Lambda_t = diag(exp(chain[chain_ind,par_index$log_lambda]))
+      Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
+      print(round(diag(Upsilon_t), 3))
+      
+      print("A")
+      logit_A_t = chain[chain_ind, par_index$vec_logit_A[1:4]]
+      vec_A_t = exp(logit_A_t) / (1 + exp(logit_A_t))
+      print(vec_A_t)
+      
+      print("R")
+      sqrt_R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
+      R_t = sqrt_R_t %*% t(sqrt_R_t)
+      print(R_t)
+      
+      print("zeta")
+      zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
+      print(zed)
+      
+      print("Gamma")
+      vec_gamma = c(R_t[1,1] / (1 - vec_A_t[1]*vec_A_t[1]), R_t[2,1] / (1 - vec_A_t[2]*vec_A_t[1]), 
+                    R_t[3,1] / (1 - vec_A_t[3]*vec_A_t[1]), R_t[4,1] / (1 - vec_A_t[4]*vec_A_t[1]),
+                    
+                    R_t[1,2] / (1 - vec_A_t[1]*vec_A_t[2]), R_t[2,2] / (1 - vec_A_t[2]*vec_A_t[2]), 
+                    R_t[3,2] / (1 - vec_A_t[3]*vec_A_t[2]), R_t[4,2] / (1 - vec_A_t[4]*vec_A_t[2]),
+                    
+                    R_t[1,3] / (1 - vec_A_t[1]*vec_A_t[3]), R_t[2,3] / (1 - vec_A_t[2]*vec_A_t[3]), 
+                    R_t[3,3] / (1 - vec_A_t[3]*vec_A_t[3]), R_t[4,3] / (1 - vec_A_t[4]*vec_A_t[3]),
+                    
+                    R_t[1,4] / (1 - vec_A_t[1]*vec_A_t[4]), R_t[2,4] / (1 - vec_A_t[2]*vec_A_t[4]), 
+                    R_t[3,4] / (1 - vec_A_t[3]*vec_A_t[4]), R_t[4,4] / (1 - vec_A_t[4]*vec_A_t[4]))
+      print(matrix(vec_gamma, ncol = 4))
     }
+    
+    # test_post = list("EIDs" = EIDs, "par" = par, "par_index" = par_index,
+    #                  "A" = A, "B" = B, "Y" = Y, "x" = x, "z" = z, "Dn" = Dn,
+    #                  "Xn" = Xn, "otype" = otype)
+    # save(test_post, file = "test_post.rda")
+    # return(0);
     
     log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
     
@@ -265,8 +299,3 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 }
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-
-# test = matrix(c(0.9242, 0.4621, 0, 0,
-#                 0.4621, 0.9242, 0.4621, 0,
-#                 0, 0.4621, 0.9242, 0.4621,
-#                 0, 0, 0.4621,0.9242), nrow = 4, byrow = T)

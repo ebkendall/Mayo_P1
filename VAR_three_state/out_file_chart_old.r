@@ -3,25 +3,33 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 6 # CHANGE EVERY TIME ******************
+trialNum = 1 # CHANGE EVERY TIME ******************
 itNum = 3
+simulation = T
 
 Dir = 'Model_out/'
 
-load(paste0(Dir,'mcmc_out_interm_',toString(args[1]),'_', trialNum,'it',itNum,'.rda'))
+if(simulation) {
+    load(paste0(Dir,'mcmc_out_interm_',toString(args[1]),'_', trialNum,'it',itNum,'_sim.rda'))
+} else {
+    load(paste0(Dir,'mcmc_out_interm_',toString(args[1]),'_', trialNum,'it',itNum,'.rda'))
+}
 mcmc_out_temp$B_chain = mcmc_out_temp$B_chain[300:1000, ]
 mcmc_out_temp$hr_chain = mcmc_out_temp$hr_chain[300:1000, ]
 mcmc_out_temp$bp_chain = mcmc_out_temp$bp_chain[300:1000, ]
 mcmc_out_temp$hc_chain = mcmc_out_temp$hc_chain[300:1000, ]
 mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 
-simulation=F
-load('Data/data_format_new.rda')
-pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-            732525, 758025, 763050, 843000)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-use_data = data_format
+if(simulation) {
+    load('Data/use_data1_1.rda')
+} else {
+    load('Data/data_format_new.rda')
+    pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+                417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+                732525, 758025, 763050, 843000)
+    data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+    use_data = data_format   
+}
 
 load('Data/clean_meds.rda')
 # load(paste0('../Data/Debug/use_data', 1, '_7.rda'))
@@ -44,7 +52,13 @@ EIDs = unique(use_data[,'EID'])
 # }
 
 # New patients ---------------------------------------------------------------
-pdf(paste0('Plots/chart_plot_', trialNum, '_it', itNum, '_seed',toString(args[1]), '.pdf'))
+pdf_title = NULL
+if(simulation) {
+    pdf_title = paste0('Plots/chart_plot_', trialNum, '_it', itNum, '_seed',toString(args[1]), '_sim.pdf')
+} else {
+    pdf_title = paste0('Plots/chart_plot_', trialNum, '_it', itNum, '_seed',toString(args[1]), '.pdf')
+}
+pdf(pdf_title)
 # mar=c(b,l,t,r) oma=c(b,l,t,r) 
 if(simulation) panels = c(5, 1)  else  panels = c(5,1)
 par(mfrow=panels, mar=c(2,4,2,4), bg='black', fg='green')
@@ -55,9 +69,9 @@ for(i in EIDs){
 	t_grid_bar = seq( 0, n_i, by=5)[-1]
 	t_grid = round(use_data[indices_i, 'time'] / 60, digits = 3)
 	rbc_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_ordered'] != 0), 'time']/60
-	rbc_admin_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0), 'time']/60
+	# rbc_admin_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0), 'time']/60
 	rbc_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_ordered'] != 0)
-	rbc_admin_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0)
+	# rbc_admin_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0)
 
 	med_df    = clean_meds[clean_meds$id == i, ]
 	hr_up     = med_df$time[med_df$hr == 1] / 60
@@ -89,7 +103,7 @@ for(i in EIDs){
 		grid( nx=20, NULL, col='white')
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		# abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 		points(x = t_grid, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), col = care_time_df_i)
 
 		# abline(v = hr_up, col = 'turquoise', lwd = 1)
@@ -121,7 +135,7 @@ for(i in EIDs){
 		grid( nx=20, NULL, col='white')
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		# abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 		points(x = t_grid, y = colMeans(mcmc_out_temp$bp_chain[, indices_i, drop=F]), col = care_time_df_i)
 
 		# abline(v = map_up, col = 'turquoise', lwd = 1)
@@ -153,7 +167,7 @@ for(i in EIDs){
 		grid( nx=20, NULL, col='white')
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		# abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 		points(x = t_grid, y = colMeans(mcmc_out_temp$hc_chain[, indices_i, drop=F]), col = care_time_df_i)
 	}
 	if(simulation){
@@ -176,7 +190,7 @@ for(i in EIDs){
 		grid( nx=20, NULL, col='white')
 		axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
 		abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-		abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
+		# abline(v = rbc_admin_times, col = 'deeppink', lwd = 1)
 		points(x = t_grid, y = colMeans(mcmc_out_temp$la_chain[, indices_i, drop=F]), col = care_time_df_i)
 	}
 	if(simulation){
@@ -203,7 +217,8 @@ for(i in EIDs){
 	axis( side=1, at=t_grid_bar, col.axis='green', labels=t_grid_bar / 4)
 	axis( side=2, at=0:1, col.axis='green')
 	abline(v = rbc_times_bar, col = 'darkorchid2', lwd = 1)
-	abline(v = rbc_admin_times_bar, col = 'deeppink', lwd = 1)
+	# abline(v = rbc_admin_times_bar, col = 'deeppink', lwd = 1)
+	
 	# if(simulation){
 	# 	abline( v=to_s1, col='cyan', lwd=2)
 	# 	abline( v=to_s2, col='brown4', lwd=2)

@@ -38,8 +38,8 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
 # sigma_upsilon = matrix(par_means[par_index$vec_sigma_upsilon], ncol = 12)
 # Lambda = diag(exp(par_means[par_index$log_lambda]))
 sigma_upsilon = diag(12)
-Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
-Lambda = Lambda * diag(c(   1,6,6,   2,20,20,   2,9,9,  1,5,5))
+Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.1,.1,  2,.1,.1))
+Lambda = Lambda * diag(c(   1,5,5,   2,10,10,   2,10,10,  1,5,5))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 vec_A = c( 2.3,  1.9,  1.9, 2.3,
