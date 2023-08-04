@@ -420,7 +420,6 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   return value;
 }
 
-
 // [[Rcpp::export]]
 Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par, const arma::field<arma::uvec> par_index, 
                           const arma::field <arma::vec> A, arma::field <arma::vec> B, 

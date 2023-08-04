@@ -117,6 +117,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
     chain[chain_ind,] = par
 
+    # Printing updates
     if (ttt %% 100 == 0){
       print("alpha_tilde")
       print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
@@ -165,12 +166,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print(matrix(vec_gamma, ncol = 4))
     }
     
-    # test_post = list("EIDs" = EIDs, "par" = par, "par_index" = par_index,
-    #                  "A" = A, "B" = B, "Y" = Y, "x" = x, "z" = z, "Dn" = Dn,
-    #                  "Xn" = Xn, "otype" = otype)
-    # save(test_post, file = "test_post.rda")
-    # return(0);
-    
     log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
     
     # Metropolis-within-Gibbs update of the theta and zeta parameters
@@ -178,28 +173,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 
       ind_j = mpi[[j]]
       proposal = par
-      if(length(ind_j) > 1) {
-          proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
-      } else {
-          proposal[ind_j] = rnorm( n=1, mean=par[ind_j],sd=sqrt(pcov[[j]]*pscale[j]))
-      }
       
-      if(j == 4) {
-          # Updating A_1
-          Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
-          Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
-          Xn_prop = Dn_Xn_prop[[2]]
+      if(j <= 3) {
+          # logit_init, zeta, and log_lambda
+          proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           
-          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
-          
-          if( log_target - log_target_prev > log(runif(1,0,1)) ){
-              log_target_prev = log_target
-              par[ind_j] = proposal[ind_j]
-              accept[j] = accept[j] +1
-              Dn = Dn_prop
-              Xn = Xn_prop
-          }
-      } else {
           log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
           
           if( log_target - log_target_prev > log(runif(1,0,1)) ){
@@ -207,54 +185,90 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               par[ind_j] = proposal[ind_j]
               accept[j] = accept[j] +1
           }
-      }
-
-      chain[chain_ind,ind_j] = par[ind_j]
-
-      # Proposal tuning scheme ------------------------------------------------
-      if(ttt < burnin){
-        # During the burnin period, update the proposal covariance in each step
-        # to capture the relationships within the parameters vectors for each
-        # transition.  This helps with mixing.
-        if(ttt == 100)  pscale[j] = 1
-
-        if (length(ind_j) > 1) {
-            if(100 <= ttt & ttt <= 2000){
-              temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-              pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-
-            } else if(2000 < ttt){
-              temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-              pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-            }
-        } else {
-            if(100 <= ttt & ttt <= 2000){
-                temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-                pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-
-            } else if(2000 < ttt){
-                temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-                pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-            }
-        }
-
-        if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
-
-        # Tune the proposal covariance for each transition to achieve
-        # reasonable acceptance ratios.
-        if(ttt %% 30 == 0){
-          if(ttt %% 480 == 0){
-            accept[j] = 0
-
-          } else if( accept[j] / (ttt %% 480) < .4 ){
-            pscale[j] = (.75^2)*pscale[j]
-
-          } else if( accept[j] / (ttt %% 480) > .5 ){
-            pscale[j] = (1.25^2)*pscale[j]
+          
+          chain[chain_ind,ind_j] = par[ind_j]
+          
+          # Proposal tuning scheme ------------------------------------------------
+          if(ttt < burnin){
+              # During the burnin period, update the proposal covariance in each step
+              # to capture the relationships within the parameters vectors for each
+              # transition.  This helps with mixing.
+              if(ttt == 100)  pscale[j] = 1
+              
+              if (length(ind_j) > 1) {
+                  if(100 <= ttt & ttt <= 2000){
+                      temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+                      pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+                      
+                  } else if(2000 < ttt){
+                      temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+                      pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+                  }
+              } else {
+                  if(100 <= ttt & ttt <= 2000){
+                      temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+                      pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+                      
+                  } else if(2000 < ttt){
+                      temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+                      pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+                  }
+              }
+              
+              if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
+              
+              # Tune the proposal covariance for each transition to achieve
+              # reasonable acceptance ratios.
+              if(ttt %% 30 == 0){
+                  if(ttt %% 480 == 0){
+                      accept[j] = 0
+                      
+                  } else if( accept[j] / (ttt %% 480) < .4 ){
+                      pscale[j] = (.75^2)*pscale[j]
+                      
+                  } else if( accept[j] / (ttt %% 480) > .5 ){
+                      pscale[j] = (1.25^2)*pscale[j]
+                  }
+              }
           }
-        }
+          # -----------------------------------------------------------------------
+          
+          
+      } else {
+          # A_1 and R
+          if(j == 4) {
+              # Updating A_1 --------------------------------------------------
+              # Changing the proposal distribution and therefore the Metrop Ratio
+              proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+              
+              Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
+              Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
+              Xn_prop = Dn_Xn_prop[[2]]
+              
+              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
+              
+              if( log_target - log_target_prev > log(runif(1,0,1)) ){
+                  log_target_prev = log_target
+                  par[ind_j] = proposal[ind_j]
+                  accept[j] = accept[j] +1
+                  Dn = Dn_prop
+                  Xn = Xn_prop
+              }
+          } else {
+              # Updating R ----------------------------------------------------
+              # Changing the proposal distribution and therefore the Metrop Ratio
+              proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+              
+              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+              
+              if( log_target - log_target_prev > log(runif(1,0,1)) ){
+                  log_target_prev = log_target
+                  par[ind_j] = proposal[ind_j]
+                  accept[j] = accept[j] +1
+              }
+          }
+          
       }
-      # -----------------------------------------------------------------------
 
     }
     

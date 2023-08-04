@@ -42,10 +42,11 @@ Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.1,.1,  2,.1,.1))
 Lambda = Lambda * diag(c(   1,5,5,   2,10,10,   2,10,10,  1,5,5))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
-vec_A = c( 2.3,  1.9,  1.9, 2.3,
-           0.5,   -1,   -1, 0.5,
-           1.3,  0.5,  0.5, 1.3) 
-A_mat = matrix(vec_A, ncol = 3)
+A_mat = matrix(c(2.3, 0.5, 1.3,
+                 1.9,  -1, 0.5,
+                 1.9,  -1, 0.5,
+                 2.3, 0.5, 1.3), ncol = 3, byrow = T)
+vec_A = c(A_mat)
 
 # columns: hemo, hr, map, lactate
 R = 8 * matrix( c( .2, -.1,  .1, -.1,
