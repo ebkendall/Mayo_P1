@@ -46,7 +46,6 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 
 sigma_upsilon = diag(12)
 Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
-# Lambda = diag(rep(1, 12))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 # columns correspond to the different states
@@ -74,7 +73,7 @@ par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
 par_index$vec_sigma_upsilon = 17:160
-par_index$vec_logit_A = 161:172
+par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198

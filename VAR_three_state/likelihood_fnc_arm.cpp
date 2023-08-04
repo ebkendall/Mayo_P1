@@ -171,8 +171,7 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::mat vec_beta = par.elem(par_index(0) - 1);
   
   arma::vec vec_R = par.elem(par_index(4) - 1);
-  arma::mat sqrt_R = arma::reshape(vec_R, 4, 4);
-  arma::mat R = sqrt_R * sqrt_R.t();
+  arma::mat R = arma::reshape(vec_R, 4, 4);
   arma::mat invR = arma::inv_sympd(R);
   
   arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
@@ -217,13 +216,9 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::sp_mat I_kron_R_inv = arma::kron(I_n_fill, inv_R_fill);
   
   // Variance for DGP
-  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
-  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
-  arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
-  arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
-                     exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
-                     exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
-                     exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
   arma::mat A_1 = arma::diagmat(vec_A);
   arma::vec little_a = arma::vectorise(A_1);
   
@@ -361,42 +356,32 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   double prior_init_val = arma::as_scalar(prior_init);
 
   // Lambda priors -------------------------------------------------------------
-  double prior_log_lambda_val = 0;
   arma::uvec vec_log_lambda_ind = par_index(7);
   arma::vec vec_log_lambda_content = par.elem(vec_log_lambda_ind - 1);
-  arma::vec lambda_vec = exp(vec_log_lambda_content);
-
-  for(int l = 0; l < lambda_vec.n_elem; l++) {
-    NumericVector sub_vec = {lambda_vec(l)};
-
-    NumericVector prior_lambda = Rcpp::dlnorm(sub_vec, 0, 0.5, true);
-    prior_log_lambda_val += prior_lambda(0);
-  }
-  // arma::vec vec_log_lambda_mean = {   0,0,0,     0,0,0,     0,0,0,     0,0,0};
-  // arma::vec scalar_lambda       = {1,1,1,  1,1,1,  1,1,1,  1,1,1};
-  // arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
+  arma::vec vec_log_lambda_mean(12, arma::fill::zeros);
+  arma::vec scalar_lambda(12, arma::fill::ones);
+  arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
   
-  // arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
-  // double prior_log_lambda_val = prior_log_lambda(0); 
+  arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
+  double prior_log_lambda_val = arma::as_scalar(prior_log_lambda);
   
   // A_1 priors ----------------------------------------------------------------
   arma::vec vec_A1_content = par.elem(par_index(3) - 1);
   double prior_A1_val = 0;
   for(int l = 0; l < 4; l++) { // ONE A FOR NOW ************
-    double a_val = exp(vec_A1_content(l)) / (1 + exp(vec_A1_content(l)));
-    prior_A1_val += d_4beta(a_val, 0.5, 0.5, 0, 1, 1);
+    double a_val = vec_A1_content(l);
+    prior_A1_val += d_4beta(a_val, 1, 1, 0, 1, 1);
   }
   
   // R priors ------------------------------------------------------------------
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
-  arma::mat sqrt_R = arma::reshape(vec_R_content, 4, 4);
-  arma::mat R = sqrt_R * sqrt_R.t();
+  arma::mat R = arma::reshape(vec_R_content, 4, 4);
   arma::mat Psi_R = { { 1.6, -0.8,  0.8, -0.8},
                       {-0.8,   16, -0.8,  0.8},
                       { 0.8, -0.8,   16, -0.8},
                       {-0.8,  0.8, -0.8,  1.6}};
-  
-  double prior_R_val = diwish(R, 6, Psi_R, true);
+  int nu_R = 6;
+  double prior_R_val = diwish(R, nu_R, Psi_R, true);
   
   // Omega priors -------------------------------------------------------------
   // arma::vec vec_omega_content = par.elem(par_index(8) - 1);
@@ -437,13 +422,9 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
   arma::vec rbc_rule_vec = Y.col(5);
   arma::vec clinic_rule_vec = Y.col(6); 
   
-  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
-  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
-  arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
-  arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
-                     exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
-                     exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
-                     exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
   arma::mat A_1 = arma::diagmat(vec_A);
   
   arma::field<arma::vec> B_return(EIDs.n_elem);
@@ -627,15 +608,13 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
   arma::field<arma::mat> Dn(EIDs.n_elem);
   arma::field<arma::mat> Xn(EIDs.n_elem);
   
-  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
-  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
-  arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
-  arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
-                     exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
-                     exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
-                     exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
   arma::mat A_1 = arma::diagmat(vec_A);
   
+  // omp_set_num_threads(8) ;
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -702,12 +681,11 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
   arma::vec eids = Y.col(0);
 
   arma::vec vec_R = par.elem(par_index(4) - 1);
-  arma::mat sqrt_R = arma::reshape(vec_R, 4, 4);
-  arma::mat R = sqrt_R * sqrt_R.t();
+  arma::mat R = arma::reshape(vec_R, 4, 4);
   arma::mat invR = arma::inv_sympd(R);
 
-  arma::vec vec_A_logit = par.elem(par_index(3) - 1);
-  arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
 
   arma::vec vec_alpha_tilde = par.elem(par_index(1) - 1);
 
@@ -733,11 +711,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
 
       arma::vec b_i = B(ii);
 
-      arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
-      arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
-                         exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
-                         exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
-                         exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+      arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
       arma::mat A_1 = arma::diagmat(vec_A);
       arma::vec little_a = arma::vectorise(A_1);
 
@@ -1021,12 +995,11 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     arma::mat inv_Sigma_beta = arma::diagmat(scalar_mult);
     
     arma::vec vec_R = par.elem(par_index(4) - 1);
-    arma::mat sqrt_R = arma::reshape(vec_R, 4, 4);
-    arma::mat R = sqrt_R * sqrt_R.t();
+    arma::mat R = arma::reshape(vec_R, 4, 4);
     arma::mat invR = arma::inv_sympd(R);
 
-    arma::vec vec_A_logit = par.elem(par_index(3) - 1);
-    arma::mat A_all_state = arma::reshape(vec_A_logit, 4, 3);
+    arma::vec vec_A_total = par.elem(par_index(3) - 1);
+    arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
     
     arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
@@ -1073,11 +1046,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
         arma::uvec sub_ind = arma::find(eids == i);
 
         arma::vec b_i = B(ii);
-        arma::vec vec_A_state = A_all_state.col(0); // SINGLE A MATRIX
-        arma::vec vec_A = {exp(vec_A_state(0)) / (1 + exp(vec_A_state(0))),
-                           exp(vec_A_state(1)) / (1 + exp(vec_A_state(1))),
-                           exp(vec_A_state(2)) / (1 + exp(vec_A_state(2))),
-                           exp(vec_A_state(3)) / (1 + exp(vec_A_state(3)))};
+        
+        arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
         arma::mat A_1 = arma::diagmat(vec_A);
         arma::vec little_a = arma::vectorise(A_1);
         

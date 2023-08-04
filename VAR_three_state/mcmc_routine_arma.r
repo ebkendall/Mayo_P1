@@ -28,7 +28,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
-              # c(par_index$vec_logit_A[1:4]),
+              c(par_index$vec_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -138,8 +138,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print(round(diag(Upsilon_t), 3))
       
       print("A")
-      logit_A_t = chain[chain_ind, par_index$vec_logit_A[1:4]]
-      vec_A_t = exp(logit_A_t) / (1 + exp(logit_A_t))
+      vec_A_t = chain[chain_ind, par_index$vec_A[1:4]]
       print(vec_A_t)
       
       print("R")
@@ -239,7 +238,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           if(j == 4) {
               # Updating A_1 --------------------------------------------------
               # Changing the proposal distribution and therefore the Metrop Ratio
-              proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+              proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]))
               
               Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
               Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
@@ -247,7 +246,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               
               log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
               
-              if( log_target - log_target_prev > log(runif(1,0,1)) ){
+              log_prop = dbeta(x = proposal[ind_j], shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]), log = T)
+              log_prop_prev = dbeta(x = par[ind_j], shape1 = 10*(proposal[ind_j]), shape2 = 10*(1-proposal[ind_j]), log = T)
+              
+              if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
                   log_target_prev = log_target
                   par[ind_j] = proposal[ind_j]
                   accept[j] = accept[j] +1
