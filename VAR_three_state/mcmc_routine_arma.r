@@ -1,5 +1,6 @@
 library(mvtnorm, quietly=T)
 library(Matrix, quietly=T)
+library(LaplacesDemon, quietly=T)
 library(Rcpp, quietly=T)
 library(RcppArmadillo, quietly = T)
 library(RcppDist, quietly = T)
@@ -36,10 +37,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # Loading an existing pcov and pscale ------------------------------
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(mpi[[j]]))*.001
   pscale = rep( 1, n_group)
-
-  # load('Model_out/mcmc_out_interm_2_5it3.rda')
-  # pcov = mcmc_out_temp$pcov
-  # pscale = mcmc_out_temp$pscale
 
   if(!simulation) {
     print('Real data analysis')
@@ -142,8 +139,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print(vec_A_t)
       
       print("R")
-      sqrt_R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
-      R_t = sqrt_R_t %*% t(sqrt_R_t)
+      R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
       print(R_t)
       
       print("zeta")
@@ -163,13 +159,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
                     R_t[1,4] / (1 - vec_A_t[1]*vec_A_t[4]), R_t[2,4] / (1 - vec_A_t[2]*vec_A_t[4]), 
                     R_t[3,4] / (1 - vec_A_t[3]*vec_A_t[4]), R_t[4,4] / (1 - vec_A_t[4]*vec_A_t[4]))
       print(matrix(vec_gamma, ncol = 4))
+      print(accept / (ttt %% 480))
     }
     
     log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
     
     # Metropolis-within-Gibbs update of the theta and zeta parameters
     for(j in 1:n_group) {
-
       ind_j = mpi[[j]]
       proposal = par
       
@@ -238,7 +234,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           if(j == 4) {
               # Updating A_1 --------------------------------------------------
               # Changing the proposal distribution and therefore the Metrop Ratio
-              proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]))
+              # proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]))
+              proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 7, shape2 = 2)
               
               Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
               Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
@@ -246,8 +243,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               
               log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
               
-              log_prop = dbeta(x = proposal[ind_j], shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]), log = T)
-              log_prop_prev = dbeta(x = par[ind_j], shape1 = 10*(proposal[ind_j]), shape2 = 10*(1-proposal[ind_j]), log = T)
+              # log_prop = sum(dbeta(x = proposal[ind_j], shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]), log = T))
+              log_prop = sum(dbeta(x = proposal[ind_j], shape1 = 7, shape2 = 2, log = T))
+              # log_prop_prev = sum(dbeta(x = par[ind_j], shape1 = 10*(proposal[ind_j]), shape2 = 10*(1-proposal[ind_j]), log = T))
+              log_prop_prev = sum(dbeta(x = par[ind_j], shape1 = 7, shape2 = 2, log = T))
               
               if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
                   log_target_prev = log_target
@@ -259,11 +258,30 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           } else {
               # Updating R ----------------------------------------------------
               # Changing the proposal distribution and therefore the Metrop Ratio
-              proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+              nu_R = 6
+              # psi_R = matrix(c(1.6, -0.8,  0.8, -0.8,
+              #                 -0.8,   16, -0.8,  0.8,
+              #                  0.8, -0.8,   16, -0.8,
+              #                 -0.8,  0.8, -0.8,  1.6), nrow = 4, byrow = T)
+              psi_R = diag(4)
+              
+              curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs))
+              
+              proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]], 
+                                               S = curr_psi_nu[[1]]))
+              
+              prop_R = matrix(proposal[ind_j], nrow = 4)
+              curr_R = matrix(par[ind_j], nrow = 4)
+
+              log_prop = dinvwishart(Sigma = prop_R, nu = curr_psi_nu[[2]], 
+                                     S = curr_psi_nu[[1]], log = T)
+              
+              log_prop_prev = dinvwishart(Sigma = curr_R, nu = curr_psi_nu[[2]], 
+                                          S = curr_psi_nu[[1]], log = T)
               
               log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
               
-              if( log_target - log_target_prev > log(runif(1,0,1)) ){
+              if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
                   log_target_prev = log_target
                   par[ind_j] = proposal[ind_j]
                   accept[j] = accept[j] +1
@@ -315,3 +333,50 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 }
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
+
+
+proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
+
+    eids = Y[,1]
+    vec_A_total = par[par_index$vec_A]
+    A_all_state = matrix(vec_A_total, nrow = 4, ncol = 3)
+    vec_A = A_all_state[,1] 
+    A_1 = diag(vec_A)
+    little_a = c(A_1)
+    
+    psi_prop_R_interm = matrix(0, nrow = 4, ncol = 4)
+    
+    for(i in 1:length(EIDs)) {
+        
+        Y_temp = Y[eids == EIDs[i], ]
+        Y_i = Y_temp[,2:5]
+        Y_i = t(Y_i)
+        vec_Y_i = c(Y_i)
+        
+        vec_alpha_i = A[[i]]
+        vec_beta = par[par_index$vec_beta]
+        Xn_i = Xn[[i]]
+        Dn_i = Dn[[i]]
+        
+        
+        script_N_full = Dn_i %*% vec_alpha_i + Xn_i %*% vec_beta;
+        bold_Z_vec = vec_Y_i - script_N_full;
+        bold_Z = matrix(bold_Z_vec, nrow = 4, ncol = ncol(Y_i))
+        bold_Z = bold_Z[,-ncol(bold_Z)]
+        I_4 = diag(4)
+        
+        script_Z = t(bold_Z) %x% I_4
+        script_N = script_N_full[-(1:4)]
+        script_Y = vec_Y_i[-(1:4)]
+        
+        vec_M = script_N + script_Z %*% little_a
+        M = matrix(vec_M, nrow = 4)
+        hold = matrix(script_Y, nrow = 4) - M
+        psi_prop_R_interm = psi_prop_R_interm + hold %*% t(hold)
+    }
+    
+    psi_prop_R = psi_prop_R_interm + psi_R
+    nu_prop_R = nrow(Y) - length(EIDs) + nu_R
+    
+    return(list(psi_prop_R = psi_prop_R, nu_prop_R = nu_prop_R))
+}

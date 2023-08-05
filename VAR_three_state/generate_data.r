@@ -47,13 +47,14 @@ A_mat = matrix(c(2.3, 0.5, 1.3,
                  1.9,  -1, 0.5,
                  2.3, 0.5, 1.3), ncol = 3, byrow = T)
 vec_A = c(A_mat)
+correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 
 # columns: hemo, hr, map, lactate
 R = 8 * matrix( c( .2, -.1,  .1, -.1,
                   -.1,   2, -.1,  .1,
                    .1, -.1,   2, -.1,
                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
-sqrt_R = sqrtm(R)
+
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-4, -2.578241, -5.000000, -5.230000,
@@ -63,13 +64,13 @@ zeta = matrix(c(-4, -2.578241, -5.000000, -5.230000,
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(sqrt_R), c(zeta), log(init_logit)[2:3], 
+true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(correct_scale_A), c(R), c(zeta), log(init_logit)[2:3], 
               log(diag(Lambda)))
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
 par_index$vec_sigma_upsilon = 17:160
-par_index$vec_logit_A = 161:172
+par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198

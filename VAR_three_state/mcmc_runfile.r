@@ -51,6 +51,7 @@ Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 # columns correspond to the different states
 # Each column corresponds to a different state
 vec_A = matrix( 2.3 , nrow = 4, ncol = 3) 
+vec_A = exp(vec_A) / (1 + exp(vec_A))
 # vec_A = rep(2.3, 4)
 
 # columns: hemo, hr, map, lactate

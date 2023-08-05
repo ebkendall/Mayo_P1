@@ -376,10 +376,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // R priors ------------------------------------------------------------------
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
-  arma::mat Psi_R = { { 1.6, -0.8,  0.8, -0.8},
-                      {-0.8,   16, -0.8,  0.8},
-                      { 0.8, -0.8,   16, -0.8},
-                      {-0.8,  0.8, -0.8,  1.6}};
+  // arma::mat Psi_R = { { 1.6, -0.8,  0.8, -0.8},
+  //                     {-0.8,   16, -0.8,  0.8},
+  //                     { 0.8, -0.8,   16, -0.8},
+  //                     {-0.8,  0.8, -0.8,  1.6}};
+  arma::mat Psi_R(4,4,arma::fill::eye);
   int nu_R = 6;
   double prior_R_val = diwish(R, nu_R, Psi_R, true);
   
@@ -613,8 +614,8 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
   arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
   arma::mat A_1 = arma::diagmat(vec_A);
   
-  // omp_set_num_threads(8) ;
-  // # pragma omp parallel for
+  omp_set_num_threads(8) ;
+  # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -1306,6 +1307,63 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
     return Y;
 }
 
+// [[Rcpp::export]]
+Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R, 
+                          const arma::mat &Y, arma::field<arma::mat> &Dn, 
+                          const arma::field <arma::mat> &Xn, const arma::field <arma::vec> A, 
+                          const arma::vec par, const arma::field<arma::uvec> par_index, 
+                          const arma::vec EIDs){
+    
+    arma::vec eids = Y.col(0);
+    arma::vec vec_A_total = par.elem(par_index(3) - 1);
+    arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+    arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+    arma::mat A_1 = arma::diagmat(vec_A);
+    arma::vec little_a = arma::vectorise(A_1);
+    
+    arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
+    
+    // omp_set_num_threads(8) ;
+    // # pragma omp parallel for
+    for(int ii = 0; ii < EIDs.n_elem; ii++) {
+    
+        int i = EIDs(ii);
+        arma::uvec sub_ind = arma::find(eids == i);
+        arma::mat Y_temp = Y.rows(sub_ind);
+        arma::mat Y_i = Y_temp.cols(1,4);
+        Y_i = Y_i.t();
+        arma::vec vec_Y_i = arma::vectorise(Y_i);
+        
+        arma::vec vec_alpha_i = A(ii);
+        arma::vec vec_beta = par.elem(par_index(0) - 1);
+        arma::mat Xn_i = Xn(ii);
+        arma::mat Dn_i = Dn(ii);
+        
+        arma::vec script_N_full = Dn_i * vec_alpha_i + Xn_i * vec_beta;
+        arma::vec bold_Z_vec = vec_Y_i - script_N_full;
+        arma::mat bold_Z = arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
+        bold_Z = bold_Z.cols(0, Y_i.n_cols - 2);
+        arma::mat I_4(4,4,arma::fill::eye);
+    
+        arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
+        arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
+        arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
+    
+        arma::vec vec_M = script_N + script_Z * little_a;
+        arma::mat M = arma::reshape(vec_M, 4, Y_i.n_cols - 1);
+        arma::mat script_Y_mat = arma::reshape(script_Y, 4, Y_i.n_cols - 1);
+        
+        arma::mat hold = script_Y_mat - M;
+        arma::mat hold2 = hold * hold.t();
+        psi_prop_R_interm += hold2;
+    }
+    
+    arma::mat psi_prop_R = psi_prop_R_interm + psi_R;
+    int nu_prop_R = Y.n_rows - EIDs.n_elem + nu_R;
+    
+    List nu_psi_R = List::create(psi_prop_R, nu_prop_R);
+    return nu_psi_R;
+}
 
 // [[Rcpp::export]]
 void test_fnc( const arma::vec EIDs, 
