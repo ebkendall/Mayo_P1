@@ -28,9 +28,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
-              c(par_index$log_lambda),
-              c(par_index$vec_A[1:4]),
-              c(par_index$vec_R))
+              c(par_index$log_lambda))
+              # c(par_index$vec_A[1:4]),
+              # c(par_index$vec_R))
 
   n_group = length(mpi)
   
