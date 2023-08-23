@@ -57,8 +57,8 @@ R = 8 * matrix( c( .2, -.1,  .1, -.1,
 
 
 # transitions: 1->2, 2->3, 3->1, 3->2
-zeta = matrix(c(-4, -2.578241, -5.000000, -5.230000,
-                2.006518, -1.2, -1.6713,  1.044297), ncol = 4, byrow=T)
+zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
+                2.006518,      -1.2,   -1.6713,  1.044297), ncol = 4, byrow=T)
 
 
 init_logit = c(0,-5,-2)
@@ -80,7 +80,7 @@ save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
 
 for (www in 1:1) {
-    set.seed(www)
+    set.seed(2023)
     
     Dir = 'Data/'
     
@@ -100,7 +100,6 @@ for (www in 1:1) {
         for(k in 1:n_i){
             if(k==1){
                 b_i = sample(1:3, size=1, prob=P_i)
-                
             } else{
                 q1   = exp(z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
                 q2   = exp(z_i[k,, drop=F] %*% zeta[,  2, drop=F])
@@ -129,13 +128,13 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, and bp -----------------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        
+        A_1 = diag(correct_scale_A[1:4])
+        
         for(k in 1:n_i) {
             if(k==1)  {
-                # FIXING ONE A Matrix
-                # state_k = b_i[k]
-                state_k = 1
-                A_state_k = c(A_mat[,state_k])
-                A_state_k = exp(A_state_k) / (1 + exp(A_state_k))
+                # FIXING A Matrix
+                A_state_k = diag(A_1)
                 
                 Gamma = matrix(c(R[1,1] / (1 - A_state_k[1] * A_state_k[1]), 
                                  R[1,2] / (1 - A_state_k[1] * A_state_k[2]),
@@ -158,17 +157,12 @@ for (www in 1:1) {
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
                 # FIXING ONE A Matrix
-                # state_k = b_i[k]
-                state_k = 1
-                A_state_k = c(A_mat[,state_k])
-                A_state_k = exp(A_state_k) / (1 + exp(A_state_k))
-                A_mat = diag(A_state_k)
                 
                 nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 nu_k_1 = D_i[[k-1]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k-1]]%*%matrix(beta,ncol=1)
                 diff_vec = c(Y_i[k-1,] - nu_k_1)
                 
-                mean_vecY_i_k = nu_k + A_mat %*% matrix(diff_vec,ncol=1)
+                mean_vecY_i_k = nu_k + A_1 %*% matrix(diff_vec,ncol=1)
                 
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = R)
             }

@@ -32,13 +32,13 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
            paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
-           "logit A1 (baseline)", "logit A2 (baseline)", "logit A3 (baseline)", "logit A4 (baseline)",
-           "logit A1 (bleed)", "logit A2 (bleed)", "logit A3 (bleed)", "logit A4 (bleed)",
-           "logit A1 (recovery)", "logit A2 (recovery)", "logit A3 (recovery)", "logit A4 (recovery)",
-           "log Var(hemo)", "log Cov(hemo, hr)", "log Cov(hemo, map)", "log Cov(hemo, lact)", 
-           "log Cov(hr, hemo)", "log Var(hr)", "log Cov(hr, map)", "log Cov(hr, lact)",
-           "log Cov(map, hemo)", "log Cov(map, hr)", "log Var(map)", "log Cov(map, lact)",
-           "log Cov(lact, hemo)", "log Cov(lact, hr)", "log Cov(lact, map)", "log Var(lact)",
+           "A1 (baseline)", "A2 (baseline)", "A3 (baseline)", "A4 (baseline)",
+           "A1 (bleed)", "A2 (bleed)", "A3 (bleed)", "A4 (bleed)",
+           "A1 (recovery)", "A2 (recovery)", "A3 (recovery)", "A4 (recovery)",
+           "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
+           "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
+           "Cov(map, hemo)", "Cov(map, hr)", "Var(map)", "Cov(map, lact)",
+           "Cov(lact, hemo)", "Cov(lact, hr)", "Cov(lact, map)", "Var(lact)",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
            "logit Pr(init S2)", "logit Pr(init S3)",
@@ -52,9 +52,9 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            ) 
 
 if(simulation) {
-    index_seeds = c(1:3)
-    trialNum = 1
-    itNum = 3
+    index_seeds = c(1:5)
+    trialNum = 4
+    itNum = 2
 } else {
     index_seeds = c(1:5)
     trialNum = 6 # Change this everytime!!!! ****************

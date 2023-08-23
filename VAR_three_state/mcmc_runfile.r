@@ -15,7 +15,7 @@ data_format = NULL
 if(simulation) {
   load('Data/use_data1_1.rda')
   data_format = use_data
-  trialNum = 1
+  trialNum = 4
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
@@ -88,7 +88,8 @@ W = list()
 B = list()
 Dn_omega = list()
 for(i in EIDs){
-  A[[i]] = c(alpha_tilde)
+  load('Data/true_pars_1.rda')
+  A[[i]] = c(true_pars[par_index$vec_alpha_tilde])
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
   
@@ -119,3 +120,12 @@ if(simulation) {
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)
 e_time = Sys.time() - s_time; print(e_time)
+
+
+init_patient = NULL
+for(i in 1:length(EIDs)) {
+    
+    sub_pat = Y[Y[,"EID"] == EIDs[i], 2:5]
+    init_patient = rbind(init_patient, sub_pat[1,,drop=F])
+    
+}

@@ -199,9 +199,8 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::vec vec_alpha_ii = A;
   
   arma::vec script_N_full = Dn_alpha_full * vec_alpha_ii + Xn_full * vec_beta;
-  arma::vec bold_Z_vec = vec_Y_i - script_N_full;
-  arma::mat bold_Z = arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
-  bold_Z = bold_Z.cols(0, Y_i.n_cols - 2);
+  // arma::vec bold_Z_vec = vec_Y_i - script_N_full;
+  arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2); //arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
   arma::mat I_4(4,4,arma::fill::eye);
   
   arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
@@ -240,6 +239,7 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
                              R(3,3) / (1 - vec_A(0) * vec_A(3))}};
   
   // Full likelihood evaluation is not needed for updating pairs of b_i components
+  // ******* CHANGE BACK ***********
   if (any(t_pts == -1)) { t_pts = arma::linspace(1, n_i, n_i);}
   
   for(int w=0; w < t_pts.n_elem;++w){
@@ -402,7 +402,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Rcpp::Rcout << "R:       " << prior_R_val << std::endl;
   
   
-  value = value + prior_zeta_val + prior_init_val + prior_log_lambda_val + prior_A1_val + prior_R_val;
+  value = value + prior_R_val; //+ prior_zeta_val + prior_init_val + prior_log_lambda_val; // + prior_A1_val
   return value;
 }
 
@@ -533,9 +533,9 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
             pr_Dn = arma::join_cols(pr_Dn, temp_mat);
         }
         
-        double log_target = log_f_i_cpp( i,ii,t_pts,par,par_index,A_temp,
-                                         pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
-                                         Dn_omega_temp, W_temp);
+        double log_target = log_f_i_cpp(i,ii,t_pts,par,par_index,A_temp,
+                                        pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
+                                        Dn_omega_temp, W_temp);
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
@@ -565,12 +565,8 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 14375) {
-              l1(4, k) = 1;
-          }
-          if(i == 144950) {
-              l2(4, k) = 1;
-          }
+          if(i == 14375)  { l1(4, k) = 1;}
+          if(i == 144950) { l2(4, k) = 1;}
           // ----------------------------------------------------------------------
         }
       }
@@ -1322,11 +1318,11 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
     arma::vec little_a = arma::vectorise(A_1);
     
     arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
-    
+
     // omp_set_num_threads(8) ;
     // # pragma omp parallel for
-    for(int ii = 0; ii < EIDs.n_elem; ii++) {
-    
+    for (int ii = 0; ii < EIDs.n_elem; ii++) {
+
         int i = EIDs(ii);
         arma::uvec sub_ind = arma::find(eids == i);
         arma::mat Y_temp = Y.rows(sub_ind);
@@ -1340,26 +1336,57 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
         arma::mat Dn_i = Dn(ii);
         
         arma::vec script_N_full = Dn_i * vec_alpha_i + Xn_i * vec_beta;
-        arma::vec bold_Z_vec = vec_Y_i - script_N_full;
-        arma::mat bold_Z = arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
-        bold_Z = bold_Z.cols(0, Y_i.n_cols - 2);
+        // arma::vec bold_Z_vec = vec_Y_i - script_N_full; // WRONG
+        arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2);
         arma::mat I_4(4,4,arma::fill::eye);
     
         arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
         arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
         arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
-    
+
+        // arma::vec y_1 = vec_Y_i.subvec(0, 3);
+        // arma::vec nu_1 = script_N_full.subvec(0, 3);
+
         arma::vec vec_M = script_N + script_Z * little_a;
         arma::mat M = arma::reshape(vec_M, 4, Y_i.n_cols - 1);
         arma::mat script_Y_mat = arma::reshape(script_Y, 4, Y_i.n_cols - 1);
         
+        // if(ii ==0) {
+        //     Rcpp::Rcout << arma::size(Y_i) << std::endl;
+        //     Rcpp::Rcout << script_Y_mat.cols(0, 4) << std::endl;
+        //     Rcpp::Rcout << M.cols(0, 4) << std::endl;
+        //     
+        //     Rcpp::Rcout << script_Y_mat.cols(script_Y_mat.n_cols - 5, script_Y_mat.n_cols - 1) << std::endl;
+        //     Rcpp::Rcout << M.cols(M.n_cols - 5, M.n_cols-1) << std::endl;
+        // 
+        //     // Rcpp::Rcout << "Script N full" << std::endl;
+        //     // Rcpp::Rcout << script_N_full.subvec(0,11) << std::endl;
+        //     // 
+        //     // Rcpp::Rcout << "Script N sub" << std::endl;
+        //     // Rcpp::Rcout << script_N.subvec(0,11) << std::endl;
+        //     // 
+        //     // arma::vec temp_za = script_Z * little_a;
+        //     // Rcpp::Rcout << temp_za.subvec(0,11) << std::endl;
+        // }
+        
         arma::mat hold = script_Y_mat - M;
         arma::mat hold2 = hold * hold.t();
+
+        // arma::vec small_hold = y_1 - nu_1;
+        // arma::mat small_hold2 = small_hold * small_hold.t();
+        // small_hold2 = A_star_inv * small_hold2 * A_star_inv;
+        // 
+        // hold2 = hold2 + small_hold2;
+
         psi_prop_R_interm += hold2;
     }
-    
+
     arma::mat psi_prop_R = psi_prop_R_interm + psi_R;
-    int nu_prop_R = Y.n_rows - EIDs.n_elem + nu_R;
+    int nu_prop_R = Y.n_rows + nu_R - EIDs.n_elem;
+    // nu_prop_R = nu_prop_R / 2;
+    // psi_prop_R = psi_prop_R / 2;
+    // int nu_prop_R = Y.n_rows + nu_R;
+    // int nu_prop_R = EIDs.n_elem;
     
     List nu_psi_R = List::create(psi_prop_R, nu_prop_R);
     return nu_psi_R;
