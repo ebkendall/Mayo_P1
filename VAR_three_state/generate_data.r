@@ -78,6 +78,7 @@ par_index$log_lambda = 199:210
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
+true_alpha_i = NULL
 
 for (www in 1:1) {
     set.seed(2023)
@@ -128,6 +129,7 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, and bp -----------------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        true_alpha_i = rbind(true_alpha_i, vec_alpha_i)
         
         A_1 = diag(correct_scale_A[1:4])
         
@@ -202,6 +204,7 @@ for (www in 1:1) {
     cat('\n')
 }
 
+save(true_alpha_i, file = 'true_alpha_i.rda')
 
 # Visualize the noise --------------------------------------------------------
 load(paste0('Data/use_data', 1, '_', it_num, '.rda'))

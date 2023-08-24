@@ -49,12 +49,20 @@ for(i in EIDs){
     }
 }
 
-load('test_post.rda')
+# load('test_post.rda')
+load('A_pre.rda')
+load('A_post.rda')
+load('prop_R_test.rda')
+load('true_alpha_i.rda')
+A_true = list()
+for(i in 1:length(prop_R_test$EIDs)) {
+    A_true[[i]] = t(true_alpha_i[i,,drop=F])
+}
 
 proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
     
     eids = Y[,1]
-    vec_A_total = par[par_index$vec_logit_A]
+    vec_A_total = par[par_index$vec_A]
     A_all_state = matrix(vec_A_total, nrow = 4, ncol = 3)
     vec_A = A_all_state[,1] 
     A_1 = diag(vec_A)
@@ -76,9 +84,7 @@ proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
         
         
         script_N_full = Dn_i %*% vec_alpha_i + Xn_i %*% vec_beta;
-        bold_Z_vec = vec_Y_i - script_N_full;
-        bold_Z = matrix(bold_Z_vec, nrow = 4, ncol = ncol(Y_i))
-        bold_Z = bold_Z[,-ncol(bold_Z)]
+        bold_Z = Y_i[,-ncol(Y_i)]
         I_4 = diag(4)
         
         script_Z = t(bold_Z) %x% I_4
@@ -97,11 +103,28 @@ proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
     return(list(psi_prop_R = psi_prop_R, nu_prop_R = nu_prop_R))
 }
 
-nu_R = 6
-psi_R = matrix(c(1.6, -0.8,  0.8, -0.8,
-                 -0.8,   16, -0.8,  0.8,
-                 0.8, -0.8,   16, -0.8,
-                 -0.8,  0.8, -0.8,  1.6), nrow = 4, byrow = T)
+nu_R = prop_R_test$nu_R
+psi_R = prop_R_test$psi_R
+Y = prop_R_test$Y
+Dn = prop_R_test$Dn
+Xn = prop_R_test$Xn
+par = prop_R_test$par
+par_index = prop_R_test$par_index
+EIDs = prop_R_test$EIDs
+
+test_R = proposal_R(nu_R, psi_R, Y, Dn, Xn, A_true, par, par_index, EIDs)
+
+print("Mean")
+print(test_R$psi_prop_R / (test_R$nu_prop_R - 5))
+
+diff_check = matrix(ncol = 3, nrow = length(EIDs))
+colnames(diff_check) = c("mean_sample", "mean_true", "sample_true")
+for(i in 1:length(EIDs)) {
+    diff_check[i,] = c(sum((A_pre[[i]] - A_post[[i]])^2),
+                       sum((A_pre[[i]] - A_true[[i]])^2),
+                       sum((A_post[[i]] - A_true[[i]])^2))
+}
+
 
 s_time = Sys.time()
 curr_psi_nu = proposal_R(nu_R, psi_R, Y, test_post$Dn, test_post$Xn, test_post$A,

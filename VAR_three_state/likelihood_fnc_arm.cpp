@@ -376,10 +376,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // R priors ------------------------------------------------------------------
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
-  // arma::mat Psi_R = { { 1.6, -0.8,  0.8, -0.8},
-  //                     {-0.8,   16, -0.8,  0.8},
-  //                     { 0.8, -0.8,   16, -0.8},
-  //                     {-0.8,  0.8, -0.8,  1.6}};
+  
   arma::mat Psi_R(4,4,arma::fill::eye);
   int nu_R = 6;
   double prior_R_val = diwish(R, nu_R, Psi_R, true);
@@ -1336,7 +1333,6 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
         arma::mat Dn_i = Dn(ii);
         
         arma::vec script_N_full = Dn_i * vec_alpha_i + Xn_i * vec_beta;
-        // arma::vec bold_Z_vec = vec_Y_i - script_N_full; // WRONG
         arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2);
         arma::mat I_4(4,4,arma::fill::eye);
     
@@ -1344,49 +1340,18 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
         arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
         arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
 
-        // arma::vec y_1 = vec_Y_i.subvec(0, 3);
-        // arma::vec nu_1 = script_N_full.subvec(0, 3);
-
         arma::vec vec_M = script_N + script_Z * little_a;
         arma::mat M = arma::reshape(vec_M, 4, Y_i.n_cols - 1);
         arma::mat script_Y_mat = arma::reshape(script_Y, 4, Y_i.n_cols - 1);
         
-        // if(ii ==0) {
-        //     Rcpp::Rcout << arma::size(Y_i) << std::endl;
-        //     Rcpp::Rcout << script_Y_mat.cols(0, 4) << std::endl;
-        //     Rcpp::Rcout << M.cols(0, 4) << std::endl;
-        //     
-        //     Rcpp::Rcout << script_Y_mat.cols(script_Y_mat.n_cols - 5, script_Y_mat.n_cols - 1) << std::endl;
-        //     Rcpp::Rcout << M.cols(M.n_cols - 5, M.n_cols-1) << std::endl;
-        // 
-        //     // Rcpp::Rcout << "Script N full" << std::endl;
-        //     // Rcpp::Rcout << script_N_full.subvec(0,11) << std::endl;
-        //     // 
-        //     // Rcpp::Rcout << "Script N sub" << std::endl;
-        //     // Rcpp::Rcout << script_N.subvec(0,11) << std::endl;
-        //     // 
-        //     // arma::vec temp_za = script_Z * little_a;
-        //     // Rcpp::Rcout << temp_za.subvec(0,11) << std::endl;
-        // }
-        
         arma::mat hold = script_Y_mat - M;
         arma::mat hold2 = hold * hold.t();
-
-        // arma::vec small_hold = y_1 - nu_1;
-        // arma::mat small_hold2 = small_hold * small_hold.t();
-        // small_hold2 = A_star_inv * small_hold2 * A_star_inv;
-        // 
-        // hold2 = hold2 + small_hold2;
 
         psi_prop_R_interm += hold2;
     }
 
     arma::mat psi_prop_R = psi_prop_R_interm + psi_R;
     int nu_prop_R = Y.n_rows + nu_R - EIDs.n_elem;
-    // nu_prop_R = nu_prop_R / 2;
-    // psi_prop_R = psi_prop_R / 2;
-    // int nu_prop_R = Y.n_rows + nu_R;
-    // int nu_prop_R = EIDs.n_elem;
     
     List nu_psi_R = List::create(psi_prop_R, nu_prop_R);
     return nu_psi_R;

@@ -89,7 +89,7 @@ B = list()
 Dn_omega = list()
 for(i in EIDs){
   load('Data/true_pars_1.rda')
-  A[[i]] = c(true_pars[par_index$vec_alpha_tilde])
+  A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
   

@@ -84,8 +84,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
-    # A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
+    # save(A, file = "A_pre.rda")
+    A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
     names(A) = EIDs
+    # save(A, file = "A_post.rda")
     
     # # Gibbs updates of the omega_i
     # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A)
@@ -115,7 +117,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain[chain_ind,] = par
 
     # Printing updates
-    if (ttt %% 100 == 0 | ttt == 1){
+    if (ttt %% 100 == 0){
       print("alpha_tilde")
       print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
       
@@ -259,35 +261,24 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               # Updating R ----------------------------------------------------
               # Changing the proposal distribution and therefore the Metrop Ratio
               nu_R = 6
-              # psi_R = matrix(c(1.6, -0.8,  0.8, -0.8,
-              #                 -0.8,   16, -0.8,  0.8,
-              #                  0.8, -0.8,   16, -0.8,
-              #                 -0.8,  0.8, -0.8,  1.6), nrow = 4, byrow = T)
               psi_R = diag(4)
               
+              # prop_R_test = list("nu_R" = nu_R, "psi_R" = psi_R, "Y" = Y, "Dn" = Dn, "Xn" = Xn,
+              #                    "A" = A, "par" = par, "par_index" = par_index, "EIDs" = EIDs)
+              # save(prop_R_test, file = "prop_R_test.rda")
+              # return(0)
               curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs))
 
               proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
                                                S = curr_psi_nu[[1]]))
               
-              # prop_nu = 1000
-              
               curr_R = matrix(par[ind_j], nrow = 4)
-              # proposal[ind_j] = c(rinvwishart(nu = prop_nu, S = prop_nu * curr_R))
               prop_R = matrix(proposal[ind_j], nrow = 4)
               
               log_prop = dinvwishart(Sigma = prop_R, nu = curr_psi_nu[[2]],
                                      S = curr_psi_nu[[1]], log = T)
               log_prop_prev = dinvwishart(Sigma = curr_R, nu = curr_psi_nu[[2]],
                                           S = curr_psi_nu[[1]], log = T)
-              
-              print("Current")
-              print(curr_R)
-              print("Proposed")
-              print(prop_R)
-              
-              # log_prop = dinvwishart(Sigma = prop_R, nu = prop_nu, S = prop_nu * curr_R, log = T)
-              # log_prop_prev = dinvwishart(Sigma = curr_R, nu = prop_nu, S = prop_nu * prop_R, log = T)
               
               log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
               
@@ -366,4 +357,47 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 # mean_y_mat = matrix(mean_y, nrow = 4)
 
 
+# proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
+#     
+#     eids = Y[,1]
+#     vec_A_total = par[par_index$vec_A]
+#     A_all_state = matrix(vec_A_total, nrow = 4, ncol = 3)
+#     vec_A = A_all_state[,1] 
+#     A_1 = diag(vec_A)
+#     little_a = c(A_1)
+#     
+#     psi_prop_R_interm = matrix(0, nrow = 4, ncol = 4)
+#     
+#     for(i in 1:length(EIDs)) {
+#         
+#         Y_temp = Y[eids == EIDs[i], ]
+#         Y_i = Y_temp[,2:5]
+#         Y_i = t(Y_i)
+#         vec_Y_i = c(Y_i)
+#         
+#         vec_alpha_i = A[[i]]
+#         # vec_alpha_i = t(true_alpha_i[i,,drop=F])
+#         vec_beta = par[par_index$vec_beta]
+#         Xn_i = Xn[[i]]
+#         Dn_i = Dn[[i]]
+#         
+#         script_N_full = Dn_i %*% vec_alpha_i + Xn_i %*% vec_beta;
+#         bold_Z = Y_i[,-ncol(Y_i)]
+#         I_4 = diag(4)
+#         
+#         script_Z = t(bold_Z) %x% I_4
+#         script_N = script_N_full[-(1:4)]
+#         script_Y = vec_Y_i[-(1:4)]
+#         
+#         vec_M = script_N + script_Z %*% little_a
+#         M = matrix(vec_M, nrow = 4)
+#         hold = matrix(script_Y, nrow = 4) - M
+#         psi_prop_R_interm = psi_prop_R_interm + hold %*% t(hold)
+#     }
+#     
+#     psi_prop_R = psi_prop_R_interm + psi_R
+#     nu_prop_R = nrow(Y) - length(EIDs) + nu_R
+#     
+#     return(list(psi_prop_R = psi_prop_R, nu_prop_R = nu_prop_R))
+# }
 
