@@ -64,7 +64,7 @@ zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(correct_scale_A), c(R), c(zeta), log(init_logit)[2:3], 
+true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3], 
               log(diag(Lambda)))
 par_index = list()
 par_index$vec_beta = 1:4

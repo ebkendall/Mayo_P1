@@ -15,7 +15,7 @@ data_format = NULL
 if(simulation) {
   load('Data/use_data1_1.rda')
   data_format = use_data
-  trialNum = 4
+  trialNum = 2
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
@@ -51,8 +51,6 @@ Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 # columns correspond to the different states
 # Each column corresponds to a different state
 vec_A = matrix( 2.3 , nrow = 4, ncol = 3) 
-vec_A = exp(vec_A) / (1 + exp(vec_A))
-# vec_A = rep(2.3, 4)
 
 # columns: hemo, hr, map, lactate
 # diagonal elements only (because R is a diagonal matrix)
@@ -120,12 +118,3 @@ if(simulation) {
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)
 e_time = Sys.time() - s_time; print(e_time)
-
-
-init_patient = NULL
-for(i in 1:length(EIDs)) {
-    
-    sub_pat = Y[Y[,"EID"] == EIDs[i], 2:5]
-    init_patient = rbind(init_patient, sub_pat[1,,drop=F])
-    
-}

@@ -53,8 +53,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
 
 if(simulation) {
     index_seeds = c(1:5)
-    trialNum = 4
-    itNum = 2
+    trialNum = 1
+    itNum = 3
 } else {
     index_seeds = c(1:5)
     trialNum = 6 # Change this everytime!!!! ****************

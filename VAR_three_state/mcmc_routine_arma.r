@@ -26,10 +26,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   # Metropolis Parameter Index for MH within Gibbs updates
   # Ordering of the transition rate parameters:
   # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-  mpi = list( #c(par_index$vec_init),
-              #c(par_index$vec_zeta),
-              #c(par_index$log_lambda),
-              # c(par_index$vec_A[1:4]),
+  mpi = list( c(par_index$vec_init),
+              c(par_index$vec_zeta),
+              c(par_index$log_lambda),
+              c(par_index$vec_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -83,11 +83,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
-    # Gibbs updates of the alpha_i (*** VAR UPDATED ***)
-    # save(A, file = "A_pre.rda")
+    # Gibbs updates of the alpha_i
     A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
     names(A) = EIDs
-    # save(A, file = "A_post.rda")
     
     # # Gibbs updates of the omega_i
     # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A)
@@ -103,21 +101,21 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # -------------------------------------------------------
     
     # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
-    # B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-    #                       debug_temp1, debug_temp2)
-    # B = B_Dn[[1]]; names(B) = EIDs
-    # Dn = B_Dn[[2]]; names(Dn) = EIDs
+    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+                          debug_temp1, debug_temp2)
+    B = B_Dn[[1]]; names(B) = EIDs
+    Dn = B_Dn[[2]]; names(Dn) = EIDs
 
     # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
-    # par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)
-    # par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
+    par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)
+    par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
     # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
     
     # Save the parameter updates made in the Gibbs steps before Metropolis steps
     chain[chain_ind,] = par
 
     # Printing updates
-    if (ttt %% 100 == 0){
+    if (ttt %% 100 == 0 | ttt == 1){
       print("alpha_tilde")
       print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
       
@@ -138,7 +136,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       
       print("A")
       vec_A_t = chain[chain_ind, par_index$vec_A[1:4]]
-      print(vec_A_t)
+      vec_A_t_logit = exp(vec_A_t) / (1 + exp(vec_A_t))
+      print(vec_A_t_logit)
       
       print("R")
       R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
@@ -171,8 +170,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       ind_j = mpi[[j]]
       proposal = par
       
-      if(j < -1) {
-          # logit_init, zeta, and log_lambda
+      if(j <= 4) {
+          # logit_init, zeta, log_lambda, logit A1
           proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           
           log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
@@ -181,7 +180,15 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               log_target_prev = log_target
               par[ind_j] = proposal[ind_j]
               accept[j] = accept[j] +1
+          
+              # NEED TO UPDATE Dn_Xn AFTER UPDATING A1!
+              if (j==4) {
+                  Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x)
+                  Dn = Dn_Xn[[1]]; names(Dn) = EIDs
+                  Xn = Dn_Xn[[2]]   
+              }   
           }
+          
           
           chain[chain_ind,ind_j] = par[ind_j]
           
@@ -230,72 +237,32 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           }
           # -----------------------------------------------------------------------
           
-          
       } else {
-          # A_1 and R
-          if(j == 5) { # CHANGE THIS BACK!!
-              # Updating A_1 --------------------------------------------------
-              # Changing the proposal distribution and therefore the Metrop Ratio
-              # proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]))
-              proposal[ind_j] = rbeta(n = length(ind_j), shape1 = 7, shape2 = 2)
-              
-              Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
-              Dn_prop = Dn_Xn_prop[[1]]; names(Dn) = EIDs
-              Xn_prop = Dn_Xn_prop[[2]]
-              
-              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
-              
-              # log_prop = sum(dbeta(x = proposal[ind_j], shape1 = 10*(par[ind_j]), shape2 = 10*(1-par[ind_j]), log = T))
-              log_prop = sum(dbeta(x = proposal[ind_j], shape1 = 7, shape2 = 2, log = T))
-              # log_prop_prev = sum(dbeta(x = par[ind_j], shape1 = 10*(proposal[ind_j]), shape2 = 10*(1-proposal[ind_j]), log = T))
-              log_prop_prev = sum(dbeta(x = par[ind_j], shape1 = 7, shape2 = 2, log = T))
-              
-              if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
-                  log_target_prev = log_target
-                  par[ind_j] = proposal[ind_j]
-                  accept[j] = accept[j] +1
-                  Dn = Dn_prop
-                  Xn = Xn_prop
-              }
-          } else {
-              # Updating R ----------------------------------------------------
-              # Changing the proposal distribution and therefore the Metrop Ratio
-              nu_R = 6
-              psi_R = diag(4)
-              
-              # prop_R_test = list("nu_R" = nu_R, "psi_R" = psi_R, "Y" = Y, "Dn" = Dn, "Xn" = Xn,
-              #                    "A" = A, "par" = par, "par_index" = par_index, "EIDs" = EIDs)
-              # save(prop_R_test, file = "prop_R_test.rda")
-              # return(0)
-              curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs))
-
-              proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
-                                               S = curr_psi_nu[[1]]))
-              
-              curr_R = matrix(par[ind_j], nrow = 4)
-              prop_R = matrix(proposal[ind_j], nrow = 4)
-              
-              log_prop = dinvwishart(Sigma = prop_R, nu = curr_psi_nu[[2]],
-                                     S = curr_psi_nu[[1]], log = T)
-              log_prop_prev = dinvwishart(Sigma = curr_R, nu = curr_psi_nu[[2]],
-                                          S = curr_psi_nu[[1]], log = T)
-              
-              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
-              
-              print(paste0("log target: ", log_target))
-              print(paste0("log target prev: ", log_target_prev))
-              print(paste0("log prop: ", log_prop))
-              print(paste0("log prop prev: ", log_prop_prev))
-              print(log_target + log_prop_prev - log_target_prev - log_prop)
-              print(log(runif(1,0,1)))
-              
-              if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
-                  log_target_prev = log_target
-                  par[ind_j] = proposal[ind_j]
-                  accept[j] = accept[j] +1
-              }
-          }
+          # Updating R ----------------------------------------------------
+          # Changing the proposal distribution and therefore the Metrop Ratio
+          nu_R = 6
+          psi_R = diag(4)
           
+          curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs))
+          
+          proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
+                                          S = curr_psi_nu[[1]]))
+          
+          curr_R = matrix(par[ind_j], nrow = 4)
+          prop_R = matrix(proposal[ind_j], nrow = 4)
+          
+          log_prop = dinvwishart(Sigma = prop_R, nu = curr_psi_nu[[2]],
+                                 S = curr_psi_nu[[1]], log = T)
+          log_prop_prev = dinvwishart(Sigma = curr_R, nu = curr_psi_nu[[2]],
+                                      S = curr_psi_nu[[1]], log = T)
+          
+          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+          
+          if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
+              log_target_prev = log_target
+              par[ind_j] = proposal[ind_j]
+              accept[j] = accept[j] +1
+          }
       }
 
     }
@@ -341,63 +308,3 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 }
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-# load('Dn_Xn.rda')
-# D_alpha_star = NULL
-# for(i in 2:nrow(Y_1)) {
-#     D_temp = (diag(4) %x% z_alpha[i,,drop=F]) - A %*% (diag(4) %x% z_alpha[i-1,,drop=F])
-#     D_alpha_star = rbind(D_alpha_star, D_temp)
-# }
-# 
-# Z_i = Z %x% diag(4)
-# little_a = c(A)
-# head(Z_i %*% matrix(little_a, ncol=1))
-# 
-# mean_y = D_alpha_star %*% matrix(par[par_index$vec_alpha_tilde], ncol = 1) + Z_i %*% matrix(little_a, ncol = 1)
-# 
-# mean_y_mat = matrix(mean_y, nrow = 4)
-
-
-# proposal_R <- function(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, EIDs){
-#     
-#     eids = Y[,1]
-#     vec_A_total = par[par_index$vec_A]
-#     A_all_state = matrix(vec_A_total, nrow = 4, ncol = 3)
-#     vec_A = A_all_state[,1] 
-#     A_1 = diag(vec_A)
-#     little_a = c(A_1)
-#     
-#     psi_prop_R_interm = matrix(0, nrow = 4, ncol = 4)
-#     
-#     for(i in 1:length(EIDs)) {
-#         
-#         Y_temp = Y[eids == EIDs[i], ]
-#         Y_i = Y_temp[,2:5]
-#         Y_i = t(Y_i)
-#         vec_Y_i = c(Y_i)
-#         
-#         vec_alpha_i = A[[i]]
-#         # vec_alpha_i = t(true_alpha_i[i,,drop=F])
-#         vec_beta = par[par_index$vec_beta]
-#         Xn_i = Xn[[i]]
-#         Dn_i = Dn[[i]]
-#         
-#         script_N_full = Dn_i %*% vec_alpha_i + Xn_i %*% vec_beta;
-#         bold_Z = Y_i[,-ncol(Y_i)]
-#         I_4 = diag(4)
-#         
-#         script_Z = t(bold_Z) %x% I_4
-#         script_N = script_N_full[-(1:4)]
-#         script_Y = vec_Y_i[-(1:4)]
-#         
-#         vec_M = script_N + script_Z %*% little_a
-#         M = matrix(vec_M, nrow = 4)
-#         hold = matrix(script_Y, nrow = 4) - M
-#         psi_prop_R_interm = psi_prop_R_interm + hold %*% t(hold)
-#     }
-#     
-#     psi_prop_R = psi_prop_R_interm + psi_R
-#     nu_prop_R = nrow(Y) - length(EIDs) + nu_R
-#     
-#     return(list(psi_prop_R = psi_prop_R, nu_prop_R = nu_prop_R))
-# }
-

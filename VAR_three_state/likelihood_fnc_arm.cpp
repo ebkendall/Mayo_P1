@@ -199,8 +199,7 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::vec vec_alpha_ii = A;
   
   arma::vec script_N_full = Dn_alpha_full * vec_alpha_ii + Xn_full * vec_beta;
-  // arma::vec bold_Z_vec = vec_Y_i - script_N_full;
-  arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2); //arma::reshape(bold_Z_vec, 4, Y_i.n_cols);
+  arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2); 
   arma::mat I_4(4,4,arma::fill::eye);
   
   arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
@@ -217,7 +216,11 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   // Variance for DGP
   arma::vec vec_A_total = par.elem(par_index(3) - 1);
   arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
-  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+  arma::vec vec_A_logit = A_all_state.col(0);
+  arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                     exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                     exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                     exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))}; 
   arma::mat A_1 = arma::diagmat(vec_A);
   arma::vec little_a = arma::vectorise(A_1);
   
@@ -239,7 +242,6 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
                              R(3,3) / (1 - vec_A(0) * vec_A(3))}};
   
   // Full likelihood evaluation is not needed for updating pairs of b_i components
-  // ******* CHANGE BACK ***********
   if (any(t_pts == -1)) { t_pts = arma::linspace(1, n_i, n_i);}
   
   for(int w=0; w < t_pts.n_elem;++w){
@@ -366,12 +368,16 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   double prior_log_lambda_val = arma::as_scalar(prior_log_lambda);
   
   // A_1 priors ----------------------------------------------------------------
-  arma::vec vec_A1_content = par.elem(par_index(3) - 1);
-  double prior_A1_val = 0;
-  for(int l = 0; l < 4; l++) { // ONE A FOR NOW ************
-    double a_val = vec_A1_content(l);
-    prior_A1_val += d_4beta(a_val, 1, 1, 0, 1, 1);
-  }
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+  arma::vec vec_A1_content = A_all_state.col(0);
+  
+  arma::vec vec_A1_mean = {0, 0, 0, 0};
+  arma::vec A1_scalar = {10, 10, 10, 10}; 
+  arma::mat A1_sd = arma::diagmat(A1_scalar);
+  
+  arma::vec prior_A1 = dmvnorm(vec_A1_content.t(), vec_A1_mean, A1_sd, true);
+  double prior_A1_val = arma::as_scalar(prior_A1);
   
   // R priors ------------------------------------------------------------------
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
@@ -392,14 +398,8 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // double prior_omega_val = arma::as_scalar(prior_omega);
   // ---------------------------------------------------------------------------
   
-  // Rcpp::Rcout << "zeta:    " << prior_zeta_val << std::endl;
-  // Rcpp::Rcout << "init:    " << prior_init_val << std::endl;
-  // Rcpp::Rcout << "lambda:  " << prior_log_lambda_val << std::endl;
-  // Rcpp::Rcout << "A1:      " << prior_A1_val << std::endl;
-  // Rcpp::Rcout << "R:       " << prior_R_val << std::endl;
   
-  
-  value = value + prior_R_val; //+ prior_zeta_val + prior_init_val + prior_log_lambda_val; // + prior_A1_val
+  value = value + prior_R_val + prior_zeta_val + prior_init_val + prior_log_lambda_val + prior_A1_val;
   return value;
 }
 
@@ -422,7 +422,11 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
   
   arma::vec vec_A_total = par.elem(par_index(3) - 1);
   arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
-  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+  arma::vec vec_A_logit = A_all_state.col(0);
+  arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                     exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                     exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                     exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
   arma::mat A_1 = arma::diagmat(vec_A);
   
   arma::field<arma::vec> B_return(EIDs.n_elem);
@@ -588,23 +592,17 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
   // "i" is the numeric EID number
   // "ii" is the index of the EID
 
-  // Xn = list()
-  //   A_1_mat = matrix(par[par_index$vec_logit_A], nrow = 4)
-  //   for(i in EIDs)  {
-  //       length_i = sum(Y[,'EID']==as.numeric(i))
-  //       x_i = x[ Y[,'EID']==as.numeric(i),, drop=F]
-  //       Xn[[i]] = diag(4) %x% x_i[1,,drop = F]
-  //       for(j in 2:length_i) {
-  //           Xn[[i]] = rbind(Xn[[i]], diag(4) %x% x_i[j,,drop = F])
-  //       }
-  //   }
   arma::vec eids = Y.col(0);
   arma::field<arma::mat> Dn(EIDs.n_elem);
   arma::field<arma::mat> Xn(EIDs.n_elem);
   
   arma::vec vec_A_total = par.elem(par_index(3) - 1);
   arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
-  arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+  arma::vec vec_A_logit = A_all_state.col(0);
+  arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                     exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                     exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                     exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
   arma::mat A_1 = arma::diagmat(vec_A);
   
   omp_set_num_threads(8) ;
@@ -705,7 +703,11 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
 
       arma::vec b_i = B(ii);
 
-      arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+      arma::vec vec_A_logit = A_all_state.col(0);
+      arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                         exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                         exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                         exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
       arma::mat A_1 = arma::diagmat(vec_A);
       arma::vec little_a = arma::vectorise(A_1);
 
@@ -1041,7 +1043,11 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 
         arma::vec b_i = B(ii);
         
-        arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+        arma::vec vec_A_logit = A_all_state.col(0);
+        arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                           exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                           exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                           exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
         arma::mat A_1 = arma::diagmat(vec_A);
         arma::vec little_a = arma::vectorise(A_1);
         
@@ -1310,7 +1316,12 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
     arma::vec eids = Y.col(0);
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
     arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
-    arma::vec vec_A = A_all_state.col(0); // SINGLE A MATRIX
+    arma::vec vec_A_logit = A_all_state.col(0);
+    arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                       exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                       exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                       exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))};
+    
     arma::mat A_1 = arma::diagmat(vec_A);
     arma::vec little_a = arma::vectorise(A_1);
     
