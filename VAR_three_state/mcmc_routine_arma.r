@@ -29,7 +29,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
-              # c(par_index$vec_A[1:4]),
+              c(par_index$vec_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -135,9 +135,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print(round(diag(Upsilon_t), 3))
       
       print("A")
-      vec_A_t = chain[chain_ind, par_index$vec_A[1:4]]
-      vec_A_t_logit = exp(vec_A_t) / (1 + exp(vec_A_t))
-      print(vec_A_t_logit)
+      vec_A_t_logit = chain[chain_ind, par_index$vec_A[1:4]]
+      vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
+      print(vec_A_t)
       
       print("R")
       R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
@@ -170,11 +170,19 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       ind_j = mpi[[j]]
       proposal = par
       
-      if(j <= 3) {
+      if(j <= 4) {
           # logit_init, zeta, log_lambda, logit A1
           proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           
-          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+          if(j == 4) {
+              Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
+              Dn_prop = Dn_Xn_prop[[1]]; names(Dn_prop) = EIDs
+              Xn_prop = Dn_Xn_prop[[2]]  
+              
+              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
+          } else {
+              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
+          }
           
           if( log_target - log_target_prev > log(runif(1,0,1)) ){
               log_target_prev = log_target
@@ -183,9 +191,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           
               # NEED TO UPDATE Dn_Xn AFTER UPDATING A1!
               if (j==4) {
-                  Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x)
-                  Dn = Dn_Xn[[1]]; names(Dn) = EIDs
-                  Xn = Dn_Xn[[2]]   
+                  Dn = Dn_prop
+                  Xn = Xn_prop   
               }   
           }
           
