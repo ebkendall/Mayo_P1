@@ -29,7 +29,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   mpi = list( c(par_index$vec_init),
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
-              c(par_index$vec_A[1:4]),
+              # c(par_index$vec_A[1:4]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -170,7 +170,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       ind_j = mpi[[j]]
       proposal = par
       
-      if(j <= 4) {
+      if(j <= 3) {
           # logit_init, zeta, log_lambda, logit A1
           proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           

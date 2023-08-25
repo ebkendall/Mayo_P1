@@ -174,6 +174,16 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   arma::mat R = arma::reshape(vec_R, 4, 4);
   arma::mat invR = arma::inv_sympd(R);
   
+  arma::vec vec_A_total = par.elem(par_index(3) - 1);
+  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
+  arma::vec vec_A_logit = A_all_state.col(0);
+  arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
+                     exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
+                     exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
+                     exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))}; 
+  arma::mat A_1 = arma::diagmat(vec_A);
+  arma::vec little_a = arma::vectorise(A_1);
+  
   arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
   arma::mat zeta = arma::reshape(vec_zeta_content, 2, 4); // THREE STATE
   
@@ -200,30 +210,17 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   
   arma::vec script_N_full = Dn_alpha_full * vec_alpha_ii + Xn_full * vec_beta;
   arma::mat bold_Z = Y_i.cols(0, Y_i.n_cols - 2); 
-  arma::mat I_4(4,4,arma::fill::eye);
-  
-  arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
   arma::vec script_N = script_N_full.subvec(4, script_N_full.n_elem - 1);
   arma::vec script_Y = vec_Y_i.subvec(4, vec_Y_i.n_elem - 1);
-  arma::vec y_1 = vec_Y_i.subvec(0, 3);
-  arma::vec nu_1 = script_N_full.subvec(0, 3);
+  // arma::mat I_4(4,4,arma::fill::eye);
+  // arma::mat script_Z = arma::kron(bold_Z.t(), I_4);
   
-  arma::mat I_n(Y_i.n_cols - 1, Y_i.n_cols - 1, arma::fill::eye);
-  arma::sp_mat inv_R_fill = arma::sp_mat(invR);
-  arma::sp_mat I_n_fill = arma::sp_mat(I_n);
-  arma::sp_mat I_kron_R_inv = arma::kron(I_n_fill, inv_R_fill);
+  // arma::mat I_n(Y_i.n_cols - 1, Y_i.n_cols - 1, arma::fill::eye);
+  // arma::sp_mat inv_R_fill = arma::sp_mat(invR);
+  // arma::sp_mat I_n_fill = arma::sp_mat(I_n);
+  // arma::sp_mat I_kron_R_inv = arma::kron(I_n_fill, inv_R_fill);
   
   // Variance for DGP
-  arma::vec vec_A_total = par.elem(par_index(3) - 1);
-  arma::mat A_all_state = arma::reshape(vec_A_total, 4, 3);
-  arma::vec vec_A_logit = A_all_state.col(0);
-  arma::vec vec_A = {exp(vec_A_logit(0)) / (1+exp(vec_A_logit(0))),
-                     exp(vec_A_logit(1)) / (1+exp(vec_A_logit(1))),
-                     exp(vec_A_logit(2)) / (1+exp(vec_A_logit(2))),
-                     exp(vec_A_logit(3)) / (1+exp(vec_A_logit(3)))}; 
-  arma::mat A_1 = arma::diagmat(vec_A);
-  arma::vec little_a = arma::vectorise(A_1);
-  
   arma::mat Gamma     = {{R(0,0) / (1 - vec_A(0) * vec_A(0)), 
                           R(0,1) / (1 - vec_A(0) * vec_A(1)), 
                           R(0,2) / (1 - vec_A(0) * vec_A(2)), 
@@ -240,6 +237,13 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
                              R(3,1) / (1 - vec_A(3) * vec_A(1)), 
                              R(3,2) / (1 - vec_A(3) * vec_A(2)), 
                              R(3,3) / (1 - vec_A(0) * vec_A(3))}};
+  
+  arma::vec y_1 = vec_Y_i.subvec(0, 3);
+  arma::vec nu_1 = script_N_full.subvec(0, 3);
+  
+  arma::mat Y_unvec = arma::reshape(script_Y, 4, Y_i.n_cols - 1);
+  arma::mat N_unvec = arma::reshape(script_N, 4, Y_i.n_cols - 1);
+  arma::mat mean_unvec = N_unvec + A_1 * bold_Z;
   
   // Full likelihood evaluation is not needed for updating pairs of b_i components
   if (any(t_pts == -1)) { t_pts = arma::linspace(1, n_i, n_i);}
@@ -277,15 +281,18 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
         int b_k_1 = b_i(k-2,0);
         int b_k = b_i(k-1, 0);
         in_value = in_value + log(P_i( b_k_1 - 1, b_k - 1));
+        
+        arma::vec log_y_pdf = dmvnorm(Y_unvec.col(k-2).t(), mean_unvec.col(k-2), R, true);
+        in_value = in_value + arma::as_scalar(log_y_pdf);
     }
   }
   
-  arma::vec y_k_mean = script_N + script_Z * little_a;
-  arma::mat dev = script_Y - y_k_mean;
-  double log_det_precision = -(n_i-1) * arma::log_det_sympd(R);
-  
-  in_value = in_value + .5*( log_det_precision - arma::as_scalar(dev.t() * I_kron_R_inv * dev) );
-  
+  // arma::vec y_k_mean = script_N + script_Z * little_a;
+  // arma::mat dev = script_Y - y_k_mean;
+  // double log_det_precision = -(n_i-1) * arma::log_det_sympd(R);
+  // 
+  // in_value = in_value + .5*( log_det_precision - arma::as_scalar(dev.t() * I_kron_R_inv * dev) );
+
   return in_value;
 }
 
