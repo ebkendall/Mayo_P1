@@ -3,7 +3,7 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 1
+it_num = 2
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new.rda')
@@ -48,9 +48,10 @@ A_mat = matrix(c(2.3, 0.5, 1.3,
                  2.3, 0.5, 1.3), ncol = 3, byrow = T)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
+A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-R = 8 * matrix( c( .2, -.1,  .1, -.1,
+R = 1 * matrix( c( .2, -.1,  .1, -.1,
                   -.1,   2, -.1,  .1,
                    .1, -.1,   2, -.1,
                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
@@ -131,12 +132,10 @@ for (www in 1:1) {
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         true_alpha_i = rbind(true_alpha_i, vec_alpha_i)
         
-        A_1 = diag(correct_scale_A[1:4])
-        
         for(k in 1:n_i) {
             if(k==1)  {
                 # FIXING A Matrix
-                A_state_k = diag(A_1)
+                A_state_k = A_mat_scale[,b_i[k]]
                 
                 Gamma = matrix(c(R[1,1] / (1 - A_state_k[1] * A_state_k[1]), 
                                  R[1,2] / (1 - A_state_k[1] * A_state_k[2]),
@@ -158,7 +157,8 @@ for (www in 1:1) {
                 mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
-                # FIXING ONE A Matrix
+                A_state_k = A_mat_scale[,b_i[k]]
+                A_1 = diag(A_state_k)
                 
                 nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 nu_k_1 = D_i[[k-1]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k-1]]%*%matrix(beta,ncol=1)

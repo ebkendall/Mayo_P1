@@ -30,6 +30,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               c(par_index$vec_zeta),
               c(par_index$log_lambda),
               c(par_index$vec_A[1:4]),
+              c(par_index$vec_A[5:8]),
+              c(par_index$vec_A[9:12]),
               c(par_index$vec_R))
 
   n_group = length(mpi)
@@ -134,10 +136,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
       print(round(diag(Upsilon_t), 3))
       
-      print("A")
-      vec_A_t_logit = chain[chain_ind, par_index$vec_A[1:4]]
+      print("A1")
+      vec_A_t_logit = chain[chain_ind, par_index$vec_A]
       vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
-      print(vec_A_t)
+      mat_A_t = matrix(vec_A_t, nrow = 4)
+      print(mat_A_t)
       
       print("R")
       R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
@@ -147,20 +150,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
       print(zed)
       
-      print("Gamma")
-      vec_gamma = c(R_t[1,1] / (1 - vec_A_t[1]*vec_A_t[1]), R_t[2,1] / (1 - vec_A_t[2]*vec_A_t[1]), 
-                    R_t[3,1] / (1 - vec_A_t[3]*vec_A_t[1]), R_t[4,1] / (1 - vec_A_t[4]*vec_A_t[1]),
-                    
-                    R_t[1,2] / (1 - vec_A_t[1]*vec_A_t[2]), R_t[2,2] / (1 - vec_A_t[2]*vec_A_t[2]), 
-                    R_t[3,2] / (1 - vec_A_t[3]*vec_A_t[2]), R_t[4,2] / (1 - vec_A_t[4]*vec_A_t[2]),
-                    
-                    R_t[1,3] / (1 - vec_A_t[1]*vec_A_t[3]), R_t[2,3] / (1 - vec_A_t[2]*vec_A_t[3]), 
-                    R_t[3,3] / (1 - vec_A_t[3]*vec_A_t[3]), R_t[4,3] / (1 - vec_A_t[4]*vec_A_t[3]),
-                    
-                    R_t[1,4] / (1 - vec_A_t[1]*vec_A_t[4]), R_t[2,4] / (1 - vec_A_t[2]*vec_A_t[4]), 
-                    R_t[3,4] / (1 - vec_A_t[3]*vec_A_t[4]), R_t[4,4] / (1 - vec_A_t[4]*vec_A_t[4]))
-      print(matrix(vec_gamma, ncol = 4))
-      print(accept / (ttt %% 480))
     }
     
     log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
@@ -170,11 +159,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       ind_j = mpi[[j]]
       proposal = par
       
-      if(j <= 4) {
+      if(j <= 6) {
           # logit_init, zeta, log_lambda, logit A1
           proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           
-          if(j == 4) {
+          if(j > 3) {
               Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
               Dn_prop = Dn_Xn_prop[[1]]; names(Dn_prop) = EIDs
               Xn_prop = Dn_Xn_prop[[2]]  
@@ -190,7 +179,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
               accept[j] = accept[j] +1
           
               # NEED TO UPDATE Dn_Xn AFTER UPDATING A1!
-              if (j==4) {
+              if (j > 3) {
                   Dn = Dn_prop
                   Xn = Xn_prop   
               }   
@@ -250,7 +239,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           nu_R = 6
           psi_R = diag(4)
           
-          curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs))
+          curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B)
           
           proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
                                           S = curr_psi_nu[[1]]))

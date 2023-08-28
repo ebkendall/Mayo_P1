@@ -13,7 +13,7 @@ burnin =  5000
 
 data_format = NULL
 if(simulation) {
-  load('Data/use_data1_1.rda')
+  load('Data/use_data1_2.rda')
   data_format = use_data
   trialNum = 7
 } else {
@@ -86,7 +86,7 @@ W = list()
 B = list()
 Dn_omega = list()
 for(i in EIDs){
-  load('Data/true_pars_1.rda')
+  load('Data/true_pars_2.rda')
   A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
@@ -103,7 +103,7 @@ for(i in EIDs){
 
 # -----------------------------------------------------------------------------
 if(simulation) {
-  load('Data/true_pars_1.rda')
+  load('Data/true_pars_2.rda')
   par[1:210] = true_pars
 } else {
   load('Model_out/mcmc_out_interm_5_6it3.rda')
