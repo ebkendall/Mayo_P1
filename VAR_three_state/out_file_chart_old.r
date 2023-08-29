@@ -3,7 +3,7 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 6 # CHANGE EVERY TIME ******************
+trialNum = 7 # CHANGE EVERY TIME ******************
 itNum = 3
 simulation = T
 

@@ -52,8 +52,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            ) 
 
 if(simulation) {
-    index_seeds = c(1:5)
-    trialNum = 6
+    index_seeds = c(1:4)
+    trialNum = 8
     itNum = 3
 } else {
     index_seeds = c(1:5)
@@ -64,8 +64,8 @@ if(simulation) {
 # par_temp = colMeans(mcmc_out_temp$chain)
 # rownames(par_temp) = NULL
 if(simulation) {
-    load('Data/true_pars_1.rda')
-    load('Data/true_par_index_1.rda')
+    load('Data/true_pars_2.rda')
+    load('Data/true_par_index_2.rda')
     true_par = true_pars
 
     Lambda = diag(exp(true_par[par_index$log_lambda]))
@@ -87,7 +87,7 @@ accept_rat = rep(NA, length(index_seeds))
 
 data_format = NULL
 if(simulation) {
-  load('Data/use_data1_1.rda')
+  load('Data/use_data1_2.rda')
   data_format = use_data
 } else {
   load('Data/data_format_new.rda')

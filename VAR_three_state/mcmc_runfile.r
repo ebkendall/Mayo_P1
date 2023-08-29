@@ -15,7 +15,7 @@ data_format = NULL
 if(simulation) {
   load('Data/use_data1_2.rda')
   data_format = use_data
-  trialNum = 7
+  trialNum = 8
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
