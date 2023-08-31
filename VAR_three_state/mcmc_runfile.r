@@ -116,6 +116,39 @@ if(simulation) {
 }
 # -----------------------------------------------------------------------------
 
+print("Starting values for the chain")
+print("alpha_tilde")
+print(round(par[par_index$vec_alpha_tilde], 3))
+
+print("mean alpha_i")
+A_stacked = do.call( cbind, A)
+print(apply(A_stacked, 1, mean))
+
+print("single alpha_i")
+a_ind = sample(size = 1, 1:180)
+print(a_ind)
+print(c(A[[a_ind]]))
+
+print("diag of Upsilon")
+Sigma_t = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
+Lambda_t = diag(exp(par[par_index$log_lambda]))
+Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
+print(round(diag(Upsilon_t), 3))
+
+print("A1")
+vec_A_t_logit = par[par_index$vec_A]
+vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
+mat_A_t = matrix(vec_A_t, nrow = 4)
+print(mat_A_t)
+
+print("R")
+R_t = matrix(par[par_index$vec_R], ncol = 4)
+print(R_t)
+
+print("zeta")
+zed = matrix(par[par_index$vec_zeta], nrow = 2)
+print(zed)
+
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)
 e_time = Sys.time() - s_time; print(e_time)

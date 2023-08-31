@@ -117,7 +117,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain[chain_ind,] = par
 
     # Printing updates
-    if (ttt %% 100 == 0 | ttt == 1){
+    if (ttt %% 100 == 0){
       print("alpha_tilde")
       print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
       
@@ -163,26 +163,12 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
           # logit_init, zeta, log_lambda, logit A1
           proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
           
-          if(j > 3) {
-              Dn_Xn_prop = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, proposal, par_index, x)
-              Dn_prop = Dn_Xn_prop[[1]]; names(Dn_prop) = EIDs
-              Xn_prop = Dn_Xn_prop[[2]]  
-              
-              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn_prop, Xn_prop, Dn_omega, W)
-          } else {
-              log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
-          }
+          log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
           
           if( log_target - log_target_prev > log(runif(1,0,1)) ){
               log_target_prev = log_target
               par[ind_j] = proposal[ind_j]
               accept[j] = accept[j] +1
-          
-              # NEED TO UPDATE Dn_Xn AFTER UPDATING A1!
-              if (j > 3) {
-                  Dn = Dn_prop
-                  Xn = Xn_prop   
-              }   
           }
           
           

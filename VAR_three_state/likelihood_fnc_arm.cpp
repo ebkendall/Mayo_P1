@@ -1025,8 +1025,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
         arma::field<arma::mat> Dn_alpha_full = Dn(ii);
         arma::field<arma::mat> Xn_full = Xn(ii);
         
-        arma::mat interm_W(12,12,arma::fill::zeros);
-        arma::vec interm_V(12,arma::fill::zeros);
+        arma::mat interm_W(4,4,arma::fill::zeros);
+        arma::vec interm_V(4,arma::fill::zeros);
         for(int k=1; k < n_i; k++) {
             arma::mat X_k = Xn_full(k);
             arma::mat X_k_1 = Xn_full(k-1);
