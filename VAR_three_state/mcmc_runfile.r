@@ -7,13 +7,14 @@ set.seed(ind)
 print(ind)
 
 simulation = T
+data_num = 2
 
 steps  = 30000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
-  load('Data/use_data1_2.rda')
+  load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
   trialNum = 8
 } else {
@@ -86,7 +87,7 @@ W = list()
 B = list()
 Dn_omega = list()
 for(i in EIDs){
-  load('Data/true_pars_2.rda')
+  load(paste0('Data/true_pars_', data_num, '.rda'))
   A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
@@ -103,7 +104,7 @@ for(i in EIDs){
 
 # -----------------------------------------------------------------------------
 if(simulation) {
-  load('Data/true_pars_2.rda')
+  load(paste0('Data/true_pars_', data_num, '.rda'))
   par[1:210] = true_pars
 } else {
   load('Model_out/mcmc_out_interm_5_6it3.rda')
