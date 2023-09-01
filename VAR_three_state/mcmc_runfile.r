@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+simulation = F
 data_num = 2
 
 steps  = 30000
@@ -23,7 +23,7 @@ if(simulation) {
               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
               732525, 758025, 763050, 843000)
   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-  trialNum = 7 # CHANGE THIS EVERY TIME **********************
+  trialNum = 1 # CHANGE THIS EVERY TIME **********************
 }
 
 # load('Data/Dn_omega.rda')
@@ -51,7 +51,10 @@ Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
 # columns correspond to the different states
 # Each column corresponds to a different state
-vec_A = matrix( 2.3 , nrow = 4, ncol = 3) 
+vec_A = c(matrix(c(2.3, 0.5, 1.3,
+                   1.9,  -1, 0.5,
+                   1.9,  -1, 0.5,
+                   2.3, 0.5, 1.3), ncol = 3, byrow = T))
 
 # columns: hemo, hr, map, lactate
 # diagonal elements only (because R is a diagonal matrix)
@@ -87,18 +90,19 @@ W = list()
 B = list()
 Dn_omega = list()
 for(i in EIDs){
-  load(paste0('Data/true_pars_', data_num, '.rda'))
-  A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
   
   if(simulation) {
+      load(paste0('Data/true_pars_', data_num, '.rda'))
+      A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
   } else {
       b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
       # b_length = nrow(b_temp)
       # b_temp[(b_length-5):b_length, ] = 1
       B[[i]] = b_temp
+      A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
   }
 }
 
@@ -107,12 +111,12 @@ if(simulation) {
   load(paste0('Data/true_pars_', data_num, '.rda'))
   par[1:210] = true_pars
 } else {
-  load('Model_out/mcmc_out_interm_5_6it3.rda')
-  par_temp = colMeans(mcmc_out_temp$chain)
-  rownames(par_temp) = NULL
-  par[1:172] = par_temp[1:172]
-  par[189:282] = par_temp[177:270]
-  rm(mcmc_out_temp) 
+  # load('Model_out/mcmc_out_interm_5_6it3.rda')
+  # par_temp = colMeans(mcmc_out_temp$chain)
+  # rownames(par_temp) = NULL
+  # par[1:172] = par_temp[1:172]
+  # par[189:282] = par_temp[177:270]
+  # rm(mcmc_out_temp) 
 }
 # -----------------------------------------------------------------------------
 

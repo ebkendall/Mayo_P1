@@ -41,21 +41,55 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
   pscale = rep( 1, n_group)
 
   if(!simulation) {
-    print('Real data analysis')
-    load('Model_out/mcmc_out_interm_2_5it3.rda')
-    load('Data/data_format_new.rda')
-    pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-                417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-                732525, 758025, 763050, 843000)
-    new_ind = which(!(data_format[,'EID'] %in% pace_id))
-    rm(data_format)
-
-    # Setting initial values for Y
-    Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, new_ind])
-    Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, new_ind])
-    Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, new_ind])
-    Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, new_ind])
-    rm(mcmc_out_temp)
+    # print('Real data analysis')
+    # load('Model_out/mcmc_out_interm_2_5it3.rda')
+    # load('Data/data_format_new.rda')
+    # pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+    #             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+    #             732525, 758025, 763050, 843000)
+    # new_ind = which(!(data_format[,'EID'] %in% pace_id))
+    # rm(data_format)
+    # 
+    # # Setting initial values for Y
+    # Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, new_ind])
+    # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, new_ind])
+    # Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, new_ind])
+    # Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, new_ind])
+    # rm(mcmc_out_temp)
+      # Setting initial values for Y
+      print("Initializing the missing Y's for imputation")
+      for(i in EIDs) {
+          heading_names = c('hemo','hr','map','lactate')
+          sub_dat = Y[Y[,"EID"] == i, ]
+          
+          for(k in 1:length(heading_names)) {
+              # hemo interpolation
+              if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
+                  sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
+              } else {
+                  if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
+                      sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                  } else {
+                      obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
+                      miss_indices = which(is.na(sub_dat[,heading_names[k]]))
+                      for(j in miss_indices) {
+                          if(j < obs_indices[1]) {
+                              sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
+                          } else if(j > tail(obs_indices,1)) {
+                              sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
+                          } else {
+                              end_pts = c(max(obs_indices[obs_indices < j]), 
+                                          min(obs_indices[obs_indices > j]))
+                              slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
+                              sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                          }
+                      }
+                  }
+              }
+              Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
+          }
+      }
+      print("Done initializing")
   }
   
   # Begin the MCMC algorithm -------------------------------------------------
@@ -82,7 +116,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
     colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i

@@ -3,8 +3,9 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 7 # CHANGE EVERY TIME ******************
+trialNum = 8 # CHANGE EVERY TIME ******************
 itNum = 3
+data_num = 2
 simulation = T
 
 Dir = 'Model_out/'
@@ -21,7 +22,7 @@ mcmc_out_temp$hc_chain = mcmc_out_temp$hc_chain[300:1000, ]
 mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 
 if(simulation) {
-    load('Data/use_data1_1.rda')
+    load(paste0('Data/use_data1_', data_num, '.rda'))
 } else {
     load('Data/data_format_new.rda')
     pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
