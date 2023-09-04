@@ -3,10 +3,10 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 8 # CHANGE EVERY TIME ******************
-itNum = 3
+trialNum = 1 # CHANGE EVERY TIME ******************
+itNum = 5
 data_num = 2
-simulation = T
+simulation = F
 
 Dir = 'Model_out/'
 

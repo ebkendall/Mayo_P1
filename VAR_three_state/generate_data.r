@@ -3,7 +3,7 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 2
+it_num = 3
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new.rda')
@@ -51,7 +51,7 @@ correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-R = 1 * matrix( c( .2, -.1,  .1, -.1,
+R = 8 * matrix( c( .2, -.1,  .1, -.1,
                   -.1,   2, -.1,  .1,
                    .1, -.1,   2, -.1,
                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
@@ -79,8 +79,6 @@ par_index$log_lambda = 199:210
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
-true_alpha_i = NULL
-
 for (www in 1:1) {
     set.seed(2023)
     
@@ -130,7 +128,6 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, and bp -----------------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
-        true_alpha_i = rbind(true_alpha_i, vec_alpha_i)
         
         for(k in 1:n_i) {
             if(k==1)  {
@@ -203,8 +200,6 @@ for (www in 1:1) {
     print(table(use_data[,'b_true'])/dim(use_data)[1])
     cat('\n')
 }
-
-save(true_alpha_i, file = 'true_alpha_i.rda')
 
 # Visualize the noise --------------------------------------------------------
 load(paste0('Data/use_data', 1, '_', it_num, '.rda'))

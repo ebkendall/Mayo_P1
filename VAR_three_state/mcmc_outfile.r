@@ -23,7 +23,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = T
+simulation = F
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -56,9 +56,9 @@ if(simulation) {
     trialNum = 8
     itNum = 3
 } else {
-    index_seeds = c(1:5)
-    trialNum = 6 # Change this everytime!!!! ****************
-    itNum = 3
+    index_seeds = c(1,4:5)
+    trialNum = 1 # Change this everytime!!!! ****************
+    itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)

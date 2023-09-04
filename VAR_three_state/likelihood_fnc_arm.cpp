@@ -357,7 +357,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_log_lambda_content = par.elem(vec_log_lambda_ind - 1);
   arma::vec vec_log_lambda_mean(12, arma::fill::zeros);
   arma::vec scalar_lambda(12, arma::fill::ones);
-  scalar_lambda = 5 * scalar_lambda;
+  scalar_lambda = 10 * scalar_lambda;
   arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
   
   arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
@@ -845,9 +845,9 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
                                    5.2113319, 0.5360813, -0.6866748};
     
     // The prior PRECISION matrix for vec_alpha_tilde
-    // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = {0.1, 0.3, 0.5, 0.05, 0.1, 0.1,
-                                      0.05, 0.1, 0.1, 0.1, 0.3, 0.5};
+    arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
+    // arma::vec inv_Sigma_alpha_diag = {0.1, 0.3, 0.5, 0.05, 0.1, 0.1,
+    //                                   0.05, 0.1, 0.1, 0.1, 0.3, 0.5};
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     
@@ -978,10 +978,10 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     int nu_Upsilon = 14;
 
     // The prior scale matrix for sigma_upsilon
-    arma::vec scalar_mult2 = {4, 0.36, 0.36, 36, 4, 4, 64, 5.0625, 5.0625, 4, 0.25, 0.25};
-    scalar_mult2 = scalar_mult2 * nu_Upsilon;
-    arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
-    // arma::mat Psi_Upsilon(12, 12, arma::fill::eye);
+    // arma::vec scalar_mult2 = {4, 0.36, 0.36, 36, 4, 4, 64, 5.0625, 5.0625, 4, 0.25, 0.25};
+    // scalar_mult2 = scalar_mult2 * nu_Upsilon;
+    // arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
+    arma::mat Psi_Upsilon(12, 12, arma::fill::eye);
 
     // Calculating the inverse of Lambda
     arma::vec log_lambda_vec = par.elem(par_index(7) - 1);

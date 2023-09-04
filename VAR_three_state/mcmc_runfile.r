@@ -6,8 +6,8 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = F
-data_num = 2
+simulation = T
+data_num = 3
 
 steps  = 30000
 burnin =  5000
@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 8
+  trialNum = 10
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
@@ -96,7 +96,8 @@ for(i in EIDs){
   if(simulation) {
       load(paste0('Data/true_pars_', data_num, '.rda'))
       A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
-      B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
+      # B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
+      B[[i]] = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
   } else {
       b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
       # b_length = nrow(b_temp)
