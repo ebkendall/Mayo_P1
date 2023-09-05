@@ -5,7 +5,7 @@ set.seed(args[1])
 
 trialNum = 1 # CHANGE EVERY TIME ******************
 itNum = 5
-data_num = 2
+data_num = 3
 simulation = F
 
 Dir = 'Model_out/'
@@ -67,9 +67,16 @@ for(i in EIDs){
     print(which(EIDs == i))
     indices_i = (use_data[,'EID']==i)
     n_i = sum(indices_i)
-    t_grid = seq( 0, n_i, by=5)[-1]
-    rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
-    rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
+    t_grid_bar = seq( 0, n_i, by=5)[-1]
+    if(simulation) {
+        t_grid = seq( 0, n_i, by=5)[-1]   
+        rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
+        rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
+    } else {
+        t_grid = round(use_data[indices_i, 'time'] / 60, digits = 3)
+        rbc_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_ordered'] != 0), 'time']/60
+        rbc_admin_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0), 'time']/60
+    }
     
     if(simulation){
         b_i = use_data[ indices_i,'b_true']
@@ -81,76 +88,110 @@ for(i in EIDs){
     if(sum(!is.na(use_data[indices_i, 'hr']))==0){
         plot.new()
     } else{ 	
-        plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        if(simulation) {
+            plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])), 
+                 xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+            abline( v=to_s1, col='dodgerblue', lwd=2)
+            abline( v=to_s2, col='firebrick1', lwd=2)
+            abline( v=to_s3, col='yellow2', lwd=2)
+            col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+            abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+        } else {
+            hr_upper = colQuantiles( mcmc_out_temp$hr_chain[, indices_i, drop=F], probs=.975)
+            hr_lower = colQuantiles( mcmc_out_temp$hr_chain[, indices_i, drop=F], probs=.025)
+            plotCI( x = t_grid, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), ui=hr_upper, li=hr_lower,
+                    main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])),
+                    xlab='time', ylab=NA, xaxt='n', col.main='green',
+                    col.axis='green', pch=20, cex=1, sfrac=.0025)   
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+        }
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
     }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
-    
+
     # MAP --------------------------------------------------------------
     if(sum(!is.na(use_data[indices_i, 'map']))==0){
         plot.new()
     } else{ 
-        plot(use_data[indices_i, 'map'], main=paste0('map: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        if(simulation) {
+            plot(use_data[indices_i, 'map'], main=paste0('map: ', i), 
+                 xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)   
+            abline( v=to_s1, col='dodgerblue', lwd=2)
+            abline( v=to_s2, col='firebrick1', lwd=2)
+            abline( v=to_s3, col='yellow2', lwd=2)
+            col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+            abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+        } else {
+            bp_upper = colQuantiles( mcmc_out_temp$bp_chain[, indices_i, drop=F], probs=.975)
+            bp_lower = colQuantiles( mcmc_out_temp$bp_chain[, indices_i, drop=F], probs=.025)
+            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$bp_chain[, indices_i, drop=F]), ui=bp_upper, li=bp_lower,
+                   main=paste0('mean arterial pressure: ', i), xlab='time', ylab=NA, xaxt='n', 
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+        }
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
     }
     
     # HEMO --------------------------------------------------------------
     if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
         plot.new()
     } else{ 
-        plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        if(simulation) {
+            plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i), 
+                 xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+            abline( v=to_s1, col='dodgerblue', lwd=2)
+            abline( v=to_s2, col='firebrick1', lwd=2)
+            abline( v=to_s3, col='yellow2', lwd=2)
+            col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+            abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+        } else {
+            hc_upper = colQuantiles( mcmc_out_temp$hc_chain[, indices_i, drop=F], probs=.975)
+            hc_lower = colQuantiles( mcmc_out_temp$hc_chain[, indices_i, drop=F], probs=.025)
+            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$hc_chain[, indices_i, drop=F]), ui=hc_upper, li=hc_lower,
+                   main=paste0('hemoglobin concentration: ', i), xlab='time', ylab=NA, xaxt='n', 
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+        }
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
     }
     
     # LACTATE --------------------------------------------------------------
     if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
         plot.new()
     } else{ 
-        plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        if(simulation) {
+            plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i), 
+                 xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+            abline( v=to_s1, col='dodgerblue', lwd=2)
+            abline( v=to_s2, col='firebrick1', lwd=2)
+            abline( v=to_s3, col='yellow2', lwd=2)
+            col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+            abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+        } else {
+            la_upper = colQuantiles( mcmc_out_temp$la_chain[, indices_i, drop=F], probs=.975)
+            la_lower = colQuantiles( mcmc_out_temp$la_chain[, indices_i, drop=F], probs=.025)
+            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$la_chain[, indices_i, drop=F]), ui=la_upper, li=la_lower,
+                   main=paste0('lactate levels: ', i), xlab='time', ylab=NA, xaxt='n', 
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+            grid( nx=20, NULL, col='white')
+            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+        }
+        
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
     }
 	
     # BAR PLOTS --------------------------------------------------------------
@@ -167,7 +208,7 @@ for(i in EIDs){
 	legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
 			legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
 					col=c( 'darkorchid2', 'deeppink'))				
-	axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+	axis( side=1, at=t_grid_bar, col.axis='green', labels=t_grid_bar / 4)
 	axis( side=2, at=0:1, col.axis='green')
 	abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
 	abline(v = rbc_admin_times, col = 'grey', lwd = 1)

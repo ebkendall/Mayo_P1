@@ -23,7 +23,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = F
+simulation = T
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -52,8 +52,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            ) 
 
 if(simulation) {
-    index_seeds = c(1,3:5)
-    trialNum = 8
+    index_seeds = c(1,3,5)
+    trialNum = 9
     itNum = 3
 } else {
     index_seeds = c(1,4:5)
@@ -64,8 +64,8 @@ if(simulation) {
 # par_temp = colMeans(mcmc_out_temp$chain)
 # rownames(par_temp) = NULL
 if(simulation) {
-    load('Data/true_pars_2.rda')
-    load('Data/true_par_index_2.rda')
+    load('Data/true_pars_3.rda')
+    load('Data/true_par_index_3.rda')
     true_par = true_pars
 
     Lambda = diag(exp(true_par[par_index$log_lambda]))
@@ -87,7 +87,7 @@ accept_rat = rep(NA, length(index_seeds))
 
 data_format = NULL
 if(simulation) {
-  load('Data/use_data1_2.rda')
+  load('Data/use_data1_3.rda')
   data_format = use_data
 } else {
   load('Data/data_format_new.rda')
@@ -181,9 +181,15 @@ for(s in names(par_index)){
         parMedian = round( median(stacked_chains[,r]), 4)
         upper = quantile( stacked_chains[,r], prob=.975)
         lower = quantile( stacked_chains[,r], prob=.025)
-        # stacked_chains[,r]
+        
+        y_limit = NULL
+        if(s == names(par_index)[3]) {
+            y_limit = c(lower, upper)
+        } else {
+            y_limit = range(stacked_chains[,r])
+        }
 		plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
-              ylim=range(stacked_chains[,r]), xlab = paste0("95% CI: [", round(lower, 4),
+              ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                                             ", ", round(upper, 4), "]"))
 
         for(seed in 1:length(chain_list)) lines( chain_list[[seed]][,r], type='l', col=seed)
