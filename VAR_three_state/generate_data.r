@@ -3,7 +3,7 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 3
+it_num = 4
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new.rda')
@@ -42,19 +42,24 @@ Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.1,.1,  2,.1,.1))
 Lambda = Lambda * diag(c(   1,5,5,   2,10,10,   2,10,10,  1,5,5))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
-A_mat = matrix(c(2.3, 0.5, 1.3,
-                 1.9,  -1, 0.5,
-                 1.9,  -1, 0.5,
-                 2.3, 0.5, 1.3), ncol = 3, byrow = T)
+# A_mat = matrix(c(2.3, 0.5, 1.3,
+#                  1.9,  -1, 0.5,
+#                  1.9,  -1, 0.5,
+#                  2.3, 0.5, 1.3), ncol = 3, byrow = T)
+A_mat = matrix(c(0, -8, -4,
+                 0, -8, -4,
+                 0, -8, -4,
+                 0, -8, -4), ncol = 3, byrow = T)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-R = 8 * matrix( c( .2, -.1,  .1, -.1,
-                  -.1,   2, -.1,  .1,
-                   .1, -.1,   2, -.1,
-                  -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
+# R = 8 * matrix( c( .2, -.1,  .1, -.1,
+#                   -.1,   2, -.1,  .1,
+#                    .1, -.1,   2, -.1,
+#                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
+R = diag(c(1, 10, 10, 1))
 
 
 # transitions: 1->2, 2->3, 3->1, 3->2

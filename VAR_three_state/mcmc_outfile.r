@@ -31,7 +31,7 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (hr)", "slope bleeding (hr)", "slope recovery (hr)",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
-           paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
+           paste0("Sigma_Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
            "A1 (baseline)", "A2 (baseline)", "A3 (baseline)", "A4 (baseline)",
            "A1 (bleed)", "A2 (bleed)", "A3 (bleed)", "A4 (bleed)",
            "A1 (recovery)", "A2 (recovery)", "A3 (recovery)", "A4 (recovery)",
@@ -52,8 +52,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            ) 
 
 if(simulation) {
-    index_seeds = c(1,3,5)
-    trialNum = 9
+    index_seeds = c(1:5)
+    trialNum = 3
     itNum = 3
 } else {
     index_seeds = c(1,4:5)
@@ -64,14 +64,14 @@ if(simulation) {
 # par_temp = colMeans(mcmc_out_temp$chain)
 # rownames(par_temp) = NULL
 if(simulation) {
-    load('Data/true_pars_3.rda')
-    load('Data/true_par_index_3.rda')
+    load('Data/true_pars_2.rda')
+    load('Data/true_par_index_2.rda')
     true_par = true_pars
 
-    Lambda = diag(exp(true_par[par_index$log_lambda]))
-    Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
-    Upsilon = Lambda %*% Sigma %*% Lambda
-    true_par[par_index$vec_sigma_upsilon] = c(Upsilon)
+    # Lambda = diag(exp(true_par[par_index$log_lambda]))
+    # Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
+    # Upsilon = Lambda %*% Sigma %*% Lambda
+    # true_par[par_index$vec_sigma_upsilon] = c(Upsilon)
 } else {
     true_par = NULL
 }
@@ -87,7 +87,7 @@ accept_rat = rep(NA, length(index_seeds))
 
 data_format = NULL
 if(simulation) {
-  load('Data/use_data1_3.rda')
+  load('Data/use_data1_2.rda')
   data_format = use_data
 } else {
   load('Data/data_format_new.rda')
@@ -149,13 +149,13 @@ for(seed in index_seeds){
 stacked_chains = do.call( rbind, chain_list)
 
 # Re-calculating the Upsilon matrix
-for(i in 1:nrow(stacked_chains)) {
-    Sigma = matrix(stacked_chains[i,par_index$vec_sigma_upsilon], ncol = 12)
-    Lambda = diag(exp(stacked_chains[i,par_index$log_lambda]))
-
-    Upsilon = Lambda %*% Sigma %*% Lambda
-    stacked_chains[i, par_index$vec_sigma_upsilon] = c(Upsilon)
-}
+# for(i in 1:nrow(stacked_chains)) {
+#     Sigma = matrix(stacked_chains[i,par_index$vec_sigma_upsilon], ncol = 12)
+#     Lambda = diag(exp(stacked_chains[i,par_index$log_lambda]))
+# 
+#     Upsilon = Lambda %*% Sigma %*% Lambda
+#     stacked_chains[i, par_index$vec_sigma_upsilon] = c(Upsilon)
+# }
 
 pdf_title = NULL
 if(simulation) {
