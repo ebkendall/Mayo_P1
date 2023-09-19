@@ -137,167 +137,202 @@ EIDs = unique(data_format[,"EID"])
 hr_cont_design = hr_disc_design = map_cont_design = map_disc_design = vector(mode = 'list', length = length(EIDs))
 
 for(j in 1:length(EIDs)) { 
-    print(paste0(j, ", ", EIDs[j]))
-    
-    sub_data = data_format[data_format[,'EID'] == EIDs[j], ]
-    hr_cont_design[[j]] = matrix(0, ncol = length(unique(hr_cont$med_name_admin)),
-                                 nrow = nrow(sub_data))
-    colnames(hr_cont_design[[j]]) = hr_cont_names
-    hr_disc_design[[j]] = matrix(0, ncol = length(unique(hr_disc$med_name_admin)),
-                                 nrow = nrow(sub_data))
-    colnames(hr_disc_design[[j]]) = hr_disc_names
-    map_cont_design[[j]] = matrix(0, ncol = length(unique(map_cont$med_name_admin)),
-                                 nrow = nrow(sub_data))
-    colnames(map_cont_design[[j]]) = map_cont_names
-    map_disc_design[[j]] = matrix(0, ncol = length(unique(map_disc$med_name_admin)),
-                                 nrow = nrow(sub_data))
-    colnames(map_disc_design[[j]]) = map_disc_names
-    
-    hr_cont_j = hr_cont[hr_cont$key == EIDs[j], ,drop=F]
-    hr_disc_j = hr_disc[hr_disc$key == EIDs[j], ,drop=F]
-    map_cont_j = map_cont[map_cont$key == EIDs[j], ,drop=F]
-    map_disc_j = map_disc[map_disc$key == EIDs[j], ,drop=F]
-    
-    time_1 = time_2 = 0
-    for(k in 1:nrow(sub_data)) {
-        if(k == 1) {
-            time_1 = 0; time_2 = sub_data[k,"time"]
-        } else {
-            time_1 = sub_data[k-1,"time"]; time_2 = sub_data[k,"time"]
-        }
+    if(EIDs[j] %in% med_select_FINAL$key) {
+        print(paste0(j, ", ", EIDs[j]))
         
-        # HR continuous --------------------------------------------------------
-        hr_cont_meds = hr_cont_j[hr_cont_j$administered_dtm <= time_2 & 
-                                     hr_cont_j$administered_dtm > time_1, , drop = F]
-        if(nrow(hr_cont_meds) > 0) {
-            for(jj in 1:nrow(hr_cont_meds)) {
-                # Need to look at instance_num and status_med
-                if(hr_cont_meds$status_med[jj] == "Stop") {
-                    hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = 0
-                } else if(hr_cont_meds$status_med[jj] == "Start") {
-                    dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
-                    hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
-                } else if(hr_cont_meds$status_med[jj] == "Continue") {
-                    dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
-                    hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
-                    # This means we do not see the start of this medication
-                    if(hr_cont_meds$instance_num[jj] == 1) {
-                        hr_cont_design[[j]][1:k,hr_cont_meds$med_name_admin[jj]] = dosage
-                    }
-                } else {
-                    dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
-                    hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
-                    # This means we do not see the start of this medication
-                    # (ASSUME the dose is the same beforehand)
-                    if(hr_cont_meds$instance_num[jj] == 1) {
-                        hr_cont_design[[j]][1:k,hr_cont_meds$med_name_admin[jj]] = dosage
-                    }
-                }
+        sub_data = data_format[data_format[,'EID'] == EIDs[j], ]
+        hr_cont_design[[j]] = matrix(0, ncol = length(unique(hr_cont$med_name_admin)),
+                                     nrow = nrow(sub_data))
+        colnames(hr_cont_design[[j]]) = hr_cont_names
+        hr_disc_design[[j]] = matrix(0, ncol = length(unique(hr_disc$med_name_admin)),
+                                     nrow = nrow(sub_data))
+        colnames(hr_disc_design[[j]]) = hr_disc_names
+        map_cont_design[[j]] = matrix(0, ncol = length(unique(map_cont$med_name_admin)),
+                                      nrow = nrow(sub_data))
+        colnames(map_cont_design[[j]]) = map_cont_names
+        map_disc_design[[j]] = matrix(0, ncol = length(unique(map_disc$med_name_admin)),
+                                      nrow = nrow(sub_data))
+        colnames(map_disc_design[[j]]) = map_disc_names
+        
+        hr_cont_j = hr_cont[hr_cont$key == EIDs[j], ,drop=F]
+        hr_disc_j = hr_disc[hr_disc$key == EIDs[j], ,drop=F]
+        map_cont_j = map_cont[map_cont$key == EIDs[j], ,drop=F]
+        map_disc_j = map_disc[map_disc$key == EIDs[j], ,drop=F]
+        
+        time_1 = time_2 = 0
+        for(k in 1:nrow(sub_data)) {
+            if(k == 1) {
+                time_1 = 0; time_2 = sub_data[k,"time"]
+            } else {
+                time_1 = sub_data[k-1,"time"]; time_2 = sub_data[k,"time"]
             }
-        }
-        
-        # MAP continuous -------------------------------------------------------
-        map_cont_meds = map_cont_j[map_cont_j$administered_dtm <= time_2 & 
-                                     map_cont_j$administered_dtm > time_1, , drop = F]
-        if(nrow(map_cont_meds) > 0) {
-            for(jj in 1:nrow(map_cont_meds)) {
-                # Need to look at instance_num and status_med
-                if(map_cont_meds$status_med[jj] == "Stop") {
-                    map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = 0
-                } else if(map_cont_meds$status_med[jj] == "Start") {
-                    dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
-                    map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
-                } else if(map_cont_meds$status_med[jj] == "Continue") {
-                    dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
-                    map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
-                    # This means we do not see the start of this medication
-                    if(map_cont_meds$instance_num[jj] == 1) {
-                        map_cont_design[[j]][1:k,map_cont_meds$med_name_admin[jj]] = dosage
-                    }
-                } else {
-                    dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
-                    map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
-                    # This means we do not see the start of this medication
-                    # (ASSUME the dose is the same beforehand)
-                    if(map_cont_meds$instance_num[jj] == 1) {
-                        map_cont_design[[j]][1:k,map_cont_meds$med_name_admin[jj]] = dosage
+            
+            # HR continuous --------------------------------------------------------
+            hr_cont_meds = hr_cont_j[hr_cont_j$administered_dtm <= time_2 & 
+                                         hr_cont_j$administered_dtm > time_1, , drop = F]
+            if(nrow(hr_cont_meds) > 0) {
+                for(jj in 1:nrow(hr_cont_meds)) {
+                    # Need to look at instance_num and status_med
+                    if(hr_cont_meds$status_med[jj] == "Stop") {
+                        hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = 0
+                    } else if(hr_cont_meds$status_med[jj] == "Start") {
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
+                    } else if(hr_cont_meds$status_med[jj] == "Continue") {
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
+                        # This means we do not see the start of this medication
+                        if(hr_cont_meds$instance_num[jj] == 1) {
+                            hr_cont_design[[j]][1:k,hr_cont_meds$med_name_admin[jj]] = dosage
+                        }
+                    } else {
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
+                        # This means we do not see the start of this medication
+                        # (ASSUME the dose is the same beforehand)
+                        if(hr_cont_meds$instance_num[jj] == 1) {
+                            hr_cont_design[[j]][1:k,hr_cont_meds$med_name_admin[jj]] = dosage
+                        }
                     }
                 }
             }
-        }
-        
-        # HR discrete ----------------------------------------------------------
-        hr_disc_meds = hr_disc_j[hr_disc_j$administered_dtm <= time_2 & 
-                                     hr_disc_j$administered_dtm > time_1, , drop = F]
-        if(nrow(hr_disc_meds) > 0) {
-            for(jj in 1:nrow(hr_disc_meds)) {
-                # Need to look at instance_num and status_med
-                if(hr_disc_meds$status_med[jj] == "Stop") {
-                    hr_disc_design[[j]][k:nrow(sub_data),hr_disc_meds$med_name_admin[jj]] = 0
-                } else if(hr_disc_meds$status_med[jj] == "Start") {
-                    dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
-                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
-                } else if(hr_disc_meds$status_med[jj] == "Continue") {
-                    dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
-                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
-                } else {
-                    dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
-                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
+            
+            # MAP continuous -------------------------------------------------------
+            map_cont_meds = map_cont_j[map_cont_j$administered_dtm <= time_2 & 
+                                           map_cont_j$administered_dtm > time_1, , drop = F]
+            if(nrow(map_cont_meds) > 0) {
+                for(jj in 1:nrow(map_cont_meds)) {
+                    # Need to look at instance_num and status_med
+                    if(map_cont_meds$status_med[jj] == "Stop") {
+                        map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = 0
+                    } else if(map_cont_meds$status_med[jj] == "Start") {
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
+                    } else if(map_cont_meds$status_med[jj] == "Continue") {
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
+                        # This means we do not see the start of this medication
+                        if(map_cont_meds$instance_num[jj] == 1) {
+                            map_cont_design[[j]][1:k,map_cont_meds$med_name_admin[jj]] = dosage
+                        }
+                    } else {
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
+                        # This means we do not see the start of this medication
+                        # (ASSUME the dose is the same beforehand)
+                        if(map_cont_meds$instance_num[jj] == 1) {
+                            map_cont_design[[j]][1:k,map_cont_meds$med_name_admin[jj]] = dosage
+                        }
+                    }
                 }
             }
-        }
-        
-        # MAP discrete ---------------------------------------------------------
-        map_disc_meds = map_disc_j[map_disc_j$administered_dtm <= time_2 & 
-                                     map_disc_j$administered_dtm > time_1, , drop = F]
-        if(nrow(map_disc_meds) > 0) {
-            for(jj in 1:nrow(map_disc_meds)) {
-                # Need to look at instance_num and status_med
-                if(map_disc_meds$status_med[jj] == "Stop") {
-                    map_disc_design[[j]][k:nrow(sub_data),map_disc_meds$med_name_admin[jj]] = 0
-                } else if(map_disc_meds$status_med[jj] == "Start") {
-                    dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
-                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
-                } else if(map_disc_meds$status_med[jj] == "Continue") {
-                    dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
-                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
-                } else {
-                    dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
-                    total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
-                        med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
-                    max_ind = max(which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time))
-                    # Medications are additive
-                    map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
-                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
+            
+            # HR discrete ----------------------------------------------------------
+            hr_disc_meds = hr_disc_j[hr_disc_j$administered_dtm <= time_2 & 
+                                         hr_disc_j$administered_dtm > time_1, , drop = F]
+            if(nrow(hr_disc_meds) > 0) {
+                for(jj in 1:nrow(hr_disc_meds)) {
+                    # Need to look at instance_num and status_med
+                    if(hr_disc_meds$status_med[jj] == "Stop") {
+                        hr_disc_design[[j]][k:nrow(sub_data),hr_disc_meds$med_name_admin[jj]] = 0
+                    } else if(hr_disc_meds$status_med[jj] == "Start") {
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
+                        
+                        time_ind = which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
+                            hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
+                    } else if(hr_disc_meds$status_med[jj] == "Continue") {
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
+                        time_ind = which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
+                            hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
+                    } else {
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
+                        time_ind = which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
+                            hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
+                    }
                 }
             }
-        }
-        
+            
+            # MAP discrete ---------------------------------------------------------
+            map_disc_meds = map_disc_j[map_disc_j$administered_dtm <= time_2 & 
+                                           map_disc_j$administered_dtm > time_1, , drop = F]
+            if(nrow(map_disc_meds) > 0) {
+                for(jj in 1:nrow(map_disc_meds)) {
+                    # Need to look at instance_num and status_med
+                    if(map_disc_meds$status_med[jj] == "Stop") {
+                        map_disc_design[[j]][k:nrow(sub_data),map_disc_meds$med_name_admin[jj]] = 0
+                    } else if(map_disc_meds$status_med[jj] == "Start") {
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
+                        time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
+                            map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
+                    } else if(map_disc_meds$status_med[jj] == "Continue") {
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
+                        time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
+                            map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
+                    } else {
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
+                            med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
+                        time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
+                        if(length(time_ind) > 0) {
+                            max_ind = max(time_ind)
+                        } else {
+                            max_ind = k
+                        }
+                        # Medications are additive
+                        map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
+                            map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
+                    }
+                }
+            }
+            
+        }  
+    } else {
+        print(paste0(j, ", ", EIDs[j], " no meds"))
     }
     
 }
