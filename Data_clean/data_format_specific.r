@@ -213,8 +213,9 @@ for(i in unique(data_format[,'EID'])){
 }
 
 # ------------------------------------------------------------------------------
-# (4) Temporarily saving the data_format with subset of IDs --------------------
+# (4) Saving the data_format with subset of IDs --------------------------------
 # ------------------------------------------------------------------------------
+set.seed(2023)
 load('Data/curr_id.rda')
 rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
 no_rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
@@ -228,23 +229,84 @@ add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
 
 curr_id = c(curr_id, sample(add_id, 200 - length(curr_id)))
 curr_id = sort(unique(curr_id))
-data_format_sub = data_format[data_format[,"EID"] %in% curr_id, ]
-save(data_format_sub, file = 'Data/data_format_new.rda')
+data_format = data_format[data_format[,"EID"] %in% curr_id, ]
+
+# pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
+#             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
+#             769025, 777175, 794900, 799125, 819225)
+# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 
 # ------------------------------------------------------------------------------
-# (5) Filter based on level of care --------------------------------------------
+# (5) Remove any eroneous data points ------------------------------------------
 # ------------------------------------------------------------------------------
+for(i in 1:nrow(data_format)) {
+    # hemo
+    if(!is.na(data_format[i,'hemo'])) {
+        if(data_format[i,'hemo'] < 0 | data_format[i,'hemo'] > 20) {
+            data_format[i, 'hemo'] = NA
+        } 
+    }
+    # hr
+    if(!is.na(data_format[i,'hr'])) {
+        if(data_format[i,'hr'] < 20 | data_format[i,'hr'] > 200) {
+            data_format[i, 'hr'] = NA
+        } 
+    }
+    # map
+    if(!is.na(data_format[i,'map'])) {
+        if(data_format[i,'map'] < 25 | data_format[i,'map'] > 150) {
+            data_format[i, 'map'] = NA
+        } 
+    }
 
-level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
-load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
+}
 
-# Removing pacing patients
-pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
-            382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
-            769025, 777175, 794900, 799125, 819225)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+save(data_format, file = 'Data/data_format_new.rda')
+# ------------------------------------------------------------------------------
+# (6) Filter based on level of care --------------------------------------------
+# ------------------------------------------------------------------------------
+# load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
+# # Removing pacing patients
+# pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
+#             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500,
+#             769025, 777175, 794900, 799125, 819225)
+# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 # curr_id = unique(data_format[,'EID'])
 # save(curr_id, file = 'Data/curr_id.rda')
 
+level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
+load('Data/data_format_new.rda')
+care_time_df = matrix(nrow = nrow(data_format), ncol = 3)
+care_time_df[,1] = data_format[,'EID']
+care_time_df[,2] = data_format[,'time']
+
 level_of_care_patient = level_of_care[level_of_care$key %in% data_format[,"EID"],]
-level_of_care_patient$level_of_care_datetime = level_of_care_patient$level_of_care_datetime / (60*60)
+level_of_care_patient$level_of_care_datetime = level_of_care_patient$level_of_care_datetime / 60
+
+for(i in unique(care_time_df[,1])) {
+    sub_level = level_of_care_patient[level_of_care_patient$key == i, ]
+    sub_df    = data_format[data_format[,"EID"] == i, ]
+    sub_care  = care_time_df[care_time_df[,1] == i, ]
+    
+    level_times = sub_level$level_of_care_datetime
+    
+    for(j in 1:nrow(sub_df)) {
+        time_j = sub_df[j,"time"]
+        
+        if(time_j < level_times[1]) {
+            ind = which(level_times == level_times[1])
+            sub_care[j,3] = sub_level$patient_level_of_care[ind]
+        } else if(time_j > tail(level_times,1)) {
+            ind = which(level_times == tail(level_times,1))
+            sub_care[j,3] = sub_level$patient_level_of_care[ind]
+        } else {
+            end_pts = c(max(level_times[level_times < time_j]), 
+                        min(level_times[level_times > time_j]))
+            ind = max(which(level_times == end_pts[1]))
+            sub_care[j,3] = sub_level$patient_level_of_care[ind]
+        }
+    }
+    care_time_df[care_time_df[,1] == i, 3] = sub_care[,3]
+}
+save(care_time_df, file = 'Data/care_time_df.rda')
+

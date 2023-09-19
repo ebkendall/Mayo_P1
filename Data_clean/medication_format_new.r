@@ -4,10 +4,10 @@ jw17 = read.csv("Data/_raw_data_new/jw17b.csv")
 jw18 = read.csv("Data/_raw_data_new/jw18b.csv")
 jw19 = read.csv("Data/_raw_data_new/jw19b.csv")
 
-load('Data/data_format_FULL_48hr_update_RBC_sub.rda')
-pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
-            382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
-            769025, 777175, 794900, 799125, 819225)
+load('Data/data_format_new.rda')
+pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+            732525, 758025, 763050, 843000)
 data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 select_id = unique(data_format[,"EID"])
 med_select_id = jw15[jw15$key %in% select_id, ]
