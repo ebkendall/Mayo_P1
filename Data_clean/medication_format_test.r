@@ -56,12 +56,6 @@ for(i in unique(med_select_id_sub$key)) {
 
 med_select_id_sub = med_select_id_sub[!is.na(med_select_id_sub$administered_dtm), ]
 
-# making the strength numeric
-Strength_num = as.numeric(gsub("\\D", "", med_select_id_sub$Strength))
-med_select_id_sub = cbind(med_select_id_sub, Strength_num)
-med_select_id_sub$Dose[is.na(med_select_id_sub$Dose)] = 0
-med_select_id_sub$Strength_num[is.na(med_select_id_sub$Strength_num)] = 0
-
 # Combine Med Name & med administration to fully characterize
 continuous_app = c("Code/trauma/sedation medication", 
                    "Continuous Infusion: Per Instructions PRN",
@@ -90,16 +84,67 @@ status_med[med_select_id_sub$Status %in% status_update[["Stop"]]] = "Stop"
 status_med[med_select_id_sub$Status %in% status_update[["Continue"]]] = "Continue"
 status_med[med_select_id_sub$Status %in% status_update[["Changed"]]] = "Changed"
 
-med_name_admin = paste0(med_select_id_sub$med_name_simple, continuous_med)
+med_name_admin = paste0(med_select_id_sub$Med_Name_Desc, continuous_med)
 
 instance_num = rep(0, nrow(med_select_id_sub))
+
+# final medication df
 med_select_FINAL = cbind(med_select_id_sub, med_name_admin, status_med, continuous_med, instance_num)
+
+# making the strength numeric
+all_med_types = unique(med_select_FINAL$med_name_admin)
+strength_units = vector(mode = 'list', length = length(all_med_types))
+for(i in 1:length(strength_units)) {
+    strength_units[[i]] = unique(med_select_FINAL$Strength[med_select_FINAL$med_name_admin == all_med_types[i]])
+}
+names(strength_units) = all_med_types
+
+# making sure the units are the same within one medication
+Strength_num = rep(0, nrow(med_select_FINAL))
+for(i in names(strength_units)) {
+    if(length(strength_units[[i]]) > 1) {
+        # Currently only 1 is and that is "CARVEDILOL 3.125 MG TABLET0"
+        print(i)
+        Strength_num[med_select_FINAL$med_name_admin == i] = 
+            as.numeric(strsplit(strength_units[[i]][1], " ")[[1]][1])
+    } else {
+        # First check for %
+        if(length(strsplit(strength_units[[i]][1], '%')[[1]]) == 1 & str_detect(strength_units[[i]][1], '%')) {
+            # This means the only unit is %
+            perc = as.numeric(strsplit(strength_units[[i]][1], '%')[[1]])[1]
+            perc = perc / 100
+            Strength_num[med_select_FINAL$med_name_admin == i] = perc
+        } else if(length(strsplit(strength_units[[i]][1], " ")[[1]]) == 0) {
+            # This means no units are provided
+            Strength_num[med_select_FINAL$med_name_admin == i] = 1
+            
+        } else if(strsplit(strength_units[[i]][1], " ")[[1]][1] == "IP") {
+            # This means the unit is IP ONLY
+            Strength_num[med_select_FINAL$med_name_admin == i] = 1
+            
+        } else {
+            # Standard unit
+            Strength_num[med_select_FINAL$med_name_admin == i] = 
+                as.numeric(strsplit(strength_units[[i]][1], " ")[[1]][1])
+        }
+    }
+}
+
+med_select_FINAL = cbind(med_select_FINAL, Strength_num)
+med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
+med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
+
+strength_units_update = vector(mode = 'list', length = length(all_med_types))
+for(i in 1:length(strength_units_update)) {
+    strength_units_update[[i]] = unique(med_select_FINAL$Strength_num[med_select_FINAL$med_name_admin == all_med_types[i]])
+}
+names(strength_units_update) = all_med_types
+
 
 # Verifying that the dose * strength = 0 for "Stopped"
 print(unique(med_select_FINAL$Dose[med_select_FINAL$Status == "Stopped"]))
 print(table(med_select_FINAL$status_med[med_select_FINAL$Dose == 0]))
 dose_0_instance = med_select_FINAL[med_select_FINAL$Dose == 0, ]
-ex_patient = med_select_FINAL[med_select_FINAL$key == 114500, ]
 
 # Create a column with the "instance" number of that med to help determine if
 #       the patient is just starting the medicine or if they've been using it
@@ -336,3 +381,51 @@ for(j in 1:length(EIDs)) {
     }
     
 }
+
+Dn_omega = vector(mode = 'list', length = length(EIDs))
+hr_cont_num = length(hr_cont_names)
+hr_disc_num = length(hr_disc_names)
+map_cont_num = length(map_cont_names)
+map_disc_num = length(map_disc_names)
+total_cols_hr = hr_cont_num + hr_disc_num
+total_cols_map = map_cont_num + map_disc_num
+for(i in 1:length(Dn_omega)) {
+    Dn_omega[[i]] = vector(mode = 'list', length = sum(data_format[,"EID"] == EIDs[i]))
+    for(j in 1:length(Dn_omega[[i]])) {
+        med_mat = matrix(0, nrow = 4, ncol = total_cols_hr + total_cols_map)
+        hr_info = map_info = NULL
+        
+        if(is.null(hr_cont_design[[i]])) {
+            hr_info = rep(0, hr_cont_num)    
+        } else {
+            hr_info = hr_cont_design[[i]][j,]
+        }
+        
+        if(is.null(hr_disc_design[[i]])) {
+            hr_info = c(hr_info, rep(0, hr_disc_num))
+        } else {
+            hr_info = c(hr_info, hr_disc_design[[i]][j,])
+        }
+        names(hr_info) = NULL
+        
+        if(is.null(map_cont_design[[i]])) {
+            map_info = rep(0, map_cont_num)    
+        } else {
+            map_info = map_cont_design[[i]][j,]
+        }
+        
+        if(is.null(map_disc_design[[i]])) {
+            map_info = c(map_info, rep(0, map_disc_num))
+        } else {
+            map_info = c(map_info, map_disc_design[[i]][j,])
+        }
+        names(map_info) = NULL
+        
+        med_mat[2, 1:total_cols_hr] = hr_info
+        med_mat[3, (total_cols_hr+1):(total_cols_hr+total_cols_map)] = map_info
+        
+        Dn_omega[[i]][[j]] = med_mat
+    }
+}
+
+save(Dn_omega, file = 'Data/Dn_omega.rda')
