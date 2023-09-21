@@ -7,16 +7,16 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 2
+data_num = 3
 
-steps  = 30000
+steps  = 40000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 1
+  trialNum = 8
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
@@ -43,7 +43,7 @@ beta = c(0.6261, -1.3286, 1.6741, -0.1)
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
                                  -1,  9.04150472, -7.42458547,  0.5360813,
-					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
+					            0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
 sigma_upsilon = diag(12)
 Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
@@ -91,19 +91,17 @@ B = list()
 Dn_omega = list()
 
 load(paste0('Data/true_pars_', data_num, '.rda'))
+load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
 for(i in EIDs){
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
   
   if(simulation) {
-      A[[i]] = matrix(true_pars[par_index$vec_alpha_tilde], ncol =1)
+      A[[i]] = alpha_i_mat[[which(EIDs == i)]]
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
-      # B[[i]] = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
   } else {
       b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
-      # b_length = nrow(b_temp)
-      # b_temp[(b_length-5):b_length, ] = 1
       B[[i]] = b_temp
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
   }
@@ -113,6 +111,13 @@ for(i in EIDs){
 if(simulation) {
   load(paste0('Data/true_pars_', data_num, '.rda'))
   par[1:210] = true_pars
+
+  su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
+  la = diag(exp(par[par_index$log_lambda]))
+  up_true = la %*% su %*% la
+
+  par[par_index$vec_sigma_upsilon] = c(up_true)
+  par[par_index$log_lambda] = 0
 } else {
   # load('Model_out/mcmc_out_interm_5_6it3.rda')
   # par_temp = colMeans(mcmc_out_temp$chain)
@@ -136,11 +141,11 @@ a_ind = sample(size = 1, 1:180)
 print(a_ind)
 print(c(A[[a_ind]]))
 
-print("diag of Upsilon")
+print("diag of Sigma_Upsilon")
 Sigma_t = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
-Lambda_t = diag(exp(par[par_index$log_lambda]))
-Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
-print(round(diag(Upsilon_t), 3))
+# Lambda_t = diag(exp(par[par_index$log_lambda]))
+# Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
+print(round(diag(Sigma_t), 3))
 
 print("A1")
 vec_A_t_logit = par[par_index$vec_A]

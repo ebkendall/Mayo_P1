@@ -353,15 +353,15 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   double prior_init_val = arma::as_scalar(prior_init);
 
   // Lambda priors -------------------------------------------------------------
-  arma::uvec vec_log_lambda_ind = par_index(7);
-  arma::vec vec_log_lambda_content = par.elem(vec_log_lambda_ind - 1);
-  arma::vec vec_log_lambda_mean(12, arma::fill::zeros);
-  arma::vec scalar_lambda(12, arma::fill::ones);
-  scalar_lambda = 5 * scalar_lambda;
-  arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
+  // arma::uvec vec_log_lambda_ind = par_index(7);
+  // arma::vec vec_log_lambda_content = par.elem(vec_log_lambda_ind - 1);
+  // arma::vec vec_log_lambda_mean(12, arma::fill::zeros);
+  // arma::vec scalar_lambda(12, arma::fill::ones);
+  // scalar_lambda = 5 * scalar_lambda;
+  // arma::mat log_lambda_sd = arma::diagmat(scalar_lambda);
   
-  arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
-  double prior_log_lambda_val = arma::as_scalar(prior_log_lambda);
+  // arma::vec prior_log_lambda = dmvnorm(vec_log_lambda_content.t(), vec_log_lambda_mean, log_lambda_sd, true);
+  // double prior_log_lambda_val = arma::as_scalar(prior_log_lambda);
   
   // A_1 priors ----------------------------------------------------------------
   arma::vec vec_A1_content = par.elem(par_index(3) - 1);
@@ -393,7 +393,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // ---------------------------------------------------------------------------
   
   
-  value = value + prior_R_val + prior_zeta_val + prior_init_val + prior_log_lambda_val + prior_A1_val;
+  value = value + prior_A1_val + prior_R_val + prior_zeta_val + prior_init_val;// + prior_log_lambda_val;
   return value;
 }
 
@@ -468,10 +468,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 14375) {
+      if(i == 1) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
-      if(i == 144950) {
+      if(i == 2) {
           l2(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       // ----------------------------------------------------------------------
@@ -517,14 +517,14 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 14375) {
+        if(i == 1) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
             l1(5, k) = B_temp(k);
             l1(6, k) = B_temp(k+1);
         }
-        if(i == 144950) {
+        if(i == 2) {
             l2(0, k) = log_target_prev;
             l2(1, k) = log_target;
             l2(4, k) = 0;
@@ -543,8 +543,8 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 14375)  { l1(4, k) = 1;}
-          if(i == 144950) { l2(4, k) = 1;}
+          if(i == 1)  { l1(4, k) = 1;}
+          if(i == 2) { l2(4, k) = 1;}
           // ----------------------------------------------------------------------
         }
       }
@@ -978,8 +978,9 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
     int nu_Upsilon = 14;
 
     // The prior scale matrix for sigma_upsilon
-    arma::vec scalar_mult2 = {4, 0.36, 0.36, 36, 4, 4, 64, 5.0625, 5.0625, 4, 0.25, 0.25};
-    scalar_mult2 = scalar_mult2 * nu_Upsilon;
+    arma::vec scalar_mult2(12, arma::fill::ones);
+    // arma::vec scalar_mult2 = {4, 0.36, 0.36, 36, 4, 4, 64, 5.0625, 5.0625, 4, 0.25, 0.25};
+    // scalar_mult2 = scalar_mult2 * nu_Upsilon;
     arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
     // arma::vec scalar_mult2 = {4, 0.36, 0.36,    36, 4, 4,    36, 4, 4,    4, 0.25, 0.25};
 

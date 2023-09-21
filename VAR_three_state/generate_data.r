@@ -3,7 +3,8 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 4
+it_num = 3
+N = 400
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new.rda')
@@ -42,24 +43,19 @@ Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.1,.1,  2,.1,.1))
 Lambda = Lambda * diag(c(   1,5,5,   2,10,10,   2,10,10,  1,5,5))
 Upsilon = Lambda %*% sigma_upsilon %*% Lambda
 
-# A_mat = matrix(c(2.3, 0.5, 1.3,
-#                  1.9,  -1, 0.5,
-#                  1.9,  -1, 0.5,
-#                  2.3, 0.5, 1.3), ncol = 3, byrow = T)
-A_mat = matrix(c(0, -8, -4,
-                 0, -8, -4,
-                 0, -8, -4,
-                 0, -8, -4), ncol = 3, byrow = T)
+A_mat = matrix(c(2.3, 0.5, 1.3,
+                 1.9,  -1, 0.5,
+                 1.9,  -1, 0.5,
+                 2.3, 0.5, 1.3), ncol = 3, byrow = T)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-# R = 8 * matrix( c( .2, -.1,  .1, -.1,
-#                   -.1,   2, -.1,  .1,
-#                    .1, -.1,   2, -.1,
-#                   -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
-R = diag(c(1, 10, 10, 1))
+R = 1 * matrix( c( .2, -.1,  .1, -.1,
+                  -.1,   2, -.1,  .1,
+                   .1, -.1,   2, -.1,
+                  -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
 
 
 # transitions: 1->2, 2->3, 3->1, 3->2
@@ -84,18 +80,24 @@ par_index$log_lambda = 199:210
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
+
+alpha_i_mat = vector(mode = "list", length = N)
+
 for (www in 1:1) {
     set.seed(2023)
     
     Dir = 'Data/'
     
     use_data = NULL
-    for(i in EIDs){
+    for(i in 1:N){
+
+        id_num = sample(x = EIDs, size = 1, replace = T)
+        print(paste0(i, ", ", id_num))
         
-        n_i = sum(Y[,'EID']==as.numeric(i))
+        n_i = sum(Y[,'EID']==as.numeric(id_num))
         
-        x_i = x[ Y[,'EID']==as.numeric(i),, drop=F]
-        z_i = z[ Y[,'EID']==as.numeric(i),, drop=F]
+        x_i = x[ Y[,'EID']==as.numeric(id_num),, drop=F]
+        z_i = z[ Y[,'EID']==as.numeric(id_num),, drop=F]
         
         # Generate realizations of latent bleeding process ---------------------
         D_i = vector(mode = 'list', length = n_i)
@@ -133,6 +135,8 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, and bp -----------------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+
+        alpha_i_mat[[i]] = matrix(vec_alpha_i, ncol = 1)
         
         for(k in 1:n_i) {
             if(k==1)  {
@@ -177,11 +181,11 @@ for (www in 1:1) {
         # Y_i[!index_observed] = NA
         # ---------------------------------------------------------------------------
         
-        t_i = Y[ Y[,'EID']==as.numeric(i), 'time', drop=F]
+        t_i = Y[ Y[,'EID']==as.numeric(id_num), 'time', drop=F]
         
         # Removing clinic_rule temporarily
         # rules = Y[ Y[,'EID']==as.numeric(i), c('RBC_rule', 'clinic_rule'), drop=F]
-        rules = Y[ Y[,'EID']==as.numeric(i), c('RBC_rule'), drop=F]
+        rules = Y[ Y[,'EID']==as.numeric(id_num), c('RBC_rule'), drop=F]
         rules = cbind(rules, 0)
 
         if((1 %in% rules[,1]) & !(2 %in% b_i)) {
@@ -205,6 +209,8 @@ for (www in 1:1) {
     print(table(use_data[,'b_true'])/dim(use_data)[1])
     cat('\n')
 }
+
+save(alpha_i_mat, file = paste0('Data/alpha_i_mat_', it_num, '.rda'))
 
 # Visualize the noise --------------------------------------------------------
 load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
