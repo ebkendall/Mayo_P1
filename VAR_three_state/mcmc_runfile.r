@@ -9,14 +9,14 @@ print(ind)
 simulation = T
 data_num = 3
 
-steps  = 40000
+steps  = 50000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 8
+  trialNum = 9
 } else {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
