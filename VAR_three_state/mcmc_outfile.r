@@ -58,8 +58,8 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 
 if(simulation) {
     index_seeds = c(1:5)
-    trialNum = 8
-    itNum = 2
+    trialNum = 9
+    itNum = 5
 } else {
     index_seeds = c(1,4:5)
     trialNum = 1 # Change this everytime!!!! ****************

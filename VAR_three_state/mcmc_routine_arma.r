@@ -115,8 +115,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
-    # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+    colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i
     A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
@@ -131,8 +131,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     }
     
     # Debug information -------------------------------------------------------
-    debug_temp1 = matrix(nrow = 7, ncol = sum(Y[,'EID']==1) - 1)
-    debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==2) - 1)
+    # debug_temp1 = matrix(nrow = 7, ncol = sum(Y[,'EID']==1) - 1)
+    # debug_temp2 = matrix(nrow = 7, ncol = sum(Y[,'EID']==2) - 1)
+    debug_temp1 = matrix(nrow = 7, ncol = 50)
+    debug_temp2 = matrix(nrow = 7, ncol = 50)
     # -------------------------------------------------------
     
     # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)

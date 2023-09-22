@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+simulation = F
 data_num = 3
 
 steps  = 50000
@@ -23,7 +23,7 @@ if(simulation) {
               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
               732525, 758025, 763050, 843000)
   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-  trialNum = 1 # CHANGE THIS EVERY TIME **********************
+  trialNum = 2 # CHANGE THIS EVERY TIME **********************
 }
 
 # load('Data/Dn_omega.rda')
