@@ -3,10 +3,10 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 9 
+trialNum = 2
 itNum = 5
 data_num = 3
-simulation = T
+simulation = F
 
 Dir = 'Model_out/'
 
@@ -27,7 +27,7 @@ if(simulation) {
     load('Data/data_format_new.rda')
     pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
                 417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-                732525, 758025, 763050, 843000)
+                732525, 758025, 763050, 843000, 117525)
     data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
     use_data = data_format   
 }
@@ -140,9 +140,9 @@ for(i in EIDs){
     }
     
     # HEMO --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
-        plot.new()
-    } else{ 
+    # if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
+    #     plot.new()
+    # } else{ 
         if(simulation) {
             plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i), 
                  xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
@@ -164,12 +164,12 @@ for(i in EIDs){
         }
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
+    # }
     
     # LACTATE --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
-        plot.new()
-    } else{ 
+    # if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
+    #     plot.new()
+    # } else{ 
         if(simulation) {
             plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i), 
                  xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
@@ -192,7 +192,7 @@ for(i in EIDs){
         
         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
+    # }
 	
     # BAR PLOTS --------------------------------------------------------------
 	barplot( rbind( colMeans(mcmc_out_temp$B_chain[, indices_i] == 1),

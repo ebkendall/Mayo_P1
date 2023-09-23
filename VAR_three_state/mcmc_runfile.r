@@ -21,9 +21,9 @@ if(simulation) {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-              732525, 758025, 763050, 843000)
+              732525, 758025, 763050, 843000, 117525)
   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-  trialNum = 2 # CHANGE THIS EVERY TIME **********************
+  trialNum = 3 # CHANGE THIS EVERY TIME **********************
 }
 
 # load('Data/Dn_omega.rda')
@@ -43,11 +43,10 @@ beta = c(0.6261, -1.3286, 1.6741, -0.1)
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
                                  -1,  9.04150472, -7.42458547,  0.5360813,
-					            0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
+					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
-sigma_upsilon = diag(12)
-Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.25,.25,  2,.1,.1))
-Upsilon = Lambda %*% sigma_upsilon %*% Lambda
+sigma_upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
+Lambda = diag(12)
 
 # columns correspond to the different states
 # Each column corresponds to a different state
@@ -119,9 +118,11 @@ if(simulation) {
   par[par_index$vec_sigma_upsilon] = c(up_true)
   par[par_index$log_lambda] = 0
 } else {
-  # load('Model_out/mcmc_out_interm_5_6it3.rda')
+  # load('Model_out/mcmc_out_interm_1_2it5.rda')
   # par_temp = colMeans(mcmc_out_temp$chain)
   # rownames(par_temp) = NULL
+  # par = par_temp
+  # par[par_index$log_lambda] = 0
   # par[1:172] = par_temp[1:172]
   # par[189:282] = par_temp[177:270]
   # rm(mcmc_out_temp) 

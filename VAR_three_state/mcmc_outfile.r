@@ -23,8 +23,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = T
-upsilon_yes = T
+simulation = F
 data_num = 3
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
@@ -33,7 +32,7 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (hr)", "slope bleeding (hr)", "slope recovery (hr)",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
-           paste0("Sigma_Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
+           paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
            "A1 (baseline)", "A2 (baseline)", "A3 (baseline)", "A4 (baseline)",
            "A1 (bleed)", "A2 (bleed)", "A3 (bleed)", "A4 (bleed)",
            "A1 (recovery)", "A2 (recovery)", "A3 (recovery)", "A4 (recovery)",
@@ -61,8 +60,8 @@ if(simulation) {
     trialNum = 9
     itNum = 5
 } else {
-    index_seeds = c(1,4:5)
-    trialNum = 1 # Change this everytime!!!! ****************
+    index_seeds = c(1:2,5)
+    trialNum = 2 # Change this everytime!!!! ****************
     itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -72,13 +71,6 @@ if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/true_par_index_', data_num, '.rda'))
     true_par = true_pars
-
-    if(upsilon_yes) {
-        Lambda = diag(exp(true_par[par_index$log_lambda]))
-        Sigma = matrix(true_par[par_index$vec_sigma_upsilon], ncol = 12)
-        Upsilon = Lambda %*% Sigma %*% Lambda
-        true_par[par_index$vec_sigma_upsilon] = c(Upsilon)
-    }
 } else {
     true_par = NULL
 }
@@ -149,16 +141,21 @@ for(seed in index_seeds){
 
 stacked_chains = do.call( rbind, chain_list)
 
-# Re-calculating the Upsilon matrix
-true_R = matrix(true_par[par_index$vec_R], ncol = 4)
-true_A = true_par[par_index$vec_A]
-true_A_scale = exp(true_A) / (1+exp(true_A))
-true_gamma = c(true_R[1,1] / (true_A_scale[1]^2), true_R[2,2] / (true_A_scale[2]^2),
-               true_R[3,3] / (true_A_scale[3]^2), true_R[4,4] / (true_A_scale[4]^2),
-               true_R[1,1] / (true_A_scale[5]^2), true_R[2,2] / (true_A_scale[6]^2),
-               true_R[3,3] / (true_A_scale[7]^2), true_R[4,4] / (true_A_scale[8]^2),
-               true_R[1,1] / (true_A_scale[9]^2), true_R[2,2] / (true_A_scale[10]^2),
-               true_R[3,3] / (true_A_scale[11]^2), true_R[4,4] / (true_A_scale[12]^2))
+# # Re-calculating the Upsilon matrix
+if(simulation) {
+    true_R = matrix(true_par[par_index$vec_R], ncol = 4)
+    true_A = true_par[par_index$vec_A]
+    true_A_scale = exp(true_A) / (1+exp(true_A))
+    true_gamma = c(true_R[1,1] / (true_A_scale[1]^2), true_R[2,2] / (true_A_scale[2]^2),
+                   true_R[3,3] / (true_A_scale[3]^2), true_R[4,4] / (true_A_scale[4]^2),
+                   true_R[1,1] / (true_A_scale[5]^2), true_R[2,2] / (true_A_scale[6]^2),
+                   true_R[3,3] / (true_A_scale[7]^2), true_R[4,4] / (true_A_scale[8]^2),
+                   true_R[1,1] / (true_A_scale[9]^2), true_R[2,2] / (true_A_scale[10]^2),
+                   true_R[3,3] / (true_A_scale[11]^2), true_R[4,4] / (true_A_scale[12]^2))
+} else {
+    true_gamma = NULL
+}
+
 gamma_chain = matrix(nrow = nrow(stacked_chains), ncol = 12)
 for(i in 1:nrow(stacked_chains)) {
     R = matrix(stacked_chains[i, par_index$vec_R], ncol = 4)
@@ -173,13 +170,6 @@ for(i in 1:nrow(stacked_chains)) {
                    R[3,3] / (scale_A1[11]^2), R[4,4] / (scale_A1[12]^2))
 
     gamma_chain[i, ] = diag_gamma
-
-    if(upsilon_yes) {
-        Lambda = diag(exp(stacked_chains[i, par_index$log_lambda]))
-        Sigma = matrix(stacked_chains[i, par_index$vec_sigma_upsilon], ncol = 12)
-        Upsilon = Lambda %*% Sigma %*% Lambda
-        stacked_chains[i, par_index$vec_sigma_upsilon] = c(Upsilon)
-    }
 }
 
 pdf_title = NULL
@@ -207,13 +197,7 @@ for(s in names(par_index)){
             upper = quantile( stacked_chains[,r], prob=.975)
             lower = quantile( stacked_chains[,r], prob=.025)
             
-            y_limit = NULL
-            if(s == names(par_index)[3]) {
-                # y_limit = c(lower, upper)
-                y_limit = range(stacked_chains[,r])
-            } else {
-                y_limit = range(stacked_chains[,r])
-            }
+            y_limit = range(stacked_chains[,r])
             plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
                   ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                               ", ", round(upper, 4), "]"))
