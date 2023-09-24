@@ -60,8 +60,8 @@ if(simulation) {
     trialNum = 9
     itNum = 5
 } else {
-    index_seeds = c(1:2,5)
-    trialNum = 2 # Change this everytime!!!! ****************
+    index_seeds = c(2,4)
+    trialNum = 3 # Change this everytime!!!! ****************
     itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -86,7 +86,7 @@ if(simulation) {
   load('Data/data_format_new.rda')
   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-              732525, 758025, 763050, 843000)
+              732525, 758025, 763050, 843000, 117525)
   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 }
 
