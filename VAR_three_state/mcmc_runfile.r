@@ -18,12 +18,8 @@ if(simulation) {
   data_format = use_data
   trialNum = 9
 } else {
-  load('Data/data_format_new.rda')
-  pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-              417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-              732525, 758025, 763050, 843000, 117525)
-  data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-  trialNum = 4 # CHANGE THIS EVERY TIME **********************
+  load('Data/data_format_new2.rda')
+  trialNum = 5 # CHANGE THIS EVERY TIME **********************
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -114,8 +110,8 @@ for(i in EIDs){
       A[[i]] = alpha_i_mat[[which(EIDs == i)]]
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
   } else {
-      # b_temp = matrix( 1, sum(Y[,'EID']==as.numeric(i)), 1)
-      b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
+      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      # b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
   }
