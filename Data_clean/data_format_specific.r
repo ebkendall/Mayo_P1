@@ -11,10 +11,10 @@ load('Data/timing_issues.rda') # timing_issues
 all_keys_temp = all_keys[!(all_keys %in% timing_issues)]
 
 # Removing pacing patients
-pace_info = read.csv('Data/_raw_data_new/jw_pacemaker.csv')
-no_pace_patient = pace_info$key[is.na(pace_info$pacemaker_attention) 
-                                & is.na(pace_info$pacemaker_present)]
-all_keys_temp = all_keys_temp[all_keys_temp %in% no_pace_patient]
+# pace_info = read.csv('Data/_raw_data_new/jw_pacemaker.csv')
+# no_pace_patient = pace_info$key[is.na(pace_info$pacemaker_attention) 
+#                                 & is.na(pace_info$pacemaker_present)]
+# all_keys_temp = all_keys_temp[all_keys_temp %in% no_pace_patient]
 
 # Removing patients who died in the ICU
 deaths = cov_info[cov_info[,"icu_death"] == 1, "key"]
@@ -213,6 +213,21 @@ for(i in unique(data_format[,'EID'])){
 }
 
 # ------------------------------------------------------------------------------
+# Removing pacing patients based on own heuristic ------------------------------
+# ------------------------------------------------------------------------------
+pace_ids = NULL
+for(i in unique(data_format[,"EID"])) {
+    sub_id_hr = data_format[data_format[,"EID"] == i, "hr"]
+    diff_hr = diff(sub_id_hr)
+    conseq_same = which(diff_hr == 0)
+    if(sum(diff(conseq_same) == 1) > 6) {
+        pace_ids = c(pace_ids, i)
+    }
+}
+
+data_format = data_format[!(data_format[,"EID"] %in% pace_ids), ]
+
+# ------------------------------------------------------------------------------
 # (4) Saving the data_format with subset of IDs --------------------------------
 # ------------------------------------------------------------------------------
 set.seed(2023)
@@ -227,14 +242,10 @@ curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
 
 add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
 
-curr_id = c(curr_id, sample(add_id, 200 - length(curr_id)))
+curr_id = c(curr_id, sample(add_id, 400 - length(curr_id)))
 curr_id = sort(unique(curr_id))
-data_format = data_format[data_format[,"EID"] %in% curr_id, ]
 
-# pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
-#             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500, 
-#             769025, 777175, 794900, 799125, 819225)
-# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+data_format = data_format[data_format[,"EID"] %in% curr_id, ]
 
 # ------------------------------------------------------------------------------
 # (5) Remove any eroneous data points ------------------------------------------
@@ -261,7 +272,16 @@ for(i in 1:nrow(data_format)) {
 
 }
 
-save(data_format, file = 'Data/data_format_new.rda')
+save(data_format, file = 'Data/data_format_new2.rda')
+# Quick check for no pacing
+pdf("Data/quick_check.pdf")
+par(mfrow=c(4,1))
+for(i in unique(data_format[,"EID"])) {
+    plot(data_format[data_format[,"EID"] == i, "time"], data_format[data_format[,"EID"] == i, "hr"],
+         main = i)
+}
+dev.off()
+
 # ------------------------------------------------------------------------------
 # (6) Filter based on level of care --------------------------------------------
 # ------------------------------------------------------------------------------
@@ -275,7 +295,7 @@ save(data_format, file = 'Data/data_format_new.rda')
 # save(curr_id, file = 'Data/curr_id.rda')
 
 level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
-load('Data/data_format_new.rda')
+load('Data/data_format_new2.rda')
 care_time_df = matrix(nrow = nrow(data_format), ncol = 3)
 care_time_df[,1] = data_format[,'EID']
 care_time_df[,2] = data_format[,'time']
