@@ -61,7 +61,7 @@ if(simulation) {
     itNum = 5
 } else {
     index_seeds = c(1:5)
-    trialNum = 3 # Change this everytime!!!! ****************
+    trialNum = 5 # Change this everytime!!!! ****************
     itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -83,11 +83,11 @@ if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
 } else {
-  load('Data/data_format_new.rda')
-  pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-              417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-              732525, 758025, 763050, 843000, 117525)
-  data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+  load('Data/data_format_new2.rda')
+#   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+#               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+#               732525, 758025, 763050, 843000, 117525)
+#   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 }
 
 n_subjects = length(unique(data_format[,'EID']))

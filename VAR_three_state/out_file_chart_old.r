@@ -3,7 +3,7 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 4
+trialNum = 5
 itNum = 5
 data_num = 3
 simulation = F
@@ -24,11 +24,11 @@ mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 if(simulation) {
     load(paste0('Data/use_data1_', data_num, '.rda'))
 } else {
-    load('Data/data_format_new.rda')
-    pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-                417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-                732525, 758025, 763050, 843000, 117525)
-    data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+    load('Data/data_format_new2.rda')
+    # pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+    #             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+    #             732525, 758025, 763050, 843000, 117525)
+    # data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
     use_data = data_format   
 }
 

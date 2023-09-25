@@ -19,7 +19,7 @@ if(simulation) {
   trialNum = 9
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 5 # CHANGE THIS EVERY TIME **********************
+  trialNum = 6 # CHANGE THIS EVERY TIME **********************
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -32,7 +32,7 @@ z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
 # Parameters ------------------------------------------------------------------
-beta = c(0.6261, -1.3286, 1.6741, -0.1)
+beta = rep(0, 4)
 
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
@@ -42,16 +42,15 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 sigma_upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
 Lambda = diag(12)
 
-# columns correspond to the different states
-# Each column corresponds to a different state
-vec_A = c(matrix(c(2.3, 0.5, 1.3,
-                   1.9,  -1, 0.5,
-                   1.9,  -1, 0.5,
-                   2.3, 0.5, 1.3), ncol = 3, byrow = T))
+# Columns correspond to the different states
+# vec_A = c(matrix(c(2.3, 0.5, 1.3,
+#                    1.9,  -1, 0.5,
+#                    1.9,  -1, 0.5,
+#                    2.3, 0.5, 1.3), ncol = 3, byrow = T))
+vec_A = rep(0, 12)
 
 # columns: hemo, hr, map, lactate
-# diagonal elements only (because R is a diagonal matrix)
-R = diag(1, 4)
+R = diag(4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
@@ -80,7 +79,7 @@ par_index$vec_upsilon_omega = 219:282
 load(paste0('Data/true_pars_', data_num, '.rda'))
 load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
-load('Model_out/mcmc_out_interm_4_3it5.rda')
+# load('Model_out/mcmc_out_interm_4_3it5.rda')
 
 if(simulation) {
     par[1:210] = true_pars
@@ -92,9 +91,9 @@ if(simulation) {
     par[par_index$vec_sigma_upsilon] = c(up_true)
     par[par_index$log_lambda] = 0
 } else {
-    par_temp = colMeans(mcmc_out_temp$chain)
-    rownames(par_temp) = NULL
-    par = par_temp
+    # par_temp = colMeans(mcmc_out_temp$chain)
+    # rownames(par_temp) = NULL
+    # par = par_temp
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -116,7 +115,7 @@ for(i in EIDs){
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
   }
 }
-rm(mcmc_out_temp)
+# rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")

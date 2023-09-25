@@ -42,17 +42,17 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_4_3it5.rda')
+        # load('Model_out/mcmc_out_interm_4_3it5.rda')
 
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
 
         # Setting initial values for Y
         # Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, ])
         # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, ])
         # Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, ])
         # Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, ])
-        rm(mcmc_out_temp)
+        # rm(mcmc_out_temp)
         # Setting initial values for Y
         print("Initializing the missing Y's for imputation")
         for(i in EIDs) {
