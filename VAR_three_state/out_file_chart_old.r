@@ -3,7 +3,7 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 3
+trialNum = 4
 itNum = 5
 data_num = 3
 simulation = F
@@ -32,25 +32,14 @@ if(simulation) {
     use_data = data_format   
 }
 
-load('Data/clean_meds.rda')
-# load(paste0('../Data/Debug/use_data', 1, '_7.rda'))
+# Level of care information ---------------------------------------------------
 load('Data/care_time_df.rda')
 care_time_df = cbind(care_time_df, 'green')
 care_time_df[care_time_df[,3] == "Intensive Care", 4] = 'red'
-
 level_of_care = read.csv('../Data_clean/Data/_raw_data_new/jw_patient_level_of_care.csv')
+# -----------------------------------------------------------------------------
 
 EIDs = unique(use_data[,'EID'])
-
-# for(i in EIDs){  
-#   temp = use_data[use_data[,'EID']==as.numeric(i), 'b_true']
-#   b_temp = matrix( temp, ncol = 1)
-#   if(2 %in% temp) {
-# 	use_data[use_data[,'EID']==as.numeric(i), 'clinic_rule'] = 1
-#   } else {
-# 	use_data[use_data[,'EID']==as.numeric(i), 'clinic_rule'] = 0
-#   }
-# }
 
 # New patients ---------------------------------------------------------------
 pdf_title = NULL
@@ -60,37 +49,50 @@ if(simulation) {
     pdf_title = paste0('Plots/chart_plot_', trialNum, '_it', itNum, '_seed',toString(args[1]), '.pdf')
 }
 pdf(pdf_title)
-# mar=c(b,l,t,r) oma=c(b,l,t,r) 
-if(simulation) panels = c(5, 1)  else  panels = c(5,1)
-par(mfrow=panels, mar=c(2,4,2,4), bg='black', fg='green')
+par(mfrow=c(5,1), mar=c(2,4,2,4), bg='black', fg='green')
 for(i in EIDs){
     print(which(EIDs == i))
     indices_i = (use_data[,'EID']==i)
     n_i = sum(indices_i)
-    t_grid_bar = seq( 0, n_i, by=5)[-1]
+
     if(simulation) {
         t_grid = seq( 0, n_i, by=5)[-1]   
+        t_grid_bar = seq( 0, n_i, by=5)[-1]
         rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
         rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
-    } else {
-        t_grid = round(use_data[indices_i, 'time'] / 60, digits = 3)
-        rbc_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_ordered'] != 0), 'time']/60
-        rbc_admin_times = use_data[which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0), 'time']/60
-    }
-    
-    if(simulation){
+
         b_i = use_data[ indices_i,'b_true']
         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
-        to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]	
+        to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
+    } else {
+        t_grid = round(use_data[indices_i, 'time'] / 60, digits = 3)
+        t_grid_bar = 1:length(t_grid)
+        rbc_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_ordered'] != 0)
+        rbc_admin_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0)
+        rbc_times = t_grid[rbc_times_bar]
+        rbc_admin_times = t_grid[rbc_admin_times_bar]
     }
+
+    pb = barplot(rbind( colMeans(mcmc_out_temp$B_chain[, indices_i] == 1),
+					colMeans(mcmc_out_temp$B_chain[, indices_i] == 2),
+					colMeans(mcmc_out_temp$B_chain[, indices_i] == 3)), 
+            col=c( 'dodgerblue', 'firebrick1', 'yellow2'), 
+			xlab='time', space=0, col.main='green', border=NA, axes = F, plot = F) 
+    
     # HEART RATE --------------------------------------------------------------
     if(sum(!is.na(use_data[indices_i, 'hr']))==0){
         plot.new()
     } else{ 	
+        if(mean(use_data[indices_i, 'clinic_rule']) != 0) {
+            title_name = paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']),
+                                ', clinic = ', mean(use_data[indices_i, 'clinic_rule']))
+        } else {
+            title_name = paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']))
+        }
         if(simulation) {
-            plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])), 
-                 xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+            plot(use_data[indices_i, 'hr'], main=title_name, xlab='time', ylab=NA, 
+                 col.main='green', col.axis='green', pch=20, cex=1)
             grid( nx=20, NULL, col='white')
             axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
             abline( v=to_s1, col='dodgerblue', lwd=2)
@@ -101,15 +103,16 @@ for(i in EIDs){
         } else {
             hr_upper = colQuantiles( mcmc_out_temp$hr_chain[, indices_i, drop=F], probs=.975)
             hr_lower = colQuantiles( mcmc_out_temp$hr_chain[, indices_i, drop=F], probs=.025)
-            plotCI( x = t_grid, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), ui=hr_upper, li=hr_lower,
-                    main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])),
+            plotCI( x = pb, y=colMeans(mcmc_out_temp$hr_chain[, indices_i, drop=F]), ui=hr_upper, li=hr_lower,
+                    main=title_name,
                     xlab='time', ylab=NA, xaxt='n', col.main='green',
-                    col.axis='green', pch=20, cex=1, sfrac=.0025)   
+                    col.axis='green', pch=20, cex=1, sfrac=.0025,
+                    xlim = range(pb) + c(-0.5,0.5))   
             grid( nx=20, NULL, col='white')
-            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+            axis( side=1, at=pb, col.axis='green', labels=t_grid)
         }
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     }
 
     # MAP --------------------------------------------------------------
@@ -129,14 +132,15 @@ for(i in EIDs){
         } else {
             bp_upper = colQuantiles( mcmc_out_temp$bp_chain[, indices_i, drop=F], probs=.975)
             bp_lower = colQuantiles( mcmc_out_temp$bp_chain[, indices_i, drop=F], probs=.025)
-            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$bp_chain[, indices_i, drop=F]), ui=bp_upper, li=bp_lower,
+            plotCI(x = pb, y = colMeans(mcmc_out_temp$bp_chain[, indices_i, drop=F]), ui=bp_upper, li=bp_lower,
                    main=paste0('mean arterial pressure: ', i), xlab='time', ylab=NA, xaxt='n', 
-                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025,
+                   xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
-            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+            axis( side=1, at=pb, col.axis='green', labels=t_grid)
         }
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     }
     
     # HEMO --------------------------------------------------------------
@@ -156,16 +160,17 @@ for(i in EIDs){
         } else {
             hc_upper = colQuantiles( mcmc_out_temp$hc_chain[, indices_i, drop=F], probs=.975)
             hc_lower = colQuantiles( mcmc_out_temp$hc_chain[, indices_i, drop=F], probs=.025)
-            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$hc_chain[, indices_i, drop=F]), ui=hc_upper, li=hc_lower,
+            plotCI(x = pb, y = colMeans(mcmc_out_temp$hc_chain[, indices_i, drop=F]), ui=hc_upper, li=hc_lower,
                    main=paste0('hemoglobin concentration: ', i), xlab='time', ylab=NA, xaxt='n', 
-                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025,
+                   xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
-            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+            axis( side=1, at=pb, col.axis='green', labels=t_grid)
         }
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     # }
-    
+
     # LACTATE --------------------------------------------------------------
     # if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
     #     plot.new()
@@ -183,34 +188,35 @@ for(i in EIDs){
         } else {
             la_upper = colQuantiles( mcmc_out_temp$la_chain[, indices_i, drop=F], probs=.975)
             la_lower = colQuantiles( mcmc_out_temp$la_chain[, indices_i, drop=F], probs=.025)
-            plotCI(x = t_grid, y = colMeans(mcmc_out_temp$la_chain[, indices_i, drop=F]), ui=la_upper, li=la_lower,
+            plotCI(x = pb, y = colMeans(mcmc_out_temp$la_chain[, indices_i, drop=F]), ui=la_upper, li=la_lower,
                    main=paste0('lactate levels: ', i), xlab='time', ylab=NA, xaxt='n', 
-                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025)
+                   col.main='green', col.axis='green', pch=20, cex=1, sfrac=.0025,
+                   xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
-            axis( side=1, at=t_grid, col.axis='green', labels=t_grid)
+            axis( side=1, at=pb, col.axis='green', labels=t_grid)
         }
         
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     # }
 	
     # BAR PLOTS --------------------------------------------------------------
-	barplot( rbind( colMeans(mcmc_out_temp$B_chain[, indices_i] == 1),
+	barplot(rbind( colMeans(mcmc_out_temp$B_chain[, indices_i] == 1),
 					colMeans(mcmc_out_temp$B_chain[, indices_i] == 2),
 					colMeans(mcmc_out_temp$B_chain[, indices_i] == 3)), 
-					col=c( 'dodgerblue', 'firebrick1', 'yellow2'), 
-					xlab='time', xaxt='n', space=0, 
-					col.main='green', border=NA) 
-	grid( nx=NA, NULL, col='white')
+            col=c( 'dodgerblue', 'firebrick1', 'yellow2'), 
+			xlab='time', space=0, col.main='green', border=NA,
+            xlim=range(pb) + c(-0.5,0.5)) 
+	grid( nx=20, NULL, col='white')
 	legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
 			legend=c( 'Baseline', 'Bleed', 'Recov(B)'), pch=15, pt.cex=1.5, 
 					col=c( 'dodgerblue', 'firebrick1', 'yellow2'))
 	legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
 			legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
-					col=c( 'darkorchid2', 'deeppink'))				
-	axis( side=1, at=t_grid_bar, col.axis='green', labels=t_grid_bar / 4)
+					col=c( 'darkorchid1', 'aquamarine'))				
+	axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
 	axis( side=2, at=0:1, col.axis='green')
-	abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-	abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+	abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
 }
 dev.off()

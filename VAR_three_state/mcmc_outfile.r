@@ -60,7 +60,7 @@ if(simulation) {
     trialNum = 9
     itNum = 5
 } else {
-    index_seeds = c(2,4)
+    index_seeds = c(1:5)
     trialNum = 3 # Change this everytime!!!! ****************
     itNum = 5
 }
