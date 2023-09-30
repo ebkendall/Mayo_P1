@@ -6,8 +6,8 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = F
-data_num = 3
+simulation = T
+data_num = 4
 
 steps  = 50000
 burnin =  5000
@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 9
+  trialNum = 3
 } else {
   load('Data/data_format_new2.rda')
   trialNum = 6 # CHANGE THIS EVERY TIME **********************
@@ -84,12 +84,12 @@ load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 if(simulation) {
     par[1:210] = true_pars
     
-    su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
-    la = diag(exp(par[par_index$log_lambda]))
-    up_true = la %*% su %*% la
-    
-    par[par_index$vec_sigma_upsilon] = c(up_true)
-    par[par_index$log_lambda] = 0
+    # su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
+    # la = diag(exp(par[par_index$log_lambda]))
+    # up_true = la %*% su %*% la
+    # 
+    # par[par_index$vec_sigma_upsilon] = c(up_true)
+    # par[par_index$log_lambda] = 0
 } else {
     # par_temp = colMeans(mcmc_out_temp$chain)
     # rownames(par_temp) = NULL
@@ -139,6 +139,9 @@ print(R_t)
 print("zeta")
 zed = matrix(par[par_index$vec_zeta], nrow = 2)
 print(zed)
+
+print("lambda")
+print(par[par_index$log_lambda])
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)

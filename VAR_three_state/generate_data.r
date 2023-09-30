@@ -3,17 +3,11 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 3
-N = 400
+it_num = 4
+N = 800
 
 # Load in the existing data and save the covariate combinations
-load('Data/data_format_new.rda')
-# Removing pacing patients
-pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-            732525, 758025, 763050, 843000)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-
+load('Data/data_format_new2.rda')
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -36,12 +30,7 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
                                  -1,  5.04150472, -5.42458547, 0.5360813,
                                 0.1, 	      -4, 		    4,-0.6866748), ncol=4, byrow=T)
 
-# sigma_upsilon = matrix(par_means[par_index$vec_sigma_upsilon], ncol = 12)
-# Lambda = diag(exp(par_means[par_index$log_lambda]))
-sigma_upsilon = diag(12)
-Lambda = diag(c(   2,.1,.1,   3,.1,.1,   4,.1,.1,  2,.1,.1))
-Lambda = Lambda * diag(c(   1,5,5,   2,10,10,   2,10,10,  1,5,5))
-Upsilon = Lambda %*% sigma_upsilon %*% Lambda
+sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
 
 A_mat = matrix(c(2.3, 0.5, 1.3,
                  1.9,  -1, 0.5,
@@ -67,7 +56,7 @@ init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
 true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3], 
-              log(diag(Lambda)))
+              log(rep(1,12)))
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -124,12 +113,10 @@ for (www in 1:1) {
             
             D_i_temp = matrix(c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3)), nrow = 1, ncol = 3)
             D_i[[k]] = diag(4) %x% D_i_temp
-            # D_i[k,] = c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3))
+
             x_i_temp = matrix(c(x_i[k,]), ncol = 1)
             X_i[[k]] = diag(4) %x% x_i[k,]
         }
-        # D_i = diag(4) %x% D_i
-        # X_i = diag(4) %x% x_i
         # ---------------------------------------------------------------------------
         
         # Generate realizations of hc, hr, and bp -----------------------------------

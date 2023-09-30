@@ -28,10 +28,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
     mpi = list( c(par_index$vec_init),
                 c(par_index$vec_zeta),
+                c(par_index$vec_A),
                 # c(par_index$log_lambda)
-                c(par_index$vec_A[1:4]),
-                c(par_index$vec_A[5:8]),
-                c(par_index$vec_A[9:12]),
+                # c(par_index$vec_A[1:4]),
+                # c(par_index$vec_A[5:8]),
+                # c(par_index$vec_A[9:12]),
                 c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -112,8 +113,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     chain_ind = floor(chain_ind / 10) + 1
     A_check = 100
     
-    Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
-    colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+    # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+    # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
     # Gibbs updates of the alpha_i
     A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
@@ -133,9 +134,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     debug_temp1 = matrix(nrow = 7, ncol = 50)
     debug_temp2 = matrix(nrow = 7, ncol = 50)
     # -------------------------------------------------------
-    
+
     # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
-    B_Dn = update_b_i_cpp(16, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+    B_Dn = update_b_i_cpp(25, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
                           debug_temp1, debug_temp2)
     B = B_Dn[[1]]; names(B) = EIDs
     Dn = B_Dn[[2]]; names(Dn) = EIDs
@@ -155,8 +156,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       
       print("diag of Sigma_Upsilon")
       Sigma_t = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 12)
-      # Lambda_t = diag(exp(chain[chain_ind,par_index$log_lambda]))
-      # Upsilon_t = Lambda_t %*% Sigma_t %*% Lambda_t
       print(round(diag(Sigma_t), 3))
       
       print("A1")
@@ -172,6 +171,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
       print("zeta")
       zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
       print(zed)
+      
+      print("lambda")
+      print(chain[chain_ind, par_index$log_lambda])
       
       print("acceptance")
       print(accept / (ttt %% 480))
@@ -191,7 +193,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         ind_j = mpi[[j]]
         proposal = par
       
-        if(j <= 5) {
+        if(j <= 3) {
             # logit_init, zeta, log_lambda, logit A1
             proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
             

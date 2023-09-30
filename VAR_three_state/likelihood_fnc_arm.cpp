@@ -297,7 +297,7 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
     // "ii" is the index of the EID
     arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
       
-    omp_set_num_threads(16);
+    omp_set_num_threads(25);
     # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
@@ -468,10 +468,10 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
       
       // DEBUG ----------------------------------------------------------------
       // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == 1) {
+      if(i == -1) {
           l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
-      if(i == 2) {
+      if(i == -2) {
           l2(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
       }
       // ----------------------------------------------------------------------
@@ -517,14 +517,14 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
         
         // DEBUG ----------------------------------------------------------------
         // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == 1) {
+        if(i == -1) {
             l1(0, k) = log_target_prev;
             l1(1, k) = log_target;
             l1(4, k) = 0;
             l1(5, k) = B_temp(k);
             l1(6, k) = B_temp(k+1);
         }
-        if(i == 2) {
+        if(i == -2) {
             l2(0, k) = log_target_prev;
             l2(1, k) = log_target;
             l2(4, k) = 0;
@@ -543,8 +543,8 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
           
           // DEBUG ----------------------------------------------------------------
           // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == 1)  { l1(4, k) = 1;}
-          if(i == 2) { l2(4, k) = 1;}
+          if(i == -1)  { l1(4, k) = 1;}
+          if(i == -2) { l2(4, k) = 1;}
           // ----------------------------------------------------------------------
         }
       }
