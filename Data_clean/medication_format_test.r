@@ -41,7 +41,7 @@ colnames(med_list) = med_key$id
 check_vec = apply(med_list, 1, sum)
 watch_out = which(check_vec != 1)
 names(watch_out) = NULL
-print(watch_out)
+print(length(watch_out))
 
 med_name_simple_mat = matrix(nrow = length(unique_meds), ncol = 2)
 med_name_simple_mat[,1] = unique_meds
@@ -51,6 +51,8 @@ for(i in 1:nrow(med_name_simple_mat)) {
         med_name_simple_mat[i,2] = i_name
     }
 }
+print(paste0("Number of mismatches: ", sum(is.na(med_name_simple_mat))))
+
 med_name_simple_mat[1,2] = " METOPROLOL TARTRATE" 
 med_name_simple_mat[5,2] = " METOPROLOL SUCCINATE"
 med_name_simple_mat[8,2] = " EPINEPHRINE "
@@ -318,53 +320,24 @@ p_ind = which(med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0" &  med_select
 med_select_FINAL$Dose[p_ind] = med_select_FINAL$Dose[p_ind] / 1000
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0"] = 1
 
-# making sure the units are the same within one medication
-Strength_num = rep(0, nrow(med_select_FINAL))
-for(i in names(strength_units)) {
-    print(i)
-    if(length(strength_units[[i]]) > 1) {
-        # Currently only 1 is and that is "CARVEDILOL 3.125 MG TABLET0"
-        print(i)
-        Strength_num[med_select_FINAL$med_name_admin == i] = 
-            as.numeric(strsplit(strength_units[[i]][1], " ")[[1]][1])
-    } else {
-        # First check for %
-        if(length(strsplit(strength_units[[i]][1], '%')[[1]]) == 1 & str_detect(strength_units[[i]][1], '%')) {
-            # This means the only unit is %
-            perc = as.numeric(strsplit(strength_units[[i]][1], '%')[[1]])[1]
-            perc = perc / 100
-            Strength_num[med_select_FINAL$med_name_admin == i] = perc
-        } else if(length(strsplit(strength_units[[i]][1], " ")[[1]]) == 0) {
-            # This means no units are provided
-            Strength_num[med_select_FINAL$med_name_admin == i] = 1
-            
-        } else if(strsplit(strength_units[[i]][1], " ")[[1]][1] == "IP") {
-            # This means the unit is IP ONLY
-            Strength_num[med_select_FINAL$med_name_admin == i] = 1
-            
-        } else {
-            # Standard unit
-            Strength_num[med_select_FINAL$med_name_admin == i] = 
-                as.numeric(strsplit(strength_units[[i]][1], " ")[[1]][1])
-        }
-    }
-}
-
+Strength_num = as.numeric(med_select_FINAL$Strength)
 med_select_FINAL = cbind(med_select_FINAL, Strength_num)
 med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
 med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
 
-strength_units_update = vector(mode = 'list', length = length(all_med_types))
-for(i in 1:length(strength_units_update)) {
-    strength_units_update[[i]] = unique(med_select_FINAL$Strength_num[med_select_FINAL$med_name_admin == all_med_types[i]])
+# SCALING DOSE! ************************************************************
+med_dose_unique = unique(med_select_FINAL$med_name_admin)
+med_dose_scale_factor = matrix(nrow=length(med_dose_unique), ncol = 2)
+med_dose_scale_factor[,1] = med_dose_unique
+colnames(med_dose_scale_factor) = c('name', 'mean')
+for(i in 1:length(med_dose_unique)){
+    med_i = which(med_select_FINAL$med_name_admin == med_dose_unique[i])
+    mean_i = mean(med_select_FINAL$Dose[med_i])
+    med_dose_scale_factor[i, 2] = mean_i
+    med_select_FINAL$Dose[med_i] = med_select_FINAL$Dose[med_i] / mean_i
 }
-names(strength_units_update) = all_med_types
-
-
-# Verifying that the dose * strength = 0 for "Stopped"
-print(unique(med_select_FINAL$Dose[med_select_FINAL$Status == "Stopped"]))
-print(table(med_select_FINAL$status_med[med_select_FINAL$Dose == 0]))
-dose_0_instance = med_select_FINAL[med_select_FINAL$Dose == 0, ]
+save(med_dose_scale_factor, file = 'Data/med_dose_scale_factor.rda')
+# *************************************************************************
 
 # Create a column with the "instance" number of that med to help determine if
 #       the patient is just starting the medicine or if they've been using it
