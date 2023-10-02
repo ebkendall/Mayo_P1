@@ -4,11 +4,12 @@ jw17 = read.csv("Data/_raw_data_new/jw17b.csv")
 jw18 = read.csv("Data/_raw_data_new/jw18b.csv")
 jw19 = read.csv("Data/_raw_data_new/jw19b.csv")
 
-load('Data/data_format_new.rda')
-pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-            417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-            732525, 758025, 763050, 843000)
-data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+# load('Data/data_format_new.rda')
+# pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
+#             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
+#             732525, 758025, 763050, 843000)
+# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+load('Data/data_format_new2.rda')
 select_id = unique(data_format[,"EID"])
 med_select_id = jw15[jw15$key %in% select_id, ]
 med_select_id = rbind(med_select_id, jw16[jw16$key %in% select_id, ])
@@ -18,16 +19,62 @@ med_select_id = rbind(med_select_id, jw19[jw19$key %in% select_id, ])
 med_select_id$administered_dtm = med_select_id$administered_dtm / 60
 med_select_id = med_select_id[!is.na(med_select_id[,1]),]
 rownames(med_select_id) = NULL
+med_select_id = med_select_id[med_select_id$Med_Name_Desc != "", ]
 
 med_key = read.csv('Med_chart.csv', na.strings = "")
 colnames(med_key) = c('id', 'hr', 'map', 'onset', 'offset', 'time_check', 'X1')
 med_key$id = paste0(" ", med_key$id)
+med_key$id[med_key$id == " Metoprolol IV"] = " METOPROLOL"
 library(stringr)
 med_name_simple = paste0(" ", med_select_id$Med_Name_Desc)
+
+unique_meds = unique(med_name_simple)
+med_list = matrix(0, nrow = length(unique_meds), ncol = nrow(med_key))
+for(i in 1:nrow(med_key)) {
+    ind = grep(med_key$id[i], unique_meds)
+    if(length(ind) > 0) {
+        med_list[ind, i] = med_list[ind, i] +1
+    }
+}
+rownames(med_list) = unique_meds
+colnames(med_list) = med_key$id
+check_vec = apply(med_list, 1, sum)
+watch_out = which(check_vec != 1)
+names(watch_out) = NULL
+print(watch_out)
+
+med_name_simple_mat = matrix(nrow = length(unique_meds), ncol = 2)
+med_name_simple_mat[,1] = unique_meds
+for(i in 1:nrow(med_name_simple_mat)) {
+    if(!(i %in% watch_out)) {
+        i_name = colnames(med_list)[which(med_list[i, ] == 1)]
+        med_name_simple_mat[i,2] = i_name
+    }
+}
+med_name_simple_mat[1,2] = " METOPROLOL TARTRATE" 
+med_name_simple_mat[5,2] = " METOPROLOL SUCCINATE"
+med_name_simple_mat[8,2] = " EPINEPHRINE "
+med_name_simple_mat[20,2] = " PHENYLEPHRINE"
+med_name_simple_mat[22,2] = " METOPROLOL TARTRATE"
+med_name_simple_mat[25,2] = " CALCIUM GLUCONATE"
+med_name_simple_mat[26,2] = " METOPROLOL TARTRATE"
+med_name_simple_mat[30,2] = " METOPROLOL TARTRATE"
+med_name_simple_mat[32,2] = " CALCIUM GLUCONATE"
+med_name_simple_mat[36,2] = " DEXMEDETOMIDINE "
+med_name_simple_mat[47,2] = " METOPROLOL TARTRATE"
+med_name_simple_mat[76,2] = " EPHEDRINE"
+med_name_simple_mat[83,2] = " ESMOLOL "
+med_name_simple_mat[92,2] = " METOPROLOL SUCCINATE"
+med_name_simple_mat[117,2] = " METOPROLOL SUCCINATE"
+print(paste0("Number of mismatches: ", sum(is.na(med_name_simple_mat))))
+
 hr_map = matrix(0, ncol = 2, nrow = length(med_name_simple))
 colnames(hr_map) = c("hr", "map")
 for(i in 1:nrow(med_key)) {
-    ind = grep(med_key$id[i], med_name_simple)
+    simple_name_ind = med_name_simple_mat[med_name_simple_mat[,2] == med_key$id[i], 1]
+    # print(med_key$id[i])
+    # print(simple_name_ind)
+    ind = which(med_name_simple %in% simple_name_ind)
     if(length(ind) > 0) {
         med_name_simple[ind] = med_key$id[i]
         hr_map[ind, "hr"] = med_key[i, "hr"]
@@ -57,11 +104,14 @@ for(i in unique(med_select_id_sub$key)) {
 med_select_id_sub = med_select_id_sub[!is.na(med_select_id_sub$administered_dtm), ]
 
 # Combine Med Name & med administration to fully characterize
-continuous_app = c("Code/trauma/sedation medication", 
-                   "Continuous Infusion: Per Instructions PRN",
+continuous_app = c("Continuous Infusion: Per Instructions PRN",
                    "Continuous")
+names_of_meds_cont = unique(med_select_id_sub$Med_Name_Desc[med_select_id_sub$Frequency %in% continuous_app])
 continuous_med = rep(0, nrow(med_select_id_sub))
 continuous_med[med_select_id_sub$Frequency %in% continuous_app] = 1
+continuous_med[med_select_id_sub$Med_Name_Desc %in% names_of_meds_cont] = 1
+
+med_select_id_sub = cbind(med_select_id_sub, continuous_med)
 
 status_update = vector(mode = 'list', length = 4)
 names(status_update) = c("Start", "Stop", "Continue", "Changed")
@@ -84,24 +134,194 @@ status_med[med_select_id_sub$Status %in% status_update[["Stop"]]] = "Stop"
 status_med[med_select_id_sub$Status %in% status_update[["Continue"]]] = "Continue"
 status_med[med_select_id_sub$Status %in% status_update[["Changed"]]] = "Changed"
 
-med_name_admin = paste0(med_select_id_sub$Med_Name_Desc, continuous_med)
+# Looking through if things are too simplified ---------------------------------
+meds_to_check = NULL
+total_simple_meds = sort(unique(med_select_id_sub$med_name_simple))
+for(i in 1:length(total_simple_meds)) {
+    med_d = med_select_id_sub[med_select_id_sub$med_name_simple == total_simple_meds[i], ,drop = F] 
+    if(sum(med_d$continuous_med == 1) != nrow(med_d) & sum(med_d$continuous_med == 1) != 0) {
+        meds_to_check = c(meds_to_check, total_simple_meds[i])   
+    }
+}
+
+# List: meds_to_check
+print(meds_to_check); print(13)
+# " ALBUMIN", " AMIODARONE ", " CALCIUM CHLORIDE", " CLEVIDIPINE ", " DILTIAZEM "
+# " EPINEPHRINE ", " ESMOLOL " " KETAMINE ", " NITROGLYCERIN ", " PHENYLEPHRINE", " PROPOFOL "
+# " SODIUM BICARBONATE ", " VASOPRESSIN "
+# med_d = med_select_id_sub[med_select_id_sub$med_name_simple == " ESMOLOL ", ,drop = F]
+# unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
+# unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
+
+med_name_simple_new = paste0(med_select_id_sub$med_name_simple, continuous_med)
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " ALBUMIN"] = "ALBUMIN_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " AMIODARONE " &
+                    med_select_id_sub$continuous_med == 1] = "AMIODARONE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " AMIODARONE " &
+                    med_select_id_sub$continuous_med == 0] = "AMIODARONE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " CALCIUM CHLORIDE" &
+                        med_select_id_sub$continuous_med == 1] = "CALCIUM CHLORIDE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " CALCIUM CHLORIDE" &
+                        med_select_id_sub$continuous_med == 0] = "CALCIUM CHLORIDE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " CLEVIDIPINE " &
+                        med_select_id_sub$continuous_med == 1] = "CLEVIDIPINE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " CLEVIDIPINE " &
+                        med_select_id_sub$continuous_med == 0] = "CLEVIDIPINE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " DILTIAZEM " &
+                        med_select_id_sub$continuous_med == 1] = "DILTIAZEM_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " DILTIAZEM " &
+                        med_select_id_sub$continuous_med == 0] = "DILTIAZEM_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " EPINEPHRINE " &
+                        med_select_id_sub$continuous_med == 1] = "EPINEPHRINE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " EPINEPHRINE " &
+                        med_select_id_sub$continuous_med == 0] = "EPINEPHRINE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " ESMOLOL " &
+                        med_select_id_sub$continuous_med == 1] = "ESMOLOL_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " ESMOLOL " &
+                        med_select_id_sub$continuous_med == 0] = "ESMOLOL_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
+                        med_select_id_sub$continuous_med == 1] = "KETAMINE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
+                        med_select_id_sub$continuous_med == 0] = "KETAMINE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " NITROGLYCERIN " &
+                        med_select_id_sub$continuous_med == 1] = "NITROGLYCERIN_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " NITROGLYCERIN " &
+                        med_select_id_sub$continuous_med == 0] = "NITROGLYCERIN_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " PHENYLEPHRINE" &
+                        med_select_id_sub$continuous_med == 1] = "PHENYLEPHRINE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " PHENYLEPHRINE" &
+                        med_select_id_sub$continuous_med == 0] = "PHENYLEPHRINE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " PROPOFOL " &
+                        med_select_id_sub$continuous_med == 1] = "PROPOFOL_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " PROPOFOL " &
+                        med_select_id_sub$continuous_med == 0] = "PROPOFOL_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " SODIUM BICARBONATE " &
+                        med_select_id_sub$continuous_med == 1] = "SODIUM BICARBONATE_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " SODIUM BICARBONATE " &
+                        med_select_id_sub$continuous_med == 0] = "SODIUM BICARBONATE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " VASOPRESSIN " &
+                        med_select_id_sub$continuous_med == 1] = "VASOPRESSIN_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " VASOPRESSIN " &
+                        med_select_id_sub$continuous_med == 0] = "VASOPRESSIN_0"
+
+# med_name_admin = paste0(med_select_id_sub$Med_Name_Desc, continuous_med)
+med_name_admin = med_name_simple_new
+unique_med_names = sort(unique(med_name_admin)); print(length(unique_med_names))
+# ------------------------------------------------------------------------------
 
 instance_num = rep(0, nrow(med_select_id_sub))
 
-# final medication df
-med_select_FINAL = cbind(med_select_id_sub, med_name_admin, status_med, continuous_med, instance_num)
+# FINAL MEDICATION DF *********************************************************
+med_select_update = cbind(med_select_id_sub, med_name_admin, status_med, instance_num)
+med_select_FINAL = matrix(nrow = 1, ncol = ncol(med_select_update))
+colnames(med_select_FINAL) = colnames(med_select_update)
+for(i in unique(med_select_update$key)){
+    max_time = max(data_format[data_format[,"EID"] == i, "time"])
+    sub_group = med_select_update[med_select_update$key == i, ,drop = F]
+    ind_grab = which(sub_group$administered_dtm <= max_time)
+    if(length(ind_grab) > 0) {
+        med_select_FINAL = rbind(med_select_FINAL, sub_group[ind_grab, ,drop = F])   
+    }
+}
+med_select_FINAL = med_select_FINAL[-1, ,drop=F]; rownames(med_select_FINAL) = NULL
+med_select_FINAL = med_select_FINAL[med_select_FINAL$Dose != 0, ]
+med_select_FINAL = med_select_FINAL[!is.na(med_select_FINAL$Dose), ]
+# *****************************************************************************
 
 # making the strength numeric
 all_med_types = unique(med_select_FINAL$med_name_admin)
-strength_units = vector(mode = 'list', length = length(all_med_types))
+strength_units = dose_units = vector(mode = 'list', length = length(all_med_types))
 for(i in 1:length(strength_units)) {
     strength_units[[i]] = unique(med_select_FINAL$Strength[med_select_FINAL$med_name_admin == all_med_types[i]])
+    dose_units[[i]] = unique(med_select_FINAL$Dose_Units[med_select_FINAL$med_name_admin == all_med_types[i]])
 }
-names(strength_units) = all_med_types
+names(strength_units) = names(dose_units) = all_med_types
+
+# looking at which strength_units and dose_units have more than 1 per drug
+strength_check = c("ALBUMIN_0", " CALCIUM GLUCONATE0"," LABETALOL 0",
+                   "AMIODARONE_0","DILTIAZEM_0"," NIFEDIPINE0",
+                   " NIMODIPINE 0")
+dose_check = c("NITROGLYCERIN_1", " NOREPINEPHRINE1","PROPOFOL_1", "PROPOFOL_0",
+               "CALCIUM CHLORIDE_0", " CALCIUM GLUCONATE0",
+               "SODIUM BICARBONATE_0", "CLEVIDIPINE_1", "PHENYLEPHRINE_0"," NIFEDIPINE0")
+dose_strength_combo = unique(c(strength_check, dose_check))
+print(dose_strength_combo)
+
+med_select_FINAL$Strength[!(med_select_FINAL$med_name_admin %in% dose_strength_combo)] = 1
+# **************************************************************** 
+# FINISH RIGHT HERE!!!!!!!!!
+# **************************************************************** 
+# specific_med = med_select_FINAL[med_select_FINAL$med_name_admin =="PHENYLEPHRINE_0" , ]
+# apply(specific_med[,c("Dose", "Dose_Units", "Strength")], 2, table)
+# ALBUMIN ---------------------------------------------------------------------
+# mL -> g (divide by 10)
+alb_ind = which(med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
+                    med_select_FINAL$Dose_Units == "mL")
+med_select_FINAL[alb_ind, "Dose"] = med_select_FINAL[alb_ind, "Dose"] / 10
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
+                    med_select_FINAL$Strength == "25 %"] = 0.25
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
+                              med_select_FINAL$Strength == "5 %"] = 0.05
+# CALCIUM GLUCONATE0 ----------------------------------------------------------
+cal_g_ind = which(med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" & 
+                      med_select_FINAL$Dose_Units == "mg")
+med_select_FINAL[cal_g_ind, "Dose"] = med_select_FINAL[cal_g_ind, "Dose"] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" & 
+                              med_select_FINAL$Strength == "10%"] = 5
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" &
+                              med_select_FINAL$Strength != 5] = 1
+# LABETALOL -------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LABETALOL 0"] = 1
+# AMIODARONE -------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "AMIODARONE_0"] = 1
+# DILTIAZEM -------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "DILTIAZEM_0"] = 1
+# NIFEDIPINE ------------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " NIFEDIPINE0", ]
+# NIMODIPINE ------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NIMODIPINE 0"] = 1
+# NITROGLYCERIN ---------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == "NITROGLYCERIN_1" &
+                                        med_select_FINAL$Dose_Units == "mcg"), ]
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "NITROGLYCERIN_1"] = 1
+# NOREPINEPHRINE --------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == " NOREPINEPHRINE1" &
+                                          med_select_FINAL$Dose == 4000), ]
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NOREPINEPHRINE1"] = 1
+# PROPOFOL 1 ------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_1"] = 1
+# PROPOFOL 0 ------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_0"] = 1
+# CALCIUM CHLORIDE ------------------------------------------------------------
+cc_ind = which(med_select_FINAL$med_name_admin == "CALCIUM CHLORIDE_0" &  med_select_FINAL$Dose_Units == "mg")
+med_select_FINAL$Dose[cc_ind] = med_select_FINAL$Dose[cc_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "CALCIUM CHLORIDE_0"] = 1
+# SODIUM BICARBONATE ----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "SODIUM BICARBONATE_0"] = 1
+# CLEVIDIPINE -----------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "CLEVIDIPINE_1"] = 1
+# PHENYLEPHRINE ---------------------------------------------------------------
+p_ind = which(med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0" &  med_select_FINAL$Dose_Units == "mcg")
+med_select_FINAL$Dose[p_ind] = med_select_FINAL$Dose[p_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0"] = 1
 
 # making sure the units are the same within one medication
 Strength_num = rep(0, nrow(med_select_FINAL))
 for(i in names(strength_units)) {
+    print(i)
     if(length(strength_units[[i]]) > 1) {
         # Currently only 1 is and that is "CARVEDILOL 3.125 MG TABLET0"
         print(i)
