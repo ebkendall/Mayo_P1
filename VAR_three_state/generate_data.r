@@ -3,8 +3,9 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-it_num = 4
-N = 800
+# ONLY USING 2 SETS OF A1
+it_num = 5
+N = 400
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new2.rda')
@@ -80,7 +81,8 @@ for (www in 1:1) {
     use_data = NULL
     for(i in 1:N){
 
-        id_num = sample(x = EIDs, size = 1, replace = T)
+        id_num = EIDs[i]
+        # id_num = sample(x = EIDs, size = 1, replace = T)
         print(paste0(i, ", ", id_num))
         
         n_i = sum(Y[,'EID']==as.numeric(id_num))
@@ -127,8 +129,13 @@ for (www in 1:1) {
         
         for(k in 1:n_i) {
             if(k==1)  {
-                # FIXING A Matrix
-                A_state_k = A_mat_scale[,b_i[k]]
+                # ONLY USING 2 A MATRICES
+                if(b_i[k] == 1) {
+                    A_state_k = A_mat_scale[,1]
+                } else {
+                    A_state_k = A_mat_scale[,2]
+                }
+                
                 
                 Gamma = matrix(c(R[1,1] / (1 - A_state_k[1] * A_state_k[1]), 
                                  R[1,2] / (1 - A_state_k[1] * A_state_k[2]),
@@ -150,7 +157,12 @@ for (www in 1:1) {
                 mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
-                A_state_k = A_mat_scale[,b_i[k]]
+                # ONLY USING 2 A MATRICES
+                if(b_i[k] == 1) {
+                    A_state_k = A_mat_scale[,1]
+                } else {
+                    A_state_k = A_mat_scale[,2]
+                }
                 A_1 = diag(A_state_k)
                 
                 nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)

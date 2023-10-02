@@ -130,7 +130,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         # -------------------------------------------------------
 
         # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
-        B_Dn = update_b_i_cpp(25, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+        B_Dn = update_b_i_cpp(18, as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
                             debug_temp1, debug_temp2)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
@@ -322,35 +322,36 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         }
         
         # Restart the acceptance ratio at burnin
-        if(ttt == burnin) accept = rep( 0, n_group)
+        if(ttt == burnin) accept = rep( 0, n_group+1)
         if(ttt > burnin){
-        B_chain[ chain_ind,] = do.call( 'c', B)
-        hc_chain[ chain_ind,] = Y[,'hemo']
-        hr_chain[ chain_ind,] = Y[,'hr']
-        bp_chain[ chain_ind,] = Y[,'map']
-        la_chain[ chain_ind,] = Y[,'lactate']
+            B_chain[ chain_ind,] = do.call( 'c', B)
+            hc_chain[ chain_ind,] = Y[,'hemo']
+            hr_chain[ chain_ind,] = Y[,'hr']
+            bp_chain[ chain_ind,] = Y[,'map']
+            la_chain[ chain_ind,] = Y[,'lactate']
         }
         # -------------------------------------------------------------------------
         
         if(ttt%%1==0)  cat('--->',ttt,'\n')
         if(ttt > burnin & ttt%%10000==0) {
-        mcmc_out_temp = list( chain=chain, B_chain=B_chain, hc_chain=hc_chain, 
-                                hr_chain=hr_chain, bp_chain=bp_chain, 
-                                la_chain = la_chain, A_chain = A_chain,
-                                otype=otype, accept=accept/length(burnin:ttt), 
-                                pscale=pscale, pcov = pcov, par_index=par_index)
-        if(ttt/10000 > 1) {
-            if(simulation) {
-            save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
-                                            trialNum, 'it', ttt/10000, '_sim.rda'))
-            } else {
-            save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
-                                            trialNum, 'it', ttt/10000, '.rda'))
+            mcmc_out_temp = list( chain=chain, B_chain=B_chain, hc_chain=hc_chain, 
+                                    hr_chain=hr_chain, bp_chain=bp_chain, 
+                                    la_chain = la_chain, A_chain = A_chain,
+                                    otype=otype, accept=accept/length(burnin:ttt), 
+                                    pscale=pscale, pcov = pcov, par_index=par_index)
+            if(ttt/10000 > 1) {
+                if(simulation) {
+                    save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+                                                    trialNum, 'it', ttt/10000, '_sim.rda'))
+                } else {
+                    save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+                                                    trialNum, 'it', ttt/10000, '.rda'))
+                }
             }
-        }
-        # Reset the chains
-        chain = matrix( NA, chain_length_MASTER, length(par)) 
-        B_chain = hc_chain = hr_chain = bp_chain = la_chain = matrix( NA, chain_length_MASTER, nrow(Y))
+            # Reset the chains
+            chain = matrix( NA, chain_length_MASTER, length(par)) 
+            accept = rep( 0, n_group+1)
+            B_chain = hc_chain = hr_chain = bp_chain = la_chain = matrix( NA, chain_length_MASTER, nrow(Y))
         }
     }
     # ---------------------------------------------------------------------------

@@ -7,19 +7,20 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 1
+data_num = 2
 
 steps  = 50000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
-  load(paste0('Data/use_data1_', data_num, '.rda'))
+  load(paste0('Data/use_data', ind,'_', data_num, '.rda'))
+  print(paste0('Data/use_data', ind,'_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 1
+  trialNum = 2
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 6 # CHANGE THIS EVERY TIME **********************
+  trialNum = 1 # CHANGE THIS EVERY TIME **********************
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -74,9 +75,7 @@ par_index$omega_tilde = 207:214
 par_index$vec_upsilon_omega = 215:278
 # -----------------------------------------------------------------------------
 load(paste0('Data/true_pars_', data_num, '.rda'))
-load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
-
-# load('Model_out/mcmc_out_interm_4_3it5.rda')
+# load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
 if(simulation) {
     par[1:206] = true_pars
@@ -96,13 +95,13 @@ for(i in EIDs){
   Dn_omega[[i]] = diag(4)
   
   if(simulation) {
-      A[[i]] = alpha_i_mat[[which(EIDs == i)]]
+      A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol = 1)
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
   } else {
       b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       # b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
       B[[i]] = matrix(b_temp, ncol = 1)
-      A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
+      A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol = 1)
   }
 }
 # rm(mcmc_out_temp)

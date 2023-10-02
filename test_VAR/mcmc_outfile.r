@@ -24,7 +24,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = T
-data_num = 4
+data_num = 2
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -33,9 +33,7 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
            "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
            paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
-           "A1 (baseline)", "A2 (baseline)", "A3 (baseline)", "A4 (baseline)",
-           "A1 (bleed)", "A2 (bleed)", "A3 (bleed)", "A4 (bleed)",
-           "A1 (recovery)", "A2 (recovery)", "A3 (recovery)", "A4 (recovery)",
+           "A1", "A2", "A3", "A4",
            "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
            "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
            "Cov(map, hemo)", "Cov(map, hr)", "Var(map)", "Cov(map, lact)",
@@ -43,36 +41,23 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
            "logit Pr(init S2)", "logit Pr(init S3)",
-           "log(lambda): intercept (hemo)", "log(lambda): slope bleeding (hemo)", "log(lambda): slope recovery (hemo)",
-           "log(lambda): intercept (hr)", "log(lambda): slope bleeding (hr)", "log(lambda): slope recovery (hr)",
-           "log(lambda): intercept (map)", "log(lambda): slope bleeding (map)", "log(lambda): slope recovery (map)",
-           "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)"
-        #    "omega_tilde(1,1)", "omega_tilde(1,2)", "omega_tilde(2,1)", "omega_tilde(2,2)",
-        #    "omega_tilde(3,1)", "omega_tilde(3,2)", "omega_tilde(4,1)", "omega_tilde(5,2)",
-        #    paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")
-           ) 
-additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
-                      "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
-                      "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
+           "Var(hemo) bleed", "Cov(hemo, hr) bleed", "Cov(hemo, map) bleed", "Cov(hemo, lact) bleed", 
+           "Cov(hr, hemo) bleed", "Var(hr) bleed", "Cov(hr, map) bleed", "Cov(hr, lact) bleed",
+           "Cov(map, hemo) bleed", "Cov(map, hr) bleed", "Var(map) bleed", "Cov(map, lact) bleed",
+           "Cov(lact, hemo) bleed", "Cov(lact, hr) bleed", "Cov(lact, map) bleed", "Var(lact) bleed") 
 
 if(simulation) {
-    index_seeds = c(1:5)
-    trialNum = 3
-    itNum = 3
+    index_seeds = c(1:20)
+    trialNum = 2
+    itNum = 2
 } else {
     index_seeds = c(1:2,4:5)
     trialNum = 6 # Change this everytime!!!! ****************
     itNum = 5
 }
-# load('Model_out/mcmc_out_interm_3_13it10.rda')
-# par_temp = colMeans(mcmc_out_temp$chain)
-# rownames(par_temp) = NULL
 if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/true_par_index_', data_num, '.rda'))
-    # true_pars[par_index$vec_sigma_upsilon] = diag(exp(true_pars[par_index$log_lambda])) %*% 
-    #                                             matrix(true_pars[par_index$vec_sigma_upsilon], ncol=12) %*% 
-    #                                                 diag(exp(true_pars[par_index$log_lambda])) 
     true_par = true_pars                                                
 } else {
     true_par = NULL
@@ -83,14 +68,10 @@ accept_rat = rep(NA, length(index_seeds))
 
 data_format = NULL
 if(simulation) {
-  load(paste0('Data/use_data1_', data_num, '.rda'))
+  load(paste0('Data/use_data1''_', data_num, '.rda'))
   data_format = use_data
 } else {
   load('Data/data_format_new2.rda')
-#   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-#               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-#               732525, 758025, 763050, 843000, 117525)
-#   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
 }
 
 n_subjects = length(unique(data_format[,'EID']))
@@ -144,37 +125,6 @@ for(seed in index_seeds){
 
 stacked_chains = do.call( rbind, chain_list)
 
-# # Re-calculating the Upsilon matrix
-if(simulation) {
-    true_R = matrix(true_par[par_index$vec_R], ncol = 4)
-    true_A = true_par[par_index$vec_A]
-    true_A_scale = exp(true_A) / (1+exp(true_A))
-    true_gamma = c(true_R[1,1] / (true_A_scale[1]^2), true_R[2,2] / (true_A_scale[2]^2),
-                   true_R[3,3] / (true_A_scale[3]^2), true_R[4,4] / (true_A_scale[4]^2),
-                   true_R[1,1] / (true_A_scale[5]^2), true_R[2,2] / (true_A_scale[6]^2),
-                   true_R[3,3] / (true_A_scale[7]^2), true_R[4,4] / (true_A_scale[8]^2),
-                   true_R[1,1] / (true_A_scale[9]^2), true_R[2,2] / (true_A_scale[10]^2),
-                   true_R[3,3] / (true_A_scale[11]^2), true_R[4,4] / (true_A_scale[12]^2))
-} else {
-    true_gamma = NULL
-}
-
-gamma_chain = matrix(nrow = nrow(stacked_chains), ncol = 12)
-for(i in 1:nrow(stacked_chains)) {
-    R = matrix(stacked_chains[i, par_index$vec_R], ncol = 4)
-    vec_A1 = stacked_chains[i, par_index$vec_A]
-    scale_A1 = exp(vec_A1) / (1+exp(vec_A1))
-    
-    diag_gamma = c(R[1,1] / (scale_A1[1]^2), R[2,2] / (scale_A1[2]^2),
-                   R[3,3] / (scale_A1[3]^2), R[4,4] / (scale_A1[4]^2),
-                   R[1,1] / (scale_A1[5]^2), R[2,2] / (scale_A1[6]^2),
-                   R[3,3] / (scale_A1[7]^2), R[4,4] / (scale_A1[8]^2),
-                   R[1,1] / (scale_A1[9]^2), R[2,2] / (scale_A1[10]^2),
-                   R[3,3] / (scale_A1[11]^2), R[4,4] / (scale_A1[12]^2))
-
-    gamma_chain[i, ] = diag_gamma
-}
-
 pdf_title = NULL
 if(simulation) {
     pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '_sim.pdf')
@@ -221,42 +171,6 @@ for(s in names(par_index)){
             abline( v=lower, col='purple', lwd=2, lty=2)
         }   
     }
-}
-
-chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
-for(i in 1:length(chain_list_gamma)) {
-    max_ind = i * 1000
-    chain_list_gamma[[i]] = gamma_chain[(max_ind - 999):max_ind, ]
-}
-
-for(rr in 1:ncol(gamma_chain)){
-    # lab_ind = lab_ind + 1
-    lab_ind = rr
-    parMean = round( mean(gamma_chain[,rr]), 4)
-    parMedian = round( median(gamma_chain[,rr]), 4)
-    upper = quantile( gamma_chain[,rr], prob=.975)
-    lower = quantile( gamma_chain[,rr], prob=.025)
-    
-    y_limit = range(gamma_chain[,rr])
-    
-    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
-          ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
-                                      ", ", round(upper, 4), "]"))
-    
-    for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
-    
-    if (simulation) {
-        x_label = paste0('Mean =',toString(parMean),
-                         ' Median =',toString(parMedian),
-                         ' True =', round(true_gamma[rr], 3))
-    } else {
-        x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
-    }
-    hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
-          xlab=x_label)
-    abline( v=upper, col='red', lwd=2, lty=2)
-    abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
-    abline( v=lower, col='purple', lwd=2, lty=2)
 }
 
 hist_names = c("alpha_i slopes for hemo",
