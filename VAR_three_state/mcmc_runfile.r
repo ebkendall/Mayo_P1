@@ -7,7 +7,7 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 4
+data_num = 3
 
 steps  = 50000
 burnin =  5000
@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 3
+  trialNum = 6
 } else {
   load('Data/data_format_new2.rda')
   trialNum = 6 # CHANGE THIS EVERY TIME **********************
@@ -42,11 +42,6 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 sigma_upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
 Lambda = diag(12)
 
-# Columns correspond to the different states
-# vec_A = c(matrix(c(2.3, 0.5, 1.3,
-#                    1.9,  -1, 0.5,
-#                    1.9,  -1, 0.5,
-#                    2.3, 0.5, 1.3), ncol = 3, byrow = T))
 vec_A = rep(0, 12)
 
 # columns: hemo, hr, map, lactate
@@ -79,17 +74,15 @@ par_index$vec_upsilon_omega = 219:282
 load(paste0('Data/true_pars_', data_num, '.rda'))
 load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
-# load('Model_out/mcmc_out_interm_4_3it5.rda')
-
 if(simulation) {
     par[1:210] = true_pars
     
-    # su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
-    # la = diag(exp(par[par_index$log_lambda]))
-    # up_true = la %*% su %*% la
-    # 
-    # par[par_index$vec_sigma_upsilon] = c(up_true)
-    # par[par_index$log_lambda] = 0
+    su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
+    la = diag(exp(par[par_index$log_lambda]))
+    up_true = la %*% su %*% la
+    
+    par[par_index$vec_sigma_upsilon] = c(up_true)
+    par[par_index$log_lambda] = 0
 } else {
     # par_temp = colMeans(mcmc_out_temp$chain)
     # rownames(par_temp) = NULL
@@ -104,18 +97,16 @@ Dn_omega = list()
 for(i in EIDs){
   W[[i]] = rep(0, length(omega))
   Dn_omega[[i]] = diag(4)
-  
+
   if(simulation) {
       A[[i]] = alpha_i_mat[[which(EIDs == i)]]
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
   } else {
       b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
-      # b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
   }
 }
-# rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")

@@ -3,10 +3,10 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 6
+trialNum = 1
 itNum = 5
 data_num = 3
-simulation = F
+simulation = T
 
 Dir = 'Model_out/'
 
@@ -110,9 +110,9 @@ for(i in EIDs){
                     xlim = range(pb) + c(-0.5,0.5))   
             grid( nx=20, NULL, col='white')
             axis( side=1, at=pb, col.axis='green', labels=t_grid)
+            abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	        abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
         }
-        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     }
 
     # MAP --------------------------------------------------------------
@@ -138,9 +138,9 @@ for(i in EIDs){
                    xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
             axis( side=1, at=pb, col.axis='green', labels=t_grid)
+            abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	        abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
         }
-        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     }
     
     # HEMO --------------------------------------------------------------
@@ -166,9 +166,9 @@ for(i in EIDs){
                    xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
             axis( side=1, at=pb, col.axis='green', labels=t_grid)
+            abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	        abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
         }
-        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     # }
 
     # LACTATE --------------------------------------------------------------
@@ -194,10 +194,9 @@ for(i in EIDs){
                    xlim = range(pb) + c(-0.5,0.5))
             grid( nx=20, NULL, col='white')
             axis( side=1, at=pb, col.axis='green', labels=t_grid)
+            abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	        abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
         }
-        
-        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     # }
 	
     # BAR PLOTS --------------------------------------------------------------
@@ -216,7 +215,9 @@ for(i in EIDs){
 					col=c( 'darkorchid1', 'aquamarine'))				
 	axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
 	axis( side=2, at=0:1, col.axis='green')
-	abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-	abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
+    if(!simulation) {
+        abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+	    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
+    }
 }
 dev.off()
