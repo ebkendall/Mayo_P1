@@ -28,10 +28,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
     mpi = list( c(par_index$vec_init),
                 c(par_index$vec_zeta),
-                c(par_index$vec_A),
-                # c(par_index$vec_A[1:4]),
-                # c(par_index$vec_A[5:8]),
-                # c(par_index$vec_A[9:12]),
+                c(par_index$vec_A[1:4]),
+                c(par_index$vec_A[5:8]),
+                c(par_index$vec_A[9:12]),
                 c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -158,6 +157,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
             vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
             mat_A_t = matrix(vec_A_t, nrow = 4)
             print(mat_A_t)
+            print(matrix(vec_A_t_logit, nrow = 4))
             
             print("R")
             R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
@@ -166,9 +166,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
             print("zeta")
             zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
             print(zed)
-            
-            print("lambda")
-            print(chain[chain_ind, par_index$log_lambda])
             
             print("acceptance")
             print(accept / (ttt %% 480))
@@ -188,7 +185,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
             ind_j = mpi[[j]]
             proposal = par
             
-            if(j <= 3) {
+            if(j <= 5) {
                 # logit_init, zeta, logit A1
                 proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
                 

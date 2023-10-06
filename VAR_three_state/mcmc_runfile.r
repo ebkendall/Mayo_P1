@@ -7,7 +7,7 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 3
+data_num = 5
 
 steps  = 50000
 burnin =  5000
@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 6
+  trialNum = 2
 } else {
   load('Data/data_format_new2.rda')
   trialNum = 6 # CHANGE THIS EVERY TIME **********************
@@ -51,14 +51,14 @@ R = diag(4)
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
                  2.006518, -1.688983, -0.056713,  2.044297), nrow = 2, byrow = T)
 
-omega = c(3, -3,   -3, 3,   3, -3,   -3, 3)
-upsilon_omega = c(diag(8))
+omega = rep(0, 92)
+upsilon_omega = rep(1, 92)
 
 init_logit = c(-5,-5)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
-        log(init_logit), log(diag(Lambda)), omega, upsilon_omega)
+        log(init_logit), omega, upsilon_omega)
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -67,22 +67,14 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$log_lambda = 199:210
-par_index$omega_tilde = 211:218
-par_index$vec_upsilon_omega = 219:282
+par_index$omega_tilde = 199:290
+par_index$vec_upsilon_omega = 291:382
 # -----------------------------------------------------------------------------
 load(paste0('Data/true_pars_', data_num, '.rda'))
 load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
 if(simulation) {
-    par[1:210] = true_pars
-    
-    su = matrix(par[par_index$vec_sigma_upsilon], ncol = 12)
-    la = diag(exp(par[par_index$log_lambda]))
-    up_true = la %*% su %*% la
-    
-    par[par_index$vec_sigma_upsilon] = c(up_true)
-    par[par_index$log_lambda] = 0
+    par[1:198] = true_pars
 } else {
     # par_temp = colMeans(mcmc_out_temp$chain)
     # rownames(par_temp) = NULL
@@ -130,9 +122,6 @@ print(R_t)
 print("zeta")
 zed = matrix(par[par_index$vec_zeta], nrow = 2)
 print(zed)
-
-print("lambda")
-print(par[par_index$log_lambda])
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)

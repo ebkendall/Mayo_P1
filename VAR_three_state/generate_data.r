@@ -3,7 +3,6 @@ library(mvtnorm, quietly=T)
 library(bayesSurv, quietly=T)
 library(expm, quietly=T)
 
-# ONLY USING 2 SETS OF A1
 it_num = 5
 N = 400
 
@@ -15,37 +14,30 @@ EIDs = as.character(unique(data_format[,'EID']))
 
 x = data_format[,c('n_RBC_admin'), drop=F]
 p = ncol(x)
-# x = matrix(0, nrow = nrow(data_format), ncol = 1)
-# p = 0
 
 z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
-# z = matrix(1, nrow = nrow(data_format), ncol = 1)
-# m = 1
 
 # Parameters ------------------------------------------------------------------
 beta = c(0.6261, -1.3286, 1.6741, -0.1)
 
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
-                                 -1,  5.04150472, -5.42458547, 0.5360813,
-                                0.1, 	      -4, 		    4,-0.6866748), ncol=4, byrow=T)
+                                 -1,  5.04150472, -5.42458547,         1,
+                                  1, 	      -4, 		    4,        -1), ncol=4, byrow=T)
 
-sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
+sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 36, 1, 1, 4, 0.25, 0.25))
 
-A_mat = matrix(c(2.3, 0.5, 1.3,
-                 1.9,  -1, 0.5,
-                 1.9,  -1, 0.5,
-                 2.3, 0.5, 1.3), ncol = 3, byrow = T)
+A_mat = matrix(c(1.5,  -1, 0,
+                 1.5,  -1, 0,
+                 1.5,  -1, 0,
+                 1.5,  -1, 0), ncol = 3, byrow = T)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-R = 1 * matrix( c( .2, -.1,  .1, -.1,
-                  -.1,   2, -.1,  .1,
-                   .1, -.1,   2, -.1,
-                  -.1,  .1, -.1,  .2), ncol=4, byrow=TRUE)
+R = diag(4)
 
 
 # transitions: 1->2, 2->3, 3->1, 3->2
@@ -56,8 +48,7 @@ zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3], 
-              log(rep(1,12)))
+true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3])
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -66,7 +57,6 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$log_lambda = 199:210
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
@@ -82,7 +72,6 @@ for (www in 1:1) {
     for(i in 1:N){
 
         id_num = EIDs[i]
-        # id_num = sample(x = EIDs, size = 1, replace = T)
         print(paste0(i, ", ", id_num))
         
         n_i = sum(Y[,'EID']==as.numeric(id_num))
@@ -129,14 +118,7 @@ for (www in 1:1) {
         
         for(k in 1:n_i) {
             if(k==1)  {
-                # ONLY USING 2 A MATRICES
-                if(b_i[k] == 1) {
-                    A_state_k = A_mat_scale[,1]
-                } else {
-                    A_state_k = A_mat_scale[,2]
-                }
-                
-                
+                A_state_k = A_mat_scale[,b_i[k]]
                 Gamma = matrix(c(R[1,1] / (1 - A_state_k[1] * A_state_k[1]), 
                                  R[1,2] / (1 - A_state_k[1] * A_state_k[2]),
                                  R[1,3] / (1 - A_state_k[1] * A_state_k[3]), 
@@ -157,12 +139,7 @@ for (www in 1:1) {
                 mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
-                # ONLY USING 2 A MATRICES
-                if(b_i[k] == 1) {
-                    A_state_k = A_mat_scale[,1]
-                } else {
-                    A_state_k = A_mat_scale[,2]
-                }
+                A_state_k = A_mat_scale[,b_i[k]]
                 A_1 = diag(A_state_k)
                 
                 nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
@@ -174,16 +151,11 @@ for (www in 1:1) {
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = R)
             }
         }
-        
-        # Imposing missingness
-        # index_observed = !is.na(data_format[data_format[,"EID"] == i,c("hemo", "hr", "map", "lactate")])
-        # Y_i[!index_observed] = NA
         # ---------------------------------------------------------------------------
         
         t_i = Y[ Y[,'EID']==as.numeric(id_num), 'time', drop=F]
         
         # Removing clinic_rule temporarily
-        # rules = Y[ Y[,'EID']==as.numeric(i), c('RBC_rule', 'clinic_rule'), drop=F]
         rules = Y[ Y[,'EID']==as.numeric(id_num), c('RBC_rule'), drop=F]
         rules = cbind(rules, 0)
 
