@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+simulation = F
 data_num = 5
 
 steps  = 50000
@@ -19,7 +19,7 @@ if(simulation) {
   trialNum = 2
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 6 # CHANGE THIS EVERY TIME **********************
+  trialNum = 1 # CHANGE THIS EVERY TIME **********************
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -70,10 +70,10 @@ par_index$vec_init = 197:198
 par_index$omega_tilde = 199:290
 par_index$vec_upsilon_omega = 291:382
 # -----------------------------------------------------------------------------
-load(paste0('Data/true_pars_', data_num, '.rda'))
-load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
 
 if(simulation) {
+    load(paste0('Data/true_pars_', data_num, '.rda'))
+    load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
     par[1:198] = true_pars
 } else {
     # par_temp = colMeans(mcmc_out_temp$chain)

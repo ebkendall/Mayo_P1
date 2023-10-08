@@ -116,7 +116,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         names(A) = EIDs
 
         # # Gibbs updates of the omega_i
-        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A)
+        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A, B)
         names(W) = EIDs
 
         if(chain_ind %% A_check == 0) {
