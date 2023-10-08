@@ -24,7 +24,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = T
-data_num = 3
+data_num = 5
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -56,7 +56,7 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1:5)
+    index_seeds = c(1,2,5)
     trialNum = 2
     itNum = 5
 } else {
@@ -70,9 +70,9 @@ if(simulation) {
 if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/true_par_index_', data_num, '.rda'))
-    true_pars[par_index$vec_sigma_upsilon] = diag(exp(true_pars[par_index$log_lambda])) %*% 
-                                                matrix(true_pars[par_index$vec_sigma_upsilon], ncol=12) %*% 
-                                                    diag(exp(true_pars[par_index$log_lambda])) 
+    # true_pars[par_index$vec_sigma_upsilon] = diag(exp(true_pars[par_index$log_lambda])) %*% 
+    #                                             matrix(true_pars[par_index$vec_sigma_upsilon], ncol=12) %*% 
+    #                                                 diag(exp(true_pars[par_index$log_lambda])) 
     true_par = true_pars                                                
 } else {
     true_par = NULL
@@ -185,7 +185,7 @@ pdf(pdf_title)
 par(mfrow=c(3, 2))
 lab_ind = 0
 for(s in names(par_index)){
-    if(which(s == names(par_index)) < 9) {
+    if(which(s == names(par_index)) < 8) {
         temp_par = par_index[[s]]
         if (s == names(par_index)[3]) {
             temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
