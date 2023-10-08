@@ -266,7 +266,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
                 nu_R = 6
                 psi_R = diag(4)
                 
-                curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B)
+                curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
                 
                 proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
                                                 S = curr_psi_nu[[1]]))
