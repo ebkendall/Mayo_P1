@@ -6,8 +6,8 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = F
-data_num = 5
+simulation = T
+data_num = 1
 
 steps  = 50000
 burnin =  5000
@@ -16,10 +16,10 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 2
+  trialNum = 1
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 1 # CHANGE THIS EVERY TIME **********************
+  trialNum = 4 # CHANGE THIS EVERY TIME **********************
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -37,7 +37,7 @@ beta = rep(0, 4)
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
                                  -1,  9.04150472, -7.42458547,  0.5360813,
-					                      0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
+					            0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
 
 sigma_upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
 Lambda = diag(12)
@@ -58,7 +58,7 @@ init_logit = c(-5,-5)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
-        log(init_logit), omega, upsilon_omega)
+        log(init_logit), omega, log(upsilon_omega))
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -74,11 +74,13 @@ par_index$vec_upsilon_omega = 291:382
 if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
-    par[1:198] = true_pars
+    load(paste0('Data/omega_i_mat_', data_num, '.rda'))
+    par = true_pars
 } else {
-    # par_temp = colMeans(mcmc_out_temp$chain)
-    # rownames(par_temp) = NULL
-    # par = par_temp
+    load('Model_out/mcmc_out_interm_2_3it5.rda')
+    par_temp = colMeans(mcmc_out_temp$chain)
+    rownames(par_temp) = NULL
+    par = par_temp
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -87,17 +89,19 @@ B = list()
 load('Data/Dn_omega.rda')
 
 for(i in EIDs){
-  W[[i]] = matrix(0, nrow = length(omega), ncol = 1)
-
   if(simulation) {
       A[[i]] = alpha_i_mat[[which(EIDs == i)]]
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
+      W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
+      # b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
+      W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
   }
 }
+if(!simulation) rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")
@@ -121,6 +125,12 @@ print(R_t)
 print("zeta")
 zed = matrix(par[par_index$vec_zeta], nrow = 2)
 print(zed)
+
+print("omega_tilde")
+print(par[par_index$omega_tilde])
+
+print("log upsilon omega")
+print(par[par_index$vec_upsilon_omega])
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)

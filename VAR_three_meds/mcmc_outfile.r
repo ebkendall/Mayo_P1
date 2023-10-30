@@ -1,7 +1,3 @@
-library(matrixStats)
-library(mvtnorm)
-library(MASS)
-
 dir = 'Model_out/' # Change this everytime!!!! ****************
 
 # Size of posterior sample from mcmc chains
@@ -23,8 +19,10 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = T
+simulation = F
 data_num = 5
+load("Data/Dn_omega_names.rda")
+load('Data/hr_map_names.rda')
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -43,14 +41,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
            "logit Pr(init S2)", "logit Pr(init S3)",
-           "log(lambda): intercept (hemo)", "log(lambda): slope bleeding (hemo)", "log(lambda): slope recovery (hemo)",
-           "log(lambda): intercept (hr)", "log(lambda): slope bleeding (hr)", "log(lambda): slope recovery (hr)",
-           "log(lambda): intercept (map)", "log(lambda): slope bleeding (map)", "log(lambda): slope recovery (map)",
-           "log(lambda): intercept (lact)", "log(lambda): slope bleeding (lact)", "log(lambda): slope recovery (lact)"
-        #    "omega_tilde(1,1)", "omega_tilde(1,2)", "omega_tilde(2,1)", "omega_tilde(2,2)",
-        #    "omega_tilde(3,1)", "omega_tilde(3,2)", "omega_tilde(4,1)", "omega_tilde(5,2)",
-        #    paste0("Upsilon_omega (", 1:8, ", ", rep(1:8, each = 8), ")")
-           ) 
+           paste0("mean (hr): ", Dn_omega_names[1:37]), paste0("mean (map): ", Dn_omega_names[38:92]), 
+           paste0("log Upsilon (hr): ", Dn_omega_names[1:37]), paste0("log Upsilon (map): ", Dn_omega_names[38:92])) 
 additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
@@ -60,8 +52,8 @@ if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
-    index_seeds = c(1:2,4:5)
-    trialNum = 6 # Change this everytime!!!! ****************
+    index_seeds = c(1:5)
+    trialNum = 2 # Change this everytime!!!! ****************
     itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -184,44 +176,78 @@ if(simulation) {
 pdf(pdf_title)
 par(mfrow=c(3, 2))
 lab_ind = 0
+red_par = matrix(0, nrow=1,ncol=2)
 for(s in names(par_index)){
-    if(which(s == names(par_index)) < 8) {
-        temp_par = par_index[[s]]
-        if (s == names(par_index)[3]) {
-            temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
-                                  92, 105, 118, 131, 144)]
+    temp_par = par_index[[s]]
+    if (s == names(par_index)[3]) {
+        temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
+                              92, 105, 118, 131, 144)]
+    }
+    for(r in temp_par){
+        # lab_ind = lab_ind + 1
+        lab_ind = r
+        parMean = round( mean(stacked_chains[,r]), 4)
+        parMedian = round( median(stacked_chains[,r]), 4)
+        upper = quantile( stacked_chains[,r], prob=.975)
+        lower = quantile( stacked_chains[,r], prob=.025)
+        
+        title_color = "black"
+        if(s == names(par_index)[8]) {
+            if(0 < lower) {
+                title_color = "red"
+                red_par = rbind(red_par, c(r-198, 1))
+            }
+            if(0 > upper) {
+                title_color = "red"
+                red_par = rbind(red_par, c(r-198, -1))
+            }
         }
         
-        for(r in temp_par){
-            # lab_ind = lab_ind + 1
-            lab_ind = r
-            parMean = round( mean(stacked_chains[,r]), 4)
-            parMedian = round( median(stacked_chains[,r]), 4)
-            upper = quantile( stacked_chains[,r], prob=.975)
-            lower = quantile( stacked_chains[,r], prob=.025)
-            
-            y_limit = range(stacked_chains[,r])
-            plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
-                  ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
-                                              ", ", round(upper, 4), "]"))
-            
-            for(seed in 1:length(chain_list)) lines( chain_list[[seed]][,r], type='l', col=seed)
-            
-            if (simulation) {
-                x_label = paste0('Mean =',toString(parMean),
-                                 ' Median =',toString(parMedian),
-                                 ' True =', round(true_par[r], 3))
-            } else {
-                x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
-            }
-            hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
-                  xlab=x_label)
-            abline( v=upper, col='red', lwd=2, lty=2)
-            abline( v=true_par[r], col='green', lwd=2, lty=2)
-            abline( v=lower, col='purple', lwd=2, lty=2)
-        }   
+        y_limit = range(stacked_chains[,r])
+        plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
+              ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
+                                          ", ", round(upper, 4), "]"),
+              col.main = title_color)
+        
+        for(seed in 1:length(chain_list)) lines( chain_list[[seed]][,r], type='l', col=seed)
+        
+        if (simulation) {
+            x_label = paste0('Mean =',toString(parMean),
+                             ' Median =',toString(parMedian),
+                             ' True =', round(true_par[r], 3))
+        } else {
+            x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
+        }
+        hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
+              xlab=x_label)
+        abline( v=upper, col='red', lwd=2, lty=2)
+        abline( v=true_par[r], col='green', lwd=2, lty=2)
+        abline( v=lower, col='purple', lwd=2, lty=2)
+    }   
+}
+red_par = red_par[-1, ]
+red_par = cbind(red_par, 0, "hr", 0)
+red_par[as.numeric(red_par[,1]) > 37, 4] = "map"
+red_par[,5] = Dn_omega_names[as.numeric(red_par[,1])]
+red_par = as.data.frame(red_par)
+red_par[,1] = as.numeric(red_par[,1])
+red_par[,2] = as.numeric(red_par[,2])
+red_par[,3] = as.numeric(red_par[,3])
+colnames(red_par) = c('ind', 'fit_up_down', 'true_up_down', 'vital', 'name')
+
+load('Data/med_select_FINAL.rda')
+for(i in 1:nrow(red_par)) {
+    if(red_par$vital[i] == "hr") {
+        val = as.numeric(unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == red_par$name[i]]))
+        red_par$true_up_down[i] = val
+    } else {
+        val = as.numeric(unique(med_select_FINAL$map[med_select_FINAL$med_name_admin == red_par$name[i]]))
+        red_par$true_up_down[i] = val
     }
 }
+
+print(red_par)
+save(red_par, file = 'Data/red_par.rda')
 
 chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
 for(i in 1:length(chain_list_gamma)) {
@@ -291,8 +317,8 @@ for (s in 1:4) {
     # boxplot(temp_df, col = c('firebrick1', 'yellow2', 'green', 'darkgray'),
     #         main = hist_names[s])
 
-    print(base_names[s])
-    print(summary(temp_df$bleed)); print(summary(temp_df$recov_bleed))
+    # print(base_names[s])
+    # print(summary(temp_df$bleed)); print(summary(temp_df$recov_bleed))
 
 }
 

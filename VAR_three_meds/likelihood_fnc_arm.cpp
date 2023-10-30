@@ -306,7 +306,7 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
   // "ii" is the index of the EID
   arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
 
-  omp_set_num_threads(25);
+  omp_set_num_threads(32);
     # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
@@ -381,7 +381,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   // Upsilon omega priors -------------------------------------------------------------
   arma::vec vec_up_omega_content = par.elem(par_index(8) - 1);
-  arma::vec omega_mean(vec_up_omega_content.n_elem, arma::fill::zeros);
+  arma::vec omega_mean = {  4,  4, -4,  4,  4, -4, -4, -4,  4, -4,  4, -4,  4,  4,  4, -4, -4, -4, -4, -4,  4,  4, -4, -4,
+                           -4, -4, -4, -4, -4,  4,  4,  4, -4, -4, -4, -4, -4, -4,  4, -4,  4,  4,  4,  4, -4, -4, -4, -4,
+                           -4,  4, -4,  4,  4, -4,  4, -4, -4, -4, -4, -4,  4, -4, -4, -4, -4,  4,  4,  4, -4,  4,  4, -4,
+                           -4, -4, -4, -4, -4, -4,  4, -4,  4, -4,  4, -4, -4, -4, -4, -4, -4, -4, -4, -4};
+  omega_mean = 0.75 * omega_mean;
   arma::vec diag_omega_sd(vec_up_omega_content.n_elem, arma::fill::ones);
   arma::mat omega_sd = arma::diagmat(diag_omega_sd);
 
@@ -395,7 +399,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
 }
 
 // [[Rcpp::export]]
-Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par, const arma::field<arma::uvec> par_index, 
+Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma::field<arma::uvec> par_index, 
                           const arma::field <arma::vec> A, arma::field <arma::vec> B, 
                           const arma::mat Y, const arma::mat z, arma::field<arma::field<arma::mat>> Dn, 
                           const arma::field <arma::field<arma::mat>> Xn, const arma::field<arma::field<arma::mat>> Dn_omega, 
@@ -414,7 +418,7 @@ Rcpp::List update_b_i_cpp(const int t, const arma::vec EIDs, const arma::vec par
   arma::field<arma::vec> B_return(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
   
-  omp_set_num_threads(t) ;
+  omp_set_num_threads(30);
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
@@ -570,7 +574,7 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
   arma::field<arma::field<arma::mat>> Dn(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Xn(EIDs.n_elem);
   
-  omp_set_num_threads(8) ;
+  omp_set_num_threads(15) ;
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
@@ -894,8 +898,8 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     
     // The prior PRECISION matrix for vec_alpha_tilde
     // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = {0.1, 0.3, 0.5, 0.05, 0.1, 0.1,
-                                    0.05, 0.1, 0.1, 0.1, 0.3, 0.5};
+    arma::vec inv_Sigma_alpha_diag = {0.1, 0.3, 0.5, 0.05, 0.5, 0.5,
+                                    0.05, 0.5, 0.5, 0.1, 0.3, 0.5};
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     
@@ -943,6 +947,7 @@ arma::vec update_omega_tilde_cpp( const arma::vec EIDs, arma::vec par,
                                      -4, -4, -4, -4, -4,  4,  4,  4, -4, -4, -4, -4, -4, -4,  4, -4,  4,  4,  4,  4, -4, -4, -4, -4,
                                      -4,  4, -4,  4,  4, -4,  4, -4, -4, -4, -4, -4,  4, -4, -4, -4, -4,  4,  4,  4, -4,  4,  4, -4,
                                      -4, -4, -4, -4, -4, -4,  4, -4,  4, -4,  4, -4, -4, -4, -4, -4, -4, -4, -4, -4};
+    vec_omega_tilde_0 = 0.75 * vec_omega_tilde_0;
     
     // The prior PRECISION matrix for vec_omega_tilde
     arma::mat inv_Sigma_omega(vec_omega_tilde_0.n_elem, vec_omega_tilde_0.n_elem, arma::fill::eye);
@@ -967,7 +972,7 @@ arma::vec update_omega_tilde_cpp( const arma::vec EIDs, arma::vec par,
     
     arma::vec mu = U * hold;
     
-    arma::uvec vec_omega_tilde_ind = par_index(8);
+    arma::uvec vec_omega_tilde_ind = par_index(7);
     par.elem(vec_omega_tilde_ind - 1) = rmvnorm(1, mu, U);
     
     return par;

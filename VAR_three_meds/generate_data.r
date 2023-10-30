@@ -1,13 +1,14 @@
 # library(MASS, quietly=T)
 library(mvtnorm, quietly=T)
-library(bayesSurv, quietly=T)
-library(expm, quietly=T)
+# library(bayesSurv, quietly=T)
+# library(expm, quietly=T)
 
-it_num = 5
+it_num = 1
 N = 400
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new2.rda')
+load('Data/Dn_omega.rda')
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -39,16 +40,23 @@ A_mat_scale = matrix(correct_scale_A, nrow = 4)
 # columns: hemo, hr, map, lactate
 R = diag(4)
 
-
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
                 2.006518,      -1.2,   -1.6713,  1.044297), ncol = 4, byrow=T)
 
-
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), log(init_logit)[2:3])
+omega = 0.75 * c(4,  4, -4,  4,  4, -4, -4, -4,  4, -4,  4, -4,  4,  4,  4, -4, 
+                -4, -4, -4, -4,  4,  4, -4, -4, -4, -4, -4, -4, -4,  4,  4,  4, 
+                -4, -4, -4, -4, -4, -4,  4, -4,  4,  4,  4,  4, -4, -4, -4, -4,
+                -4,  4, -4,  4,  4, -4,  4, -4, -4, -4, -4, -4,  4, -4, -4, -4, 
+                -4,  4,  4,  4, -4,  4,  4, -4, -4, -4, -4, -4, -4, -4,  4, -4, 
+                 4, -4,  4, -4, -4, -4, -4, -4, -4, -4, -4, -4)
+upsilon_omega = rep(1, 92)
+
+true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
+              log(init_logit)[2:3], omega, log(upsilon_omega))
 par_index = list()
 par_index$vec_beta = 1:4
 par_index$vec_alpha_tilde = 5:16
@@ -57,11 +65,15 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
+par_index$omega_tilde = 199:290
+par_index$vec_upsilon_omega = 291:382
+
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
 
 alpha_i_mat = vector(mode = "list", length = N)
+omega_i_mat = vector(mode = "list", length = N)
 
 for (www in 1:1) {
     set.seed(2023)
@@ -82,6 +94,11 @@ for (www in 1:1) {
         # Generate realizations of latent bleeding process ---------------------
         D_i = vector(mode = 'list', length = n_i)
         X_i = vector(mode = 'list', length = n_i)
+        D_i_omega = Dn_omega[[i]]
+
+        if(length(D_i_omega) != n_i) {
+            print(paste0("issue n_i: ", i))
+        }
         
         P_i = init_logit / sum(init_logit)
         for(k in 1:n_i){
@@ -113,8 +130,10 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, and bp -----------------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
 
         alpha_i_mat[[i]] = matrix(vec_alpha_i, ncol = 1)
+        omega_i_mat[[i]] = matrix(vec_omega_i, ncol = 1)
         
         for(k in 1:n_i) {
             if(k==1)  {
@@ -136,14 +155,20 @@ for (www in 1:1) {
                                  R[4,3] / (1 - A_state_k[4] * A_state_k[3]), 
                                  R[4,4] / (1 - A_state_k[4] * A_state_k[4])), 
                                ncol = 4, byrow = T)
-                mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
+                mean_vecY_i_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + 
+                                X_i[[k]]%*%matrix(beta,ncol=1) + 
+                                D_i_omega[[k]]%*%matrix(vec_omega_i,ncol=1)
                 Y_i[k,] = rmvnorm(n=1, mean = mean_vecY_i_k, sigma = Gamma)
             } else {
                 A_state_k = A_mat_scale[,b_i[k]]
                 A_1 = diag(A_state_k)
                 
-                nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k]]%*%matrix(beta,ncol=1)
-                nu_k_1 = D_i[[k-1]]%*%matrix(vec_alpha_i,ncol=1) + X_i[[k-1]]%*%matrix(beta,ncol=1)
+                nu_k = D_i[[k]]%*%matrix(vec_alpha_i,ncol=1) + 
+                       X_i[[k]]%*%matrix(beta,ncol=1) +
+                       D_i_omega[[k]]%*%matrix(vec_omega_i,ncol=1)
+                nu_k_1 = D_i[[k-1]]%*%matrix(vec_alpha_i,ncol=1) + 
+                         X_i[[k-1]]%*%matrix(beta,ncol=1) +
+                         D_i_omega[[k-1]]%*%matrix(vec_omega_i,ncol=1)
                 diff_vec = c(Y_i[k-1,] - nu_k_1)
                 
                 mean_vecY_i_k = nu_k + A_1 %*% matrix(diff_vec,ncol=1)
@@ -182,6 +207,7 @@ for (www in 1:1) {
 }
 
 save(alpha_i_mat, file = paste0('Data/alpha_i_mat_', it_num, '.rda'))
+save(omega_i_mat, file = paste0('Data/omega_i_mat_', it_num, '.rda'))
 
 # Visualize the noise --------------------------------------------------------
 load(paste0('Data/use_data', 1, '_', it_num, '.rda'))

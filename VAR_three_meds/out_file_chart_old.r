@@ -3,10 +3,10 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 1
+trialNum = 2
 itNum = 5
-data_num = 3
-simulation = T
+data_num = 5
+simulation = F
 
 Dir = 'Model_out/'
 
@@ -25,21 +25,23 @@ if(simulation) {
     load(paste0('Data/use_data1_', data_num, '.rda'))
 } else {
     load('Data/data_format_new2.rda')
-    # pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-    #             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-    #             732525, 758025, 763050, 843000, 117525)
-    # data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
     use_data = data_format   
 }
 
 # Level of care information ---------------------------------------------------
-load('Data/care_time_df.rda')
-care_time_df = cbind(care_time_df, 'green')
-care_time_df[care_time_df[,3] == "Intensive Care", 4] = 'red'
-level_of_care = read.csv('../Data_clean/Data/_raw_data_new/jw_patient_level_of_care.csv')
+# load('Data/care_time_df.rda')
+# care_time_df = cbind(care_time_df, 'green')
+# care_time_df[care_time_df[,3] == "Intensive Care", 4] = 'red'
+# level_of_care = read.csv('../Data_clean/Data/_raw_data_new/jw_patient_level_of_care.csv')
 # -----------------------------------------------------------------------------
 
 EIDs = unique(use_data[,'EID'])
+load('Data/red_par.rda')
+load('Data/med_select_FINAL.rda')
+hr_meds_u = red_par$name[red_par$vital == 'hr' & red_par$fit_up_down == 1]
+hr_meds_d = red_par$name[red_par$vital == 'hr' & red_par$fit_up_down == -1]
+map_meds_u = red_par$name[red_par$vital == 'map' & red_par$fit_up_down == 1]
+map_meds_d = red_par$name[red_par$vital == 'map' & red_par$fit_up_down == -1]
 
 # New patients ---------------------------------------------------------------
 pdf_title = NULL
@@ -54,7 +56,13 @@ for(i in EIDs){
     print(which(EIDs == i))
     indices_i = (use_data[,'EID']==i)
     n_i = sum(indices_i)
-
+    
+    med_i = med_select_FINAL[med_select_FINAL$key == i, ]
+    hr_med_u_i = med_i[med_i$med_name_admin %in% hr_meds_u, ,drop = F]
+    hr_med_d_i = med_i[med_i$med_name_admin %in% hr_meds_d, ,drop = F]
+    map_med_u_i = med_i[med_i$med_name_admin %in% map_meds_u, ,drop = F]
+    map_med_d_i = med_i[med_i$med_name_admin %in% map_meds_d, ,drop = F]
+    
     if(simulation) {
         t_grid = seq( 0, n_i, by=5)[-1]   
         t_grid_bar = seq( 0, n_i, by=5)[-1]
@@ -72,6 +80,11 @@ for(i in EIDs){
         rbc_admin_times_bar = which(use_data[use_data[,'EID']==i, 'RBC_admin'] != 0)
         rbc_times = t_grid[rbc_times_bar]
         rbc_admin_times = t_grid[rbc_admin_times_bar]
+        
+        hr_med_u_time = hr_med_u_i$administered_dtm
+        hr_med_d_time = hr_med_d_i$administered_dtm
+        map_med_u_time = map_med_u_i$administered_dtm
+        map_med_d_time = map_med_d_i$administered_dtm
     }
 
     pb = barplot(rbind( colMeans(mcmc_out_temp$B_chain[, indices_i] == 1),
