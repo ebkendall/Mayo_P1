@@ -47,13 +47,14 @@ zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-omega = 0.75 * c(4,  4, -4,  4,  4, -4, -4, -4,  4, -4,  4, -4,  4,  4,  4, -4, 
-                -4, -4, -4, -4,  4,  4, -4, -4, -4, -4, -4, -4, -4,  4,  4,  4, 
-                -4, -4, -4, -4, -4, -4,  4, -4,  4,  4,  4,  4, -4, -4, -4, -4,
-                -4,  4, -4,  4,  4, -4,  4, -4, -4, -4, -4, -4,  4, -4, -4, -4, 
-                -4,  4,  4,  4, -4,  4,  4, -4, -4, -4, -4, -4, -4, -4,  4, -4, 
-                 4, -4,  4, -4, -4, -4, -4, -4, -4, -4, -4, -4)
-upsilon_omega = rep(1, 92)
+omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1, 
+        -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  
+         1, -1, -1, -1, -1, -1, -1,  1, -1,  1,  1,  1, -1, -1, -1, 
+        -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
+        -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
+        -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+omega = 3 * omega
+upsilon_omega = rep(1, length(omega))
 
 true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
               log(init_logit)[2:3], omega, log(upsilon_omega))
@@ -65,8 +66,8 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$omega_tilde = 199:290
-par_index$vec_upsilon_omega = 291:382
+par_index$omega_tilde = 199:288
+par_index$vec_upsilon_omega = 289:378
 
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))

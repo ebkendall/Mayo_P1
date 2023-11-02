@@ -51,8 +51,14 @@ R = diag(4)
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
                  2.006518, -1.688983, -0.056713,  2.044297), nrow = 2, byrow = T)
 
-omega = rep(0, 92)
-upsilon_omega = rep(1, 92)
+omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1, 
+        -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  
+         1, -1, -1, -1, -1, -1, -1,  1, -1,  1,  1,  1, -1, -1, -1, 
+        -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
+        -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
+        -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+omega = 3 * omega
+upsilon_omega = rep(1, length(omega))
 
 init_logit = c(-5,-5)
 init_logit = exp(init_logit)
@@ -67,8 +73,8 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$omega_tilde = 199:290
-par_index$vec_upsilon_omega = 291:382
+par_index$omega_tilde = 199:288
+par_index$vec_upsilon_omega = 289:378
 # -----------------------------------------------------------------------------
 
 if(simulation) {

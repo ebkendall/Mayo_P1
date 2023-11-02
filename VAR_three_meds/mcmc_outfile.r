@@ -19,8 +19,8 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = F
-data_num = 5
+simulation = T
+data_num = 1
 load("Data/Dn_omega_names.rda")
 load('Data/hr_map_names.rda')
 
@@ -48,9 +48,9 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1,2,5)
-    trialNum = 2
-    itNum = 5
+    index_seeds = c(2:5)
+    trialNum = 1
+    itNum = 3
 } else {
     index_seeds = c(1:5)
     trialNum = 2 # Change this everytime!!!! ****************
@@ -62,9 +62,6 @@ if(simulation) {
 if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/true_par_index_', data_num, '.rda'))
-    # true_pars[par_index$vec_sigma_upsilon] = diag(exp(true_pars[par_index$log_lambda])) %*% 
-    #                                             matrix(true_pars[par_index$vec_sigma_upsilon], ncol=12) %*% 
-    #                                                 diag(exp(true_pars[par_index$log_lambda])) 
     true_par = true_pars                                                
 } else {
     true_par = NULL
@@ -246,7 +243,14 @@ for(i in 1:nrow(red_par)) {
     }
 }
 
-print(red_par)
+red_par_diff = red_par[red_par[,'fit_up_down'] != red_par[,'true_up_down'], ,drop = F]
+if(nrow(red_par_diff) == 0) {
+    print(paste0("All ", nrow(red_par), " match the truth"))
+} else {
+    print(paste0(nrow(red_par_diff), " out of ", nrow(red_par), " differ"))
+    print(red_par_diff)
+}
+
 save(red_par, file = 'Data/red_par.rda')
 
 chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
