@@ -7,7 +7,7 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 1
+data_num = 2
 
 steps  = 50000
 burnin =  5000
@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 1
+  trialNum = 2
 } else {
   load('Data/data_format_new2.rda')
   trialNum = 4 # CHANGE THIS EVERY TIME **********************
@@ -57,7 +57,7 @@ omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1,
         -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
         -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
         -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
-omega = 3 * omega
+omega = 6 * omega
 upsilon_omega = rep(1, length(omega))
 
 init_logit = c(-5,-5)

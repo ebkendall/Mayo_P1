@@ -41,14 +41,14 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
            "logit Pr(init S2)", "logit Pr(init S3)",
-           paste0("mean (hr): ", Dn_omega_names[1:37]), paste0("mean (map): ", Dn_omega_names[38:92]), 
-           paste0("log Upsilon (hr): ", Dn_omega_names[1:37]), paste0("log Upsilon (map): ", Dn_omega_names[38:92])) 
+           paste0("mean (hr): ", Dn_omega_names[1:36]), paste0("mean (map): ", Dn_omega_names[37:90]), 
+           paste0("log Upsilon (hr): ", Dn_omega_names[1:36]), paste0("log Upsilon (map): ", Dn_omega_names[37:90])) 
 additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(2:5)
+    index_seeds = c(1:5)
     trialNum = 1
     itNum = 3
 } else {
@@ -224,7 +224,7 @@ for(s in names(par_index)){
 }
 red_par = red_par[-1, ]
 red_par = cbind(red_par, 0, "hr", 0)
-red_par[as.numeric(red_par[,1]) > 37, 4] = "map"
+red_par[as.numeric(red_par[,1]) > 36, 4] = "map"
 red_par[,5] = Dn_omega_names[as.numeric(red_par[,1])]
 red_par = as.data.frame(red_par)
 red_par[,1] = as.numeric(red_par[,1])
@@ -285,8 +285,8 @@ for(rr in 1:ncol(gamma_chain)){
     hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
           xlab=x_label)
     abline( v=upper, col='red', lwd=2, lty=2)
-    abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
     abline( v=lower, col='purple', lwd=2, lty=2)
+    abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
 }
 
 hist_names = c("alpha_i slopes for hemo",

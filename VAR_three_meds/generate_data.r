@@ -1,10 +1,8 @@
-# library(MASS, quietly=T)
 library(mvtnorm, quietly=T)
-# library(bayesSurv, quietly=T)
-# library(expm, quietly=T)
 
-it_num = 1
+it_num = 2
 N = 400
+set.seed(2023)
 
 # Load in the existing data and save the covariate combinations
 load('Data/data_format_new2.rda')
@@ -53,7 +51,27 @@ omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1,
         -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
         -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
         -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
-omega = 3 * omega
+omega = 6 * omega
+
+# Zeroing out some medication effects
+load('Data/med_select_FINAL.rda')
+load('Data/Dn_omega_names.rda')
+hr_med = med_select_FINAL$med_name_admin[med_select_FINAL$hr != 0]
+map_med = med_select_FINAL$med_name_admin[med_select_FINAL$map != 0]
+hr_med_priority = sort(c(table(hr_med)))
+map_med_priority = sort(c(table(map_med)))
+
+hr_med_0 = names(hr_med_priority)[sample(1:20, 10)]
+hr_med_1 = names(hr_med_priority)[sample(21:36, 5)]
+
+map_med_0 = names(map_med_priority)[sample(1:20, 10)]
+map_med_1 = names(map_med_priority)[sample(21:54, 10)]
+
+zero_ind = c(which(Dn_omega_names[1:36] %in% hr_med_0), 36 + which(Dn_omega_names[37:90] %in% map_med_0))
+omega[zero_ind] = 0
+one_ind = c(which(Dn_omega_names[1:36] %in% hr_med_1), 36 + which(Dn_omega_names[37:90] %in% map_med_1))
+omega[one_ind] = omega[one_ind] / 2
+
 upsilon_omega = rep(1, length(omega))
 
 true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -77,7 +95,6 @@ alpha_i_mat = vector(mode = "list", length = N)
 omega_i_mat = vector(mode = "list", length = N)
 
 for (www in 1:1) {
-    set.seed(2023)
     
     Dir = 'Data/'
     
