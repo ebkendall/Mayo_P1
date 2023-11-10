@@ -7,7 +7,7 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 2
+data_num = 3
 
 steps  = 50000
 burnin =  5000
@@ -16,11 +16,14 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 2
+  trialNum = 3
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 4 # CHANGE THIS EVERY TIME **********************
+  trialNum = 4 
 }
+
+# Indicator of when we suspect the bleeding event has begun
+load(paste0('Data/bleed_indicator_', data_num,'.rda'))
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -37,7 +40,8 @@ beta = rep(0, 4)
 # columns: hemo, hr, map
 alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
                                  -1,  9.04150472, -7.42458547,  0.5360813,
-					            0.1,          -4,           4, -0.6866748), ncol=4, byrow=T)
+					            0.1,          -4,           4, -0.6866748), 
+					            ncol=4, byrow=T)
 
 sigma_upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 64, 1, 1, 4, 0.25, 0.25))
 Lambda = diag(12)
@@ -49,7 +53,7 @@ R = diag(4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
-                 2.006518, -1.688983, -0.056713,  2.044297), nrow = 2, byrow = T)
+                 2.006518, -1.688983, -0.056713,  2.044297), nrow = 2,byrow = T)
 
 omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1, 
         -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  
@@ -139,5 +143,6 @@ print("log upsilon omega")
 print(par[par_index$vec_upsilon_omega])
 
 s_time = Sys.time()
-mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation)
+mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
+                         trialNum, Dn_omega, simulation, bleed_indicator)
 e_time = Sys.time() - s_time; print(e_time)

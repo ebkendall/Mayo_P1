@@ -20,7 +20,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = T
-data_num = 1
+data_num = 2
 load("Data/Dn_omega_names.rda")
 load('Data/hr_map_names.rda')
 
@@ -49,8 +49,8 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 
 if(simulation) {
     index_seeds = c(1:5)
-    trialNum = 1
-    itNum = 3
+    trialNum = 2
+    itNum = 5
 } else {
     index_seeds = c(1:5)
     trialNum = 2 # Change this everytime!!!! ****************

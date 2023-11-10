@@ -401,7 +401,8 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
                           const arma::field <arma::vec> A, arma::field <arma::vec> B, 
                           const arma::mat Y, const arma::mat z, arma::field<arma::field<arma::mat>> Dn, 
                           const arma::field <arma::field<arma::mat>> Xn, const arma::field<arma::field<arma::mat>> Dn_omega, 
-                          const arma::field <arma::vec> W, arma::mat &l1, arma::mat &l2) {
+                          const arma::field <arma::vec> W, arma::mat &l1, arma::mat &l2,
+                          const arma::vec bleed_indicator) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -431,6 +432,7 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
     arma::vec B_temp = B(ii);
     arma::vec A_temp = A(ii);
     arma::vec W_temp = W(ii);
+    arma::vec bleed_ind_i = bleed_indicator.elem(sub_ind);
     
     arma::field<arma::mat> Dn_temp = Dn(ii);
     arma::field<arma::mat> Dn_omega_temp = Dn_omega(ii);
@@ -483,10 +485,23 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
         if (clinic_rule == 1) {
           if(b_i_rule) {valid_prop = true;}
         } else {
-          if (rbc_rule == 0 || (rbc_rule == 1 && b_i_rule)) {valid_prop = true;}
+            if(rbc_rule == 1 && b_i_rule) {
+                int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
+                arma::uvec b_i_time = arma::find(pr_B == 2);
+                if(arma::any(b_i_time <= pos_bleed)) {
+                    valid_prop = true;
+                }
+            }
+            if (rbc_rule == 0) {valid_prop = true;}
         }
       } else {
         valid_prop = true; // evaluate likelihood anyways because S1&S3
+      }
+      
+      // If the proposed state sequence is the same, then we do not need to 
+      // evaluate the likelihood. Thus valid_prop = false can be set.
+      if(arma::accu(pr_B == B_temp) == pr_B.n_elem) {
+          valid_prop = false;
       }
       
       if(valid_prop) {
@@ -950,7 +965,9 @@ arma::vec update_omega_tilde_cpp( const arma::vec EIDs, arma::vec par,
     vec_omega_tilde_0 = 3 * vec_omega_tilde_0;
     
     // The prior PRECISION matrix for vec_omega_tilde
-    arma::mat inv_Sigma_omega(vec_omega_tilde_0.n_elem, vec_omega_tilde_0.n_elem, arma::fill::eye);
+    arma::vec inv_sig_omega_vec(vec_omega_tilde_0.n_elem, arma::fill::ones);
+    inv_sig_omega_vec = 0.1 * inv_sig_omega_vec;
+    arma::mat inv_Sigma_omega = arma::diagmat(inv_sig_omega_vec);
     
     arma::vec vec_upsilon_omega = par.elem(par_index(8) - 1);
     arma::vec vec_upsilon_omega_inv = 1 / exp(vec_upsilon_omega);
@@ -1381,23 +1398,51 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
 // [[Rcpp::export]]
 void test_fnc() {
     
-    arma::field<arma::mat> test(3);
+    // arma::field<arma::mat> test(3);
+    // 
+    // arma::mat I(2,2,arma::fill::eye);
+    // test(0) = I;
+    // test(1) = 2*I;
+    // test(2) = 3*I;
+    // 
+    // Rcpp::Rcout << test << std::endl;
+    // 
+    // test.for_each( [](arma::mat& X) {arma::mat new_mat = {{1,2}, {3,4}}; X = new_mat * X; } ); 
+    // 
+    // Rcpp::Rcout << test << std::endl;
     
-    arma::mat I(2,2,arma::fill::eye);
-    test(0) = I;
-    test(1) = 2*I;
-    test(2) = 3*I;
+    bool valid_prop = false;
     
-    Rcpp::Rcout << test << std::endl;
+    int clinic_rule = 0;
+    int rbc_rule = 1;
+    arma::vec pr_B = {1,1,1,1,1,1,2,2,2,2,3,3,3,3,3,1,1,1,2,3};
+    arma::vec old_B = pr_B;
+    old_B(4) = 3;
+    arma::vec bleed_indicator = {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0};
     
-    test.for_each( [](arma::mat& X) {arma::mat new_mat = {{1,2}, {3,4}}; X = new_mat * X; } ); 
+    int pos_bleed = arma::as_scalar(arma::find(bleed_indicator == 1));
+    Rcpp::Rcout << pos_bleed << std::endl;
     
-    Rcpp::Rcout << test << std::endl;
+    bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
+    Rcpp::Rcout << b_i_rule << std::endl;
     
-    arma::vec t = {2,2,4,4,8,8};
-    arma::vec t_inv = 1/t;
-    Rcpp::Rcout << t << std::endl;
-    Rcpp::Rcout << t_inv << std::endl;
-    Rcpp::Rcout << 1/exp(t) << std::endl;
+    arma::uvec b_i_time = arma::find(pr_B == 2);
+    Rcpp::Rcout << b_i_time << std::endl;
     
+    bool b_i_time_rule = arma::any(b_i_time <= pos_bleed);
+    Rcpp::Rcout << b_i_time_rule << std::endl;
+    
+    if(clinic_rule >= 0) {
+        if (clinic_rule == 1) {
+            if(b_i_rule) {valid_prop = true;}
+        } else {
+            if (rbc_rule == 0 || (rbc_rule == 1 && b_i_rule)) {valid_prop = true;}
+        }
+    } else {
+        valid_prop = true; // evaluate likelihood anyways because S1&S3
+    }
+    
+    if(arma::accu(pr_B == old_B) == pr_B.n_elem) {
+        Rcpp::Rcout << "same" << std::endl;
+    } 
 }

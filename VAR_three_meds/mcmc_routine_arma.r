@@ -14,7 +14,8 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # -----------------------------------------------------------------------------
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
-mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, trialNum, Dn_omega, simulation){
+mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
+                         trialNum, Dn_omega, simulation, bleed_indicator){
   
     EIDs = as.character(unique(Y[,'EID']))
 
@@ -123,7 +124,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
         A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
         names(A) = EIDs
 
-        # # Gibbs updates of the omega_i
+        # Gibbs updates of the omega_i
         W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A, B)
         names(W) = EIDs
 
@@ -138,7 +139,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, t
 
         # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
         # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-        #                     debug_temp1, debug_temp2)
+        #                     debug_temp1, debug_temp2, bleed_indicator)
         # B = B_Dn[[1]]; names(B) = EIDs
         # Dn = B_Dn[[2]]; names(Dn) = EIDs
 
