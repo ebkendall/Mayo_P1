@@ -20,7 +20,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = T
-data_num = 2
+data_num = 3
 load("Data/Dn_omega_names.rda")
 load('Data/hr_map_names.rda')
 
@@ -49,7 +49,7 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 
 if(simulation) {
     index_seeds = c(1:5)
-    trialNum = 2
+    trialNum = 3
     itNum = 5
 } else {
     index_seeds = c(1:5)
@@ -218,8 +218,8 @@ for(s in names(par_index)){
         hist( stacked_chains[,r], breaks=sqrt(nrow(stacked_chains)), ylab=NA, main=NA, freq=FALSE,
               xlab=x_label)
         abline( v=upper, col='red', lwd=2, lty=2)
-        abline( v=true_par[r], col='green', lwd=2, lty=2)
         abline( v=lower, col='purple', lwd=2, lty=2)
+        abline( v=true_par[r], col='green', lwd=2, lty=2)
     }   
 }
 red_par = red_par[-1, ]

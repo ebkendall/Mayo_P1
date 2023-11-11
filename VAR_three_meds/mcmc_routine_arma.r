@@ -138,10 +138,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # ---------------------------------------------------------------------
 
         # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
-        # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-        #                     debug_temp1, debug_temp2, bleed_indicator)
-        # B = B_Dn[[1]]; names(B) = EIDs
-        # Dn = B_Dn[[2]]; names(Dn) = EIDs
+        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+                            debug_temp1, debug_temp2, bleed_indicator)
+        B = B_Dn[[1]]; names(B) = EIDs
+        Dn = B_Dn[[2]]; names(Dn) = EIDs
 
         # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
         par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)

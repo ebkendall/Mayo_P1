@@ -16,7 +16,7 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 3
+  trialNum = 4
 } else {
   load('Data/data_format_new2.rda')
   trialNum = 4 
