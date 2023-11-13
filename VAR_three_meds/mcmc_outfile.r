@@ -48,9 +48,9 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1:5)
-    trialNum = 3
-    itNum = 5
+    index_seeds = c(1:4)
+    trialNum = 4
+    itNum = 4
 } else {
     index_seeds = c(1:5)
     trialNum = 2 # Change this everytime!!!! ****************

@@ -3,10 +3,10 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 2
-itNum = 5
-data_num = 5
-simulation = F
+trialNum = 4
+itNum = 4
+data_num = 3
+simulation = T
 
 Dir = 'Model_out/'
 

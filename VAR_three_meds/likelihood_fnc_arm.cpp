@@ -1196,7 +1196,7 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                             exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
   
-  omp_set_num_threads(20) ;
+  omp_set_num_threads(30) ;
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {			
       int i = EIDs(ii);

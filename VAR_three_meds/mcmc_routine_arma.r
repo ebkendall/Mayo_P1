@@ -52,10 +52,12 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_2_3it5.rda')
+        load('Model_out/mcmc_out_interm_1_4it4_sim.rda')
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
+        rm(mcmc_out_temp)
         
+        load('Model_out/mcmc_out_interm_2_3it5.rda')
         # Setting initial values for Y
         Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, ])
         Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, ])
@@ -117,16 +119,22 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         chain_ind = floor(chain_ind / 10) + 1
         A_check = 100
 
-        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
-        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        # print("Update Y"); s_time = Sys.time()
+        Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+        colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_i
+        # print("Update alpha_i"); s_time = Sys.time()
         A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B)
         names(A) = EIDs
+        # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the omega_i
+        # print("Update omega_i"); s_time = Sys.time()
         W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A, B)
         names(W) = EIDs
+        # e_time = Sys.time() - s_time; print(e_time)
 
         if(chain_ind %% A_check == 0) {
             A_chain[[chain_ind / A_check]] = A
@@ -137,16 +145,24 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         debug_temp2 = matrix(nrow = 7, ncol = 50)
         # ---------------------------------------------------------------------
 
-        # Metropolis-within-Gibbs update of the state space (*** VAR UPDATED ***)
+        # Metropolis-within-Gibbs update of the state space
+        # print("Update b_i"); s_time = Sys.time()
         B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
                             debug_temp1, debug_temp2, bleed_indicator)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
+        # e_time = Sys.time() - s_time; print(e_time)
 
-        # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters (*** VAR UPDATED ***)
+        # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters 
+        # print("Update beta_upsilon"); s_time = Sys.time()
         par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B)
+        # e_time = Sys.time() - s_time; print(e_time)
+        # print("Update alpha tilde"); s_time = Sys.time()
         par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
+        # e_time = Sys.time() - s_time; print(e_time)
+        # print("Update omega tilde"); s_time = Sys.time()
         par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
+        # e_time = Sys.time() - s_time; print(e_time)
 
         # Save the parameter updates made in the Gibbs steps before Metropolis steps
         chain[chain_ind,] = par
@@ -185,7 +201,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             print(accept / (ttt %% 480))
         }
         # ---------------------------------------------------------------------
-
+        # print("Update metropolis step"); s_time = Sys.time()
         log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W)
 
         if(!is.finite(log_target_prev)){
@@ -317,6 +333,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             }
 
         }
+        # e_time = Sys.time() - s_time; print(e_time)
 
         # Restart the acceptance ratio at burnin
         if(ttt == burnin) accept = rep( 0, n_group)

@@ -6,7 +6,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+simulation = F
 data_num = 3
 
 steps  = 50000
@@ -19,7 +19,7 @@ if(simulation) {
   trialNum = 4
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 4 
+  trialNum = 5
 }
 
 # Indicator of when we suspect the bleeding event has begun
@@ -81,17 +81,17 @@ par_index$omega_tilde = 199:288
 par_index$vec_upsilon_omega = 289:378
 # -----------------------------------------------------------------------------
 
-if(simulation) {
+# if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
     load(paste0('Data/omega_i_mat_', data_num, '.rda'))
     par = true_pars
-} else {
-    load('Model_out/mcmc_out_interm_2_3it5.rda')
-    par_temp = colMeans(mcmc_out_temp$chain)
-    rownames(par_temp) = NULL
-    par = par_temp
-}
+# } else {
+    # load('Model_out/mcmc_out_interm_2_3it5.rda')
+#     par_temp = colMeans(mcmc_out_temp$chain)
+#     rownames(par_temp) = NULL
+#     par = par_temp
+# }
 # -----------------------------------------------------------------------------
 A = list()
 W = list()
@@ -104,8 +104,8 @@ for(i in EIDs){
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
-      # b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      # b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
+      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
