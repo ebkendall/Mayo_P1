@@ -19,7 +19,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = T
+simulation = F
 data_num = 3
 load("Data/Dn_omega_names.rda")
 load('Data/hr_map_names.rda')
@@ -53,8 +53,8 @@ if(simulation) {
     itNum = 4
 } else {
     index_seeds = c(1:5)
-    trialNum = 2 # Change this everytime!!!! ****************
-    itNum = 5
+    trialNum = 6 # Change this everytime!!!! ****************
+    itNum = 4
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
@@ -231,6 +231,10 @@ red_par[,1] = as.numeric(red_par[,1])
 red_par[,2] = as.numeric(red_par[,2])
 red_par[,3] = as.numeric(red_par[,3])
 colnames(red_par) = c('ind', 'fit_up_down', 'true_up_down', 'vital', 'name')
+
+if(simulation) {
+    print(paste0(sum(true_par[par_index$omega_tilde] != 0), " out of ", length(par_index$omega_tilde), " medications have nonzero effect"))
+}
 
 load('Data/med_select_FINAL.rda')
 for(i in 1:nrow(red_par)) {

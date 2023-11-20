@@ -6,8 +6,8 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = F
-data_num = 3
+simulation = T
+data_num = 4
 
 steps  = 50000
 burnin =  5000
@@ -16,14 +16,11 @@ data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
-  trialNum = 4
+  trialNum = 5
 } else {
   load('Data/data_format_new2.rda')
-  trialNum = 5
+  trialNum = 6
 }
-
-# Indicator of when we suspect the bleeding event has begun
-load(paste0('Data/bleed_indicator_', data_num,'.rda'))
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -81,22 +78,27 @@ par_index$omega_tilde = 199:288
 par_index$vec_upsilon_omega = 289:378
 # -----------------------------------------------------------------------------
 
-# if(simulation) {
+if(simulation) {
     load(paste0('Data/true_pars_', data_num, '.rda'))
     load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
     load(paste0('Data/omega_i_mat_', data_num, '.rda'))
+    load(paste0('Data/Dn_omega_sim_', data_num, '.rda'))
+    load(paste0('Data/bleed_indicator_sim_', data_num,'.rda'))
+    
     par = true_pars
-# } else {
-    # load('Model_out/mcmc_out_interm_2_3it5.rda')
-#     par_temp = colMeans(mcmc_out_temp$chain)
-#     rownames(par_temp) = NULL
-#     par = par_temp
-# }
+    Dn_omega = Dn_omega_sim
+} else {
+    load('Model_out/mcmc_out_interm_1_5it5.rda')
+    load('Data/Dn_omega.rda')
+    load('Data/bleed_indicator_real.rda')
+    par_temp = colMeans(mcmc_out_temp$chain)
+    rownames(par_temp) = NULL
+    par = par_temp
+}
 # -----------------------------------------------------------------------------
 A = list()
 W = list()
 B = list()
-load('Data/Dn_omega.rda')
 
 for(i in EIDs){
   if(simulation) {
@@ -104,8 +106,8 @@ for(i in EIDs){
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      # b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
-      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
+      # b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)

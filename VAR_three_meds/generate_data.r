@@ -1,7 +1,7 @@
 library(mvtnorm, quietly=T)
 
-it_num = 3
-N = 400
+it_num = 4
+N = 800
 set.seed(2023)
 
 # Load in the existing data and save the covariate combinations
@@ -75,6 +75,8 @@ for(i in 1:length(bleed_pat)) {
     
 }
 
+save(bleed_indicator, file = 'Data/bleed_indicator_real.rda')
+
 data_format = cbind(data_format, bleed_indicator)
 bleed_sub = data_format[data_format[,"EID"] %in% bleed_pat, ]
 
@@ -125,9 +127,12 @@ omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1,
         -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
 omega = 6 * omega
 
-# Zeroing out some medication effects
+# Changing some medication effects
 load('Data/med_select_FINAL.rda')
 load('Data/Dn_omega_names.rda')
+
+Dn_omega_sim = vector(mode = 'list', length = N)
+
 hr_med = med_select_FINAL$med_name_admin[med_select_FINAL$hr != 0]
 map_med = med_select_FINAL$med_name_admin[med_select_FINAL$map != 0]
 hr_med_priority = sort(c(table(hr_med)))
@@ -167,6 +172,7 @@ save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 
 alpha_i_mat = vector(mode = "list", length = N)
 omega_i_mat = vector(mode = "list", length = N)
+bleed_indicator_update = NULL
 
 for (www in 1:1) {
     
@@ -175,7 +181,12 @@ for (www in 1:1) {
     use_data = NULL
     for(i in 1:N){
         
-        id_num = EIDs[i]
+        # id_num = EIDs[i]
+        id_num = sample(x = EIDs, size = 1, replace = T)
+        ind_i = which(EIDs == id_num)
+        Dn_omega_sim[[i]] = Dn_omega[[ind_i]]
+        D_i_omega = Dn_omega_sim[[i]]
+        
         print(paste0(i, ", ", id_num))
         
         rbc_rule = as.logical(head(Y[Y[,'EID']==as.numeric(id_num),"RBC_rule"], 1))
@@ -188,11 +199,12 @@ for (www in 1:1) {
         z_i = z[ Y[,'EID']==as.numeric(id_num),, drop=F]
         bleed_ind_i = bleed_indicator[Y[,'EID']==as.numeric(id_num)]
         
+        bleed_indicator_update = c(bleed_indicator_update, bleed_ind_i)
+        
         # Generate realizations of latent bleeding process ---------------------
         repeat {
             D_i = vector(mode = 'list', length = n_i)
             X_i = vector(mode = 'list', length = n_i)
-            D_i_omega = Dn_omega[[i]]
             
             if(length(D_i_omega) != n_i) {
                 print(paste0("issue n_i: ", i))
@@ -319,114 +331,117 @@ for (www in 1:1) {
     cat('\n')
 }
 
+bleed_indicator = bleed_indicator_update
+
 save(alpha_i_mat, file = paste0('Data/alpha_i_mat_', it_num, '.rda'))
 save(omega_i_mat, file = paste0('Data/omega_i_mat_', it_num, '.rda'))
-save(bleed_indicator, file = paste0('Data/bleed_indicator_', it_num, '.rda'))
+save(bleed_indicator, file = paste0('Data/bleed_indicator_sim_', it_num, '.rda'))
+save(Dn_omega_sim, file = paste0('Data/Dn_omega_sim_', it_num, '.rda'))
 
 # Visualize the noise --------------------------------------------------------
-load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
-
-EIDs = unique(use_data[,'EID'])
-simulation = T
-
+# load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
+# 
+# EIDs = unique(use_data[,'EID'])
+# simulation = T
+# 
 # New patients ---------------------------------------------------------------
-pdf(paste0('Plots/initial_charts', it_num, '.pdf'))
-# mar=c(b,l,t,r) oma=c(b,l,t,r) 
-panels = c(4, 1)
-par(mfrow=panels, mar=c(2,4,2,4), bg='black', fg='green')
-for(i in EIDs){
-    # print(which(EIDs == i))
-    indices_i = (use_data[,'EID']==i)
-    n_i = sum(indices_i)
-    t_grid = seq( 0, n_i, by=5)[-1]
-    rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
-    rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
-    
-    if(simulation){
-        b_i = use_data[ indices_i,'b_true']
-        to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
-        to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
-        to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]	
-    }
-    # HEART RATE --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'hr']))==0){
-        plot.new()
-    } else{ 	
-        plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
-    
-    # MAP --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'map']))==0){
-        plot.new()
-    } else{ 
-        plot(use_data[indices_i, 'map'], main=paste0('map: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
-    
-    # HEMO --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
-        plot.new()
-    } else{ 
-        plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
-    
-    # LACTATE --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
-        plot.new()
-    } else{ 
-        plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i), 
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
-    
-}
-dev.off()
-
+# pdf(paste0('Plots/initial_charts', it_num, '.pdf'))
+# # mar=c(b,l,t,r) oma=c(b,l,t,r) 
+# panels = c(4, 1)
+# par(mfrow=panels, mar=c(2,4,2,4), bg='black', fg='green')
+# for(i in EIDs){
+#     # print(which(EIDs == i))
+#     indices_i = (use_data[,'EID']==i)
+#     n_i = sum(indices_i)
+#     t_grid = seq( 0, n_i, by=5)[-1]
+#     rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
+#     rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
+#     
+#     if(simulation){
+#         b_i = use_data[ indices_i,'b_true']
+#         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
+#         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
+#         to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]	
+#     }
+#     # HEART RATE --------------------------------------------------------------
+#     if(sum(!is.na(use_data[indices_i, 'hr']))==0){
+#         plot.new()
+#     } else{ 	
+#         plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])), 
+#              xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+#         grid( nx=20, NULL, col='white')
+#         axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+#         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+#         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+#     }
+#     if(simulation){
+#         abline( v=to_s1, col='dodgerblue', lwd=2)
+#         abline( v=to_s2, col='firebrick1', lwd=2)
+#         abline( v=to_s3, col='yellow2', lwd=2)
+#         col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+#         abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+#     }
+#     
+#     # MAP --------------------------------------------------------------
+#     if(sum(!is.na(use_data[indices_i, 'map']))==0){
+#         plot.new()
+#     } else{ 
+#         plot(use_data[indices_i, 'map'], main=paste0('map: ', i), 
+#              xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+#         grid( nx=20, NULL, col='white')
+#         axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+#         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+#         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+#     }
+#     if(simulation){
+#         abline( v=to_s1, col='dodgerblue', lwd=2)
+#         abline( v=to_s2, col='firebrick1', lwd=2)
+#         abline( v=to_s3, col='yellow2', lwd=2)
+#         col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+#         abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+#     }
+#     
+#     # HEMO --------------------------------------------------------------
+#     if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
+#         plot.new()
+#     } else{ 
+#         plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i), 
+#              xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+#         grid( nx=20, NULL, col='white')
+#         axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+#         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+#         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+#     }
+#     if(simulation){
+#         abline( v=to_s1, col='dodgerblue', lwd=2)
+#         abline( v=to_s2, col='firebrick1', lwd=2)
+#         abline( v=to_s3, col='yellow2', lwd=2)
+#         col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+#         abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+#     }
+#     
+#     # LACTATE --------------------------------------------------------------
+#     if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
+#         plot.new()
+#     } else{ 
+#         plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i), 
+#              xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+#         grid( nx=20, NULL, col='white')
+#         axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+#         abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+#         abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+#     }
+#     if(simulation){
+#         abline( v=to_s1, col='dodgerblue', lwd=2)
+#         abline( v=to_s2, col='firebrick1', lwd=2)
+#         abline( v=to_s3, col='yellow2', lwd=2)
+#         col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+#         abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+#     }
+#     
+# }
+# dev.off()
+# 
 
 
 # # Investigation into each plot -----------------------------------------------

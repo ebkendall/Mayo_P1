@@ -482,8 +482,8 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
       
       if(clinic_rule >= 0) {
         bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
-        if (clinic_rule == 1) {
-          if(b_i_rule) {valid_prop = true;}
+        if (clinic_rule == 1 && b_i_rule) {
+          valid_prop = true;
         } else {
             if(rbc_rule == 1 && b_i_rule) {
                 int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
@@ -1262,6 +1262,12 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::vec update_value = Y_i_new.col(k);
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               } else if(k == Y_i.n_cols - 1) {
@@ -1280,6 +1286,12 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::vec update_value = Y_i_new.col(k);
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, R, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               } else {
@@ -1308,6 +1320,12 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::vec update_value = Y_i_new.col(k);
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               }

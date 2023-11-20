@@ -52,51 +52,49 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_1_4it4_sim.rda')
+        load('Model_out/mcmc_out_interm_1_5it5.rda')
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
-        rm(mcmc_out_temp)
         
-        load('Model_out/mcmc_out_interm_2_3it5.rda')
         # Setting initial values for Y
-        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1000, ])
+        # Y[, 'hemo'] = colMeans(mcmc_out_temp$hc_chain)
         Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, ])
         Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, ])
-        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1000, ])
+        # Y[, 'lactate'] = colMeans(mcmc_out_temp$la_chain)
         rm(mcmc_out_temp)
         # Setting initial values for Y
-        # print("Initializing the missing Y's for imputation")
-        # for(i in EIDs) {
-        #     heading_names = c('hemo','hr','map','lactate')
-        #     sub_dat = Y[Y[,"EID"] == i, ]
+        print("Initializing the missing Y's for imputation")
+        for(i in EIDs) {
+            heading_names = c('hemo','lactate')
+            sub_dat = Y[Y[,"EID"] == i, ]
 
-        #     for(k in 1:length(heading_names)) {
-        #         if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
-        #             sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
-        #         } else {
-        #             if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
-        #                 sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
-        #             } else {
-        #                 obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
-        #                 miss_indices = which(is.na(sub_dat[,heading_names[k]]))
-        #                 for(j in miss_indices) {
-        #                     if(j < obs_indices[1]) {
-        #                         sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
-        #                     } else if(j > tail(obs_indices,1)) {
-        #                         sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
-        #                     } else {
-        #                         end_pts = c(max(obs_indices[obs_indices < j]),
-        #                                     min(obs_indices[obs_indices > j]))
-        #                         slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
-        #                         sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
-        #                     }
-        #                 }
-        #             }
-        #         }
-        #         Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
-        #     }
-        # }
-        # print("Done initializing")
+            for(k in 1:length(heading_names)) {
+                if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
+                    sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
+                } else {
+                    if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
+                        sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                    } else {
+                        obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
+                        miss_indices = which(is.na(sub_dat[,heading_names[k]]))
+                        for(j in miss_indices) {
+                            if(j < obs_indices[1]) {
+                                sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
+                            } else if(j > tail(obs_indices,1)) {
+                                sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
+                            } else {
+                                end_pts = c(max(obs_indices[obs_indices < j]),
+                                            min(obs_indices[obs_indices > j]))
+                                slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
+                                sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                            }
+                        }
+                    }
+                }
+                Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
+            }
+        }
+        print("Done initializing")
     }
   
     # Begin the MCMC algorithm -------------------------------------------------
@@ -120,8 +118,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         A_check = 100
 
         # print("Update Y"); s_time = Sys.time()
-        Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
-        colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_i
@@ -147,10 +145,12 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Metropolis-within-Gibbs update of the state space
         # print("Update b_i"); s_time = Sys.time()
-        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-                            debug_temp1, debug_temp2, bleed_indicator)
-        B = B_Dn[[1]]; names(B) = EIDs
-        Dn = B_Dn[[2]]; names(Dn) = EIDs
+        if(ttt > burnin) {
+            B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+                                  debug_temp1, debug_temp2, bleed_indicator)
+            B = B_Dn[[1]]; names(B) = EIDs
+            Dn = B_Dn[[2]]; names(Dn) = EIDs
+        }
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters 
