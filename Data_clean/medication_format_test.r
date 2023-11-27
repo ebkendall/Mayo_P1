@@ -241,6 +241,7 @@ for(i in unique(med_select_update$key)){
 med_select_FINAL = med_select_FINAL[-1, ,drop=F]; rownames(med_select_FINAL) = NULL
 med_select_FINAL = med_select_FINAL[med_select_FINAL$Dose != 0, ]
 med_select_FINAL = med_select_FINAL[!is.na(med_select_FINAL$Dose), ]
+med_select_FINAL$continuous_med[med_select_FINAL$med_name_admin == "ALBUMIN_0"] = 0
 # *****************************************************************************
 
 # making the strength numeric
@@ -325,6 +326,8 @@ med_select_FINAL = cbind(med_select_FINAL, Strength_num)
 med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
 med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
 
+save(med_select_FINAL, file = "Data/med_select_FINAL.rda")
+
 # SCALING DOSE! ************************************************************
 med_dose_unique = unique(med_select_FINAL$med_name_admin)
 med_dose_scale_factor = matrix(nrow=length(med_dose_unique), ncol = 2)
@@ -370,6 +373,14 @@ map_cont_names = unique(map_cont$med_name_admin)
 # MAP discrete
 map_disc = map_medications[map_medications$continuous_med == 0, ,drop=F]
 map_disc_names = unique(map_disc$med_name_admin)
+
+Dn_omega_names = c(hr_cont_names, hr_disc_names, map_cont_names, map_disc_names)
+save(Dn_omega_names, file = "Data/Dn_omega_names.rda")
+hr_map_names = c(rep("hr_cont", length(hr_cont_names)),
+                 rep("hr_disc", length(hr_disc_names)),
+                 rep("map_cont", length(map_cont_names)),
+                 rep("map_disc", length(map_disc_names)))
+save(hr_map_names, file = 'Data/hr_map_names.rda')
 
 EIDs = unique(data_format[,"EID"])
 hr_cont_design = hr_disc_design = map_cont_design = map_disc_design = vector(mode = 'list', length = length(EIDs))
@@ -622,3 +633,52 @@ for(i in 1:length(Dn_omega)) {
 }
 
 save(Dn_omega, file = 'Data/Dn_omega.rda')
+
+# Understanding what the mean of Dn_omega should be
+upp_down_omega = matrix(nrow = length(Dn_omega_names), ncol = 2)
+upp_down_omega[,1] = Dn_omega_names
+ind = 1
+for(i in 1:length(hr_cont_names)) {
+    if(upp_down_omega[ind,1] != hr_cont_names[i]) {
+        print(hr_cont_names[i])
+    } else{
+        ef = unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == hr_cont_names[i]]) 
+        print(ef)
+        upp_down_omega[ind, 2] = as.numeric(ef)
+    }
+    ind = ind + 1
+}
+for(i in 1:length(hr_disc_names)) {
+    if(upp_down_omega[ind,1] != hr_disc_names[i]) {
+        print(hr_disc_names[i])
+    } else{
+        ef = unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == hr_disc_names[i]]) 
+        print(ef)
+        upp_down_omega[ind, 2] = as.numeric(ef)
+    }
+    ind = ind + 1
+}
+for(i in 1:length(map_cont_names)) {
+    if(upp_down_omega[ind,1] != map_cont_names[i]) {
+        print(map_cont_names[i])
+    } else{
+        ef = unique(med_select_FINAL$map[med_select_FINAL$med_name_admin == map_cont_names[i]]) 
+        print(ef)
+        upp_down_omega[ind, 2] = as.numeric(ef)
+    }
+    ind = ind + 1
+}
+for(i in 1:length(map_disc_names)) {
+    if(upp_down_omega[ind,1] != map_disc_names[i]) {
+        print(map_disc_names[i])
+    } else{
+        ef = unique(med_select_FINAL$map[med_select_FINAL$med_name_admin == map_disc_names[i]]) 
+        print(ef)
+        upp_down_omega[ind, 2] = as.numeric(ef)
+    }
+    ind = ind + 1
+}
+
+mean_dn_omega = as.numeric(c(upp_down_omega[,2]))
+# mean_dn_omega = 4 * mean_dn_omega
+print(c(mean_dn_omega))

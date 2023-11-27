@@ -68,25 +68,6 @@ for(i in 1:length(enough_dat)) {
 
 all_keys_temp = all_keys_temp[enough_dat == 1]
 
-# ------------------------------------------------------------------------------
-# (2) Adding new variables such as RBC rule ------------------------------------
-# ------------------------------------------------------------------------------
-
-# Get patients that had at least 3 RBC at some point in their stay
-min_three_RBC = NULL
-for(i in 1:length(long_data_agg_sub)) {
-    if(long_data_agg_sub[[i]]$key %in% all_keys_temp) {
-        if(tail(long_data_agg_sub[[i]]$covariates[,"n_RBC"], 1) >= 3) {
-            min_three_RBC = c(min_three_RBC, 1)
-        } else {
-            min_three_RBC = c(min_three_RBC, 0)
-        }
-    }
-}
-
-bleed_pat = all_keys_temp[min_three_RBC == 1]
-stable_pat = all_keys_temp[min_three_RBC == 0]
-
 # Formatting the existing data into one data set
 data_format = NULL
 for(i in 1:length(long_data_agg_sub)) {
@@ -101,64 +82,8 @@ data_format = cbind(data_format, rep(0, nrow(data_format)), rep(0, nrow(data_for
 colnames(data_format) = c('EID', 'time', 'temperature', 'hemo', 'map', 'hr', 'lactate', 'RBC',
                           'n_labs', 'n_RBC', 'RBC_rule', 'clinic_rule')
 
-# Adding the rule that a patient is bleeding if >= 3 in 12hrs or >= 6 in 24hrs
-for(i in 1:length(bleed_pat)) {
-    sub_dat = data_format[data_format[,"EID"] == bleed_pat[i], ]
-    
-    # Check in any 12 hour period
-    max_time = tail(sub_dat[,"time"], 1)
-    when_rbc = c(1, which(diff(sub_dat[,"n_RBC"]) != 0))
-    
-    for(j in 1:length(when_rbc)) {
-        s_time = sub_dat[when_rbc[j], "time"]
-        e_time_12 = s_time + 720
-        e_time_24 = s_time + 1440
-        RBC_diff_12 = RBC_diff_24 = 0
-        
-        if (e_time_12 <= max_time) {
-            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
-            ind_12 = order(abs(sub_dat[,"time"] - e_time_12))[1]
-            RBC_diff_12 = sub_dat[ind_12, "n_RBC"] - sub_dat[s_ind, "n_RBC"]
-        } else {
-            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
-            e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
-            RBC_diff_12 = sub_dat[e_ind, "n_RBC"] - sub_dat[s_ind, "n_RBC"]
-        }
-        if (e_time_24 <= max_time) {
-            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
-            ind_24 = order(abs(sub_dat[,"time"] - e_time_24))[1]
-            RBC_diff_24 = sub_dat[ind_24, "n_RBC"] - sub_dat[s_ind, "n_RBC"]
-        } else {
-            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
-            e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
-            RBC_diff_24 = sub_dat[e_ind, "n_RBC"] - sub_dat[s_ind, "n_RBC"]
-        }
-        
-        if(RBC_diff_12 >=3 | RBC_diff_24 >= 6) {
-            data_format[data_format[,"EID"] == bleed_pat[i], "RBC_rule"] = 1
-            print(paste0("Bleeding: ", i))
-            break
-        }
-        
-    }
-    
-}
-
-# Adding the clinical rule
-clinical_lab = c(109125, 111375, 133750, 156325, 165725, 195475, 198975, 208100, 327375, 360525,
-                 431400, 467200, 494300, 531650, 533825, 543625, 588100, 622450, 633100, 697600,
-                 727675, 750900, 758025, 781875, 785950, 801300, 820775, 827350, 841925, 843000)
-
-data_format[data_format[,"EID"] %in% c(111375, 133750, 327375, 431400, 
-                                       531650, 633100, 697600, 727675,
-                                       758025, 820775, 827350, 841925, 843000), "clinic_rule"] = 1 # bleed
-data_format[data_format[,"EID"] %in% c(109125, 156325, 165725, 195475, 198975,
-                                       208100, 360525, 467200, 494300, 533825,
-                                       543625, 588100, 622450, 750900, 781875,
-                                       785950, 801300), "clinic_rule"] = -1 # no bleed
-
 # ------------------------------------------------------------------------------
-# (3) Add the new RBC transfusions ---------------------------------------------
+# (2) Add the new RBC transfusions ---------------------------------------------
 # ------------------------------------------------------------------------------
 transfusions = read.csv('Data/_raw_data_new/jw_transfusions.csv')
 transfusions = transfusions[transfusions$OrderedProduct == "RBC", ]
@@ -208,9 +133,76 @@ n_RBC_admin = 0
 data_format = cbind(cbind(data_format, n_RBC_ordered), n_RBC_admin)
 
 for(i in unique(data_format[,'EID'])){
+    print(i)
     data_format[data_format[,'EID'] == i, 'n_RBC_ordered'] = cumsum(data_format[data_format[,'EID'] == i, 'RBC_ordered'])
     data_format[data_format[,'EID'] == i, 'n_RBC_admin'] = cumsum(data_format[data_format[,'EID'] == i, 'RBC_admin'])
 }
+
+# ------------------------------------------------------------------------------
+# (2) Adding new variables such as RBC rule ------------------------------------
+# ------------------------------------------------------------------------------
+
+# Get patients that had at least 3 RBC at some point in their stay
+min_three_RBC = unique(data_format[data_format[,"n_RBC_admin"] >= 3, "EID"])
+
+bleed_pat = min_three_RBC
+
+# Adding the rule that a patient is bleeding if >= 3 in 12hrs or >= 6 in 24hrs
+for(i in 1:length(bleed_pat)) {
+    sub_dat = data_format[data_format[,"EID"] == bleed_pat[i], ]
+    
+    # Check in any 12 hour period
+    max_time = tail(sub_dat[,"time"], 1)
+    when_rbc = c(1, which(diff(sub_dat[,"n_RBC_admin"]) != 0))
+    
+    for(j in 1:length(when_rbc)) {
+        s_time = sub_dat[when_rbc[j], "time"]
+        e_time_12 = s_time + 720
+        e_time_24 = s_time + 1440
+        RBC_diff_12 = RBC_diff_24 = 0
+        
+        if (e_time_12 <= max_time) {
+            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+            ind_12 = order(abs(sub_dat[,"time"] - e_time_12))[1]
+            RBC_diff_12 = sub_dat[ind_12, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+        } else {
+            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+            e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
+            RBC_diff_12 = sub_dat[e_ind, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+        }
+        if (e_time_24 <= max_time) {
+            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+            ind_24 = order(abs(sub_dat[,"time"] - e_time_24))[1]
+            RBC_diff_24 = sub_dat[ind_24, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+        } else {
+            s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+            e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
+            RBC_diff_24 = sub_dat[e_ind, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+        }
+        
+        if(RBC_diff_12 >=3 | RBC_diff_24 >= 6) {
+            data_format[data_format[,"EID"] == bleed_pat[i], "RBC_rule"] = 1
+            print(paste0("Bleeding: ", i))
+            print(unique(sub_dat[,"n_RBC_admin"]))
+            break
+        }
+        
+    }
+    
+}
+
+# Adding the clinical rule
+clinical_lab = c(109125, 111375, 133750, 156325, 165725, 195475, 198975, 208100, 327375, 360525,
+                 431400, 467200, 494300, 531650, 533825, 543625, 588100, 622450, 633100, 697600,
+                 727675, 750900, 758025, 781875, 785950, 801300, 820775, 827350, 841925, 843000)
+
+data_format[data_format[,"EID"] %in% c(111375, 133750, 327375, 431400, 
+                                       531650, 633100, 697600, 727675,
+                                       758025, 820775, 827350, 841925, 843000), "clinic_rule"] = 1 # bleed
+data_format[data_format[,"EID"] %in% c(109125, 156325, 165725, 195475, 198975,
+                                       208100, 360525, 467200, 494300, 533825,
+                                       543625, 588100, 622450, 750900, 781875,
+                                       785950, 801300), "clinic_rule"] = -1 # no bleed
 
 # ------------------------------------------------------------------------------
 # Removing pacing patients based on own heuristic ------------------------------
@@ -226,62 +218,6 @@ for(i in unique(data_format[,"EID"])) {
 }
 
 data_format = data_format[!(data_format[,"EID"] %in% pace_ids), ]
-
-# ------------------------------------------------------------------------------
-# (4) Saving the data_format with subset of IDs --------------------------------
-# ------------------------------------------------------------------------------
-set.seed(2023)
-load('Data/curr_id.rda')
-rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
-no_rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
-clinic_rule = unique(data_format[data_format[,"clinic_rule"] != 0, "EID"])
-
-curr_id = curr_id[curr_id %in% data_format[,"EID"]]
-
-curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
-
-add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
-
-curr_id = c(curr_id, sample(add_id, 400 - length(curr_id)))
-curr_id = sort(unique(curr_id))
-
-data_format = data_format[data_format[,"EID"] %in% curr_id, ]
-
-# ------------------------------------------------------------------------------
-# (5) Remove any eroneous data points ------------------------------------------
-# ------------------------------------------------------------------------------
-for(i in 1:nrow(data_format)) {
-    # hemo
-    if(!is.na(data_format[i,'hemo'])) {
-        if(data_format[i,'hemo'] < 0 | data_format[i,'hemo'] > 20) {
-            data_format[i, 'hemo'] = NA
-        } 
-    }
-    # hr
-    if(!is.na(data_format[i,'hr'])) {
-        if(data_format[i,'hr'] < 20 | data_format[i,'hr'] > 200) {
-            data_format[i, 'hr'] = NA
-        } 
-    }
-    # map
-    if(!is.na(data_format[i,'map'])) {
-        if(data_format[i,'map'] < 25 | data_format[i,'map'] > 150) {
-            data_format[i, 'map'] = NA
-        } 
-    }
-
-}
-
-save(data_format, file = 'Data/data_format_new2.rda')
-# Quick check for no pacing
-pdf("Data/quick_check.pdf")
-par(mfrow=c(4,1))
-for(i in unique(data_format[,"EID"])) {
-    plot(data_format[data_format[,"EID"] == i, "time"], data_format[data_format[,"EID"] == i, "hr"],
-         main = i)
-}
-dev.off()
-
 # ------------------------------------------------------------------------------
 # (6) Filter based on level of care --------------------------------------------
 # ------------------------------------------------------------------------------
@@ -329,4 +265,74 @@ for(i in unique(care_time_df[,1])) {
     care_time_df[care_time_df[,1] == i, 3] = sub_care[,3]
 }
 save(care_time_df, file = 'Data/care_time_df.rda')
+
+temp_df = data_format
+# ------------------------------------------------------------------------------
+# (4) Saving the data_format with subset of IDs --------------------------------
+# ------------------------------------------------------------------------------
+set.seed(2023)
+load('Data/data_format_new2.rda')
+curr_id = unique(data_format[,"EID"])
+rm(data_format)
+data_format = temp_df
+rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
+no_rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
+clinic_rule = unique(data_format[data_format[,"clinic_rule"] != 0, "EID"])
+
+curr_id = curr_id[curr_id %in% data_format[,"EID"]]
+
+curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
+
+# add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
+# 
+# curr_id = c(curr_id, sample(add_id, 400 - length(curr_id)))
+curr_id = sort(unique(curr_id))
+
+data_format = data_format[data_format[,"EID"] %in% curr_id, ]
+
+# ------------------------------------------------------------------------------
+# (5) Remove any eroneous data points ------------------------------------------
+# ------------------------------------------------------------------------------
+for(i in 1:nrow(data_format)) {
+    # hemo
+    if(!is.na(data_format[i,'hemo'])) {
+        if(data_format[i,'hemo'] < 0 | data_format[i,'hemo'] > 20) {
+            data_format[i, 'hemo'] = NA
+        } 
+    }
+    # hr
+    if(!is.na(data_format[i,'hr'])) {
+        if(data_format[i,'hr'] < 20 | data_format[i,'hr'] > 200) {
+            data_format[i, 'hr'] = NA
+        } 
+    }
+    # map
+    if(!is.na(data_format[i,'map'])) {
+        if(data_format[i,'map'] < 25 | data_format[i,'map'] > 150) {
+            data_format[i, 'map'] = NA
+        } 
+    }
+
+}
+
+save(data_format, file = 'Data/data_format_new3.rda')
+# Quick check for no pacing
+pdf("Data/quick_check.pdf")
+par(mfrow=c(4,1))
+for(i in unique(data_format[,"EID"])) {
+    plot(data_format[data_format[,"EID"] == i, "time"], data_format[data_format[,"EID"] == i, "hr"],
+         main = i)
+}
+dev.off()
+
+# Quick edit to data_format_new2
+rbc_rule1 = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
+rbc_rule0 = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
+
+load('Data/data_format_new2.rda')
+data_format[data_format[,"EID"] %in% rbc_rule1, "RBC_rule"] = 1
+data_format[!(data_format[,"EID"] %in% rbc_rule1), "RBC_rule"] = 0
+new_rbc = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
+print(sum(new_rbc %in% rbc_rule1) / length(new_rbc))
+save(data_format, file = 'Data/data_format_new2.rda')
 
