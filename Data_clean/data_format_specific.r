@@ -221,17 +221,8 @@ data_format = data_format[!(data_format[,"EID"] %in% pace_ids), ]
 # ------------------------------------------------------------------------------
 # (6) Filter based on level of care --------------------------------------------
 # ------------------------------------------------------------------------------
-# load("Data/data_format_FULL_48hr_update_RBC_sub.rda")
-# # Removing pacing patients
-# pace_id = c(18075, 108825, 110750, 125025, 173750, 260100, 304700, 307225, 310100,
-#             382450, 429375, 516150, 533075, 666750, 677225, 732525, 763050, 767500,
-#             769025, 777175, 794900, 799125, 819225)
-# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-# curr_id = unique(data_format[,'EID'])
-# save(curr_id, file = 'Data/curr_id.rda')
-
 level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
-load('Data/data_format_new2.rda')
+# load('Data/data_format_new2.rda')
 care_time_df = matrix(nrow = nrow(data_format), ncol = 3)
 care_time_df[,1] = data_format[,'EID']
 care_time_df[,2] = data_format[,'time']
@@ -240,6 +231,7 @@ level_of_care_patient = level_of_care[level_of_care$key %in% data_format[,"EID"]
 level_of_care_patient$level_of_care_datetime = level_of_care_patient$level_of_care_datetime / 60
 
 for(i in unique(care_time_df[,1])) {
+    print(i)
     sub_level = level_of_care_patient[level_of_care_patient$key == i, ]
     sub_df    = data_format[data_format[,"EID"] == i, ]
     sub_care  = care_time_df[care_time_df[,1] == i, ]
@@ -258,13 +250,27 @@ for(i in unique(care_time_df[,1])) {
         } else {
             end_pts = c(max(level_times[level_times < time_j]), 
                         min(level_times[level_times > time_j]))
-            ind = max(which(level_times == end_pts[1]))
-            sub_care[j,3] = sub_level$patient_level_of_care[ind]
+            ind = which(level_times == end_pts[1])
+            care_ind = NULL
+            if("Intensive Care" %in% sub_level$patient_level_of_care[ind] &
+               sub_level$patient_level_of_care[max(ind) + 1] == "Intensive Care") {
+                care_ind = ind[which("Intensive Care" %in% sub_level$patient_level_of_care[ind])]
+            } else {
+                care_ind = max(ind)
+            }
+            sub_care[j,3] = sub_level$patient_level_of_care[care_ind]
         }
     }
     care_time_df[care_time_df[,1] == i, 3] = sub_care[,3]
 }
-save(care_time_df, file = 'Data/care_time_df.rda')
+
+care_props = NULL
+for(i in unique(data_format[,"EID"])) {
+    sub_dat = care_time_df[care_time_df[,1] == i, ]
+    care_props = c(care_props, sum(sub_dat[,3] == "Intensive Care") / nrow(sub_dat))
+}
+
+care_props = cbind(unique(data_format[,"EID"]), care_props)
 
 temp_df = data_format
 # ------------------------------------------------------------------------------
@@ -283,9 +289,12 @@ curr_id = curr_id[curr_id %in% data_format[,"EID"]]
 
 curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
 
-# add_id  = no_rbc_rule[!(no_rbc_rule %in% curr_id)]
-# 
-# curr_id = c(curr_id, sample(add_id, 400 - length(curr_id)))
+# How many curr_id have majority intensive care status
+curr_id = curr_id[curr_id %in% care_props[care_props[,2] > 0.8, 1]]
+
+add_id = no_rbc_rule[no_rbc_rule %in% care_props[care_props[,2] > 0.8, 1]]
+
+curr_id = c(curr_id, sample(add_id, 800 - length(curr_id)))
 curr_id = sort(unique(curr_id))
 
 data_format = data_format[data_format[,"EID"] %in% curr_id, ]
@@ -325,14 +334,14 @@ for(i in unique(data_format[,"EID"])) {
 }
 dev.off()
 
-# Quick edit to data_format_new2
-rbc_rule1 = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
-rbc_rule0 = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
-
-load('Data/data_format_new2.rda')
-data_format[data_format[,"EID"] %in% rbc_rule1, "RBC_rule"] = 1
-data_format[!(data_format[,"EID"] %in% rbc_rule1), "RBC_rule"] = 0
-new_rbc = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
-print(sum(new_rbc %in% rbc_rule1) / length(new_rbc))
-save(data_format, file = 'Data/data_format_new2.rda')
+# # Quick edit to data_format_new2
+# rbc_rule1 = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
+# rbc_rule0 = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
+# 
+# load('Data/data_format_new2.rda')
+# data_format[data_format[,"EID"] %in% rbc_rule1, "RBC_rule"] = 1
+# data_format[!(data_format[,"EID"] %in% rbc_rule1), "RBC_rule"] = 0
+# new_rbc = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
+# print(sum(new_rbc %in% rbc_rule1) / length(new_rbc))
+# save(data_format, file = 'Data/data_format_new2.rda')
 
