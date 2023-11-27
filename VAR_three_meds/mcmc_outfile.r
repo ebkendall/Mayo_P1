@@ -1,9 +1,9 @@
 dir = 'Model_out/' # Change this everytime!!!! ****************
 
 # Size of posterior sample from mcmc chains
-n_post = 1000
+n_post = 500
 # Step number at 3ich the adaptive tuning scheme was frozen
-burnin = 0
+burnin = 500
 # Total number of steps the mcmc algorithm is computed for
 steps = 1000
 # Matrix row indices for the posterior sample to use for GFF computation
@@ -19,8 +19,8 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = F
-data_num = 3
+simulation = T
+data_num = 4
 load("Data/Dn_omega_names.rda")
 load('Data/hr_map_names.rda')
 
@@ -48,13 +48,13 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1:4)
-    trialNum = 4
-    itNum = 4
+    index_seeds = c(1:5)
+    trialNum = 6
+    itNum = 1
 } else {
     index_seeds = c(1:5)
     trialNum = 6 # Change this everytime!!!! ****************
-    itNum = 4
+    itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
@@ -257,41 +257,41 @@ if(nrow(red_par_diff) == 0) {
 
 save(red_par, file = 'Data/red_par.rda')
 
-chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
-for(i in 1:length(chain_list_gamma)) {
-    max_ind = i * 1000
-    chain_list_gamma[[i]] = gamma_chain[(max_ind - 999):max_ind, ]
-}
+# chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
+# for(i in 1:length(chain_list_gamma)) {
+#     max_ind = i * 1000
+#     chain_list_gamma[[i]] = gamma_chain[(max_ind - 999):max_ind, ]
+# }
 
-for(rr in 1:ncol(gamma_chain)){
-    # lab_ind = lab_ind + 1
-    lab_ind = rr
-    parMean = round( mean(gamma_chain[,rr]), 4)
-    parMedian = round( median(gamma_chain[,rr]), 4)
-    upper = quantile( gamma_chain[,rr], prob=.975)
-    lower = quantile( gamma_chain[,rr], prob=.025)
+# for(rr in 1:ncol(gamma_chain)){
+#     # lab_ind = lab_ind + 1
+#     lab_ind = rr
+#     parMean = round( mean(gamma_chain[,rr]), 4)
+#     parMedian = round( median(gamma_chain[,rr]), 4)
+#     upper = quantile( gamma_chain[,rr], prob=.975)
+#     lower = quantile( gamma_chain[,rr], prob=.025)
     
-    y_limit = range(gamma_chain[,rr])
+#     y_limit = range(gamma_chain[,rr])
     
-    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
-          ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
-                                      ", ", round(upper, 4), "]"))
+#     plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
+#           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
+#                                       ", ", round(upper, 4), "]"))
     
-    for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
+#     for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
     
-    if (simulation) {
-        x_label = paste0('Mean =',toString(parMean),
-                         ' Median =',toString(parMedian),
-                         ' True =', round(true_gamma[rr], 3))
-    } else {
-        x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
-    }
-    hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
-          xlab=x_label)
-    abline( v=upper, col='red', lwd=2, lty=2)
-    abline( v=lower, col='purple', lwd=2, lty=2)
-    abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
-}
+#     if (simulation) {
+#         x_label = paste0('Mean =',toString(parMean),
+#                          ' Median =',toString(parMedian),
+#                          ' True =', round(true_gamma[rr], 3))
+#     } else {
+#         x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
+#     }
+#     hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
+#           xlab=x_label)
+#     abline( v=upper, col='red', lwd=2, lty=2)
+#     abline( v=lower, col='purple', lwd=2, lty=2)
+#     abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
+# }
 
 hist_names = c("alpha_i slopes for hemo",
                "alpha_i slopes for hr",
