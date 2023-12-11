@@ -1,9 +1,9 @@
 dir = 'Model_out/' # Change this everytime!!!! ****************
 
 # Size of posterior sample from mcmc chains
-n_post = 500
+n_post = 1000
 # Step number at 3ich the adaptive tuning scheme was frozen
-burnin = 500
+burnin = 0
 # Total number of steps the mcmc algorithm is computed for
 steps = 1000
 # Matrix row indices for the posterior sample to use for GFF computation
@@ -49,8 +49,8 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 
 if(simulation) {
     index_seeds = c(1:5)
-    trialNum = 6
-    itNum = 1
+    trialNum = 1
+    itNum = 2
 } else {
     index_seeds = c(1:5)
     trialNum = 6 # Change this everytime!!!! ****************

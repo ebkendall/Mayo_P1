@@ -1,11 +1,12 @@
 library(mvtnorm, quietly=T)
 
-it_num = 4
-N = 800
-set.seed(2023)
-
 # Load in the existing data and save the covariate combinations
-load('Data/data_format_new2.rda')
+real_dat_num = 3
+load(paste0('Data/data_format_new', real_dat_num, '.rda'))
+
+it_num = 5
+set.seed(2018)
+N = length(unique(data_format[,"EID"]))
 
 # Making an indicator variable about the first RBC to indicate bleed event
 bleed_pat = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
@@ -74,13 +75,12 @@ for(i in 1:length(bleed_pat)) {
     }
     
 }
-
-save(bleed_indicator, file = 'Data/bleed_indicator_real.rda')
+# save(bleed_indicator, file = 'Data/bleed_indicator_real.rda')
+# -----------------------------------------------------------------------------
 
 data_format = cbind(data_format, bleed_indicator)
-bleed_sub = data_format[data_format[,"EID"] %in% bleed_pat, ]
 
-load('Data/Dn_omega.rda')
+load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -101,10 +101,10 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
 
 sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 36, 1, 1, 4, 0.25, 0.25))
 
-A_mat = matrix(c(1.5,  -1, 0,
-                 1.5,  -1, 0,
-                 1.5,  -1, 0,
-                 1.5,  -1, 0), ncol = 3, byrow = T)
+A_mat = matrix(c(2, -2, 0,
+                 2, -2, 0,
+                 2, -2, 0,
+                 2, -2, 0), ncol = 3, byrow = T)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
@@ -113,42 +113,49 @@ A_mat_scale = matrix(correct_scale_A, nrow = 4)
 R = diag(4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
-zeta = matrix(c(      -4, -2.578241, -5.000000, -5.230000,
-                2.006518,      -1.2,   -1.6713,  1.044297), ncol = 4, byrow=T)
+zeta = matrix(c(      -5, -4.078241, -7.000000, -7.230000,
+                3.006518,      -1.2,   -1.6713,  3.544297), ncol = 4, byrow=T)
 
 init_logit = c(0,-5,-2)
 init_logit = exp(init_logit)
 
-omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1, 
-        -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  
-         1, -1, -1, -1, -1, -1, -1,  1, -1,  1,  1,  1, -1, -1, -1, 
-        -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
-        -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
-        -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
+          -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
+          -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
+           1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
+          -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
+          -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
 omega = 6 * omega
 
 # Changing some medication effects
-load('Data/med_select_FINAL.rda')
-load('Data/Dn_omega_names.rda')
+load(paste0('Data/med_select_FINAL', real_dat_num, '.rda'))
+load(paste0('Data/Dn_omega_names', real_dat_num, '.rda'))
+load(paste0('Data/hr_map_names', real_dat_num, '.rda'))
 
 Dn_omega_sim = vector(mode = 'list', length = N)
+
+hr_max_ind = max(which(hr_map_names == 'hr_disc'))
+map_max_ind = max(which(hr_map_names == 'map_disc'))
 
 hr_med = med_select_FINAL$med_name_admin[med_select_FINAL$hr != 0]
 map_med = med_select_FINAL$med_name_admin[med_select_FINAL$map != 0]
 hr_med_priority = sort(c(table(hr_med)))
 map_med_priority = sort(c(table(map_med)))
 
-hr_med_order = sample(1:36, 24)
+hr_med_order = sample(1:hr_max_ind, 24)
 hr_med_0 = names(hr_med_priority)[hr_med_order[1:12]]
 hr_med_1 = names(hr_med_priority)[hr_med_order[13:24]]
 
-map_med_order = sample(1:54, 36)
+map_med_order = sample(1:(map_max_ind - hr_max_ind), 36)
 map_med_0 = names(map_med_priority)[map_med_order[1:18]]
 map_med_1 = names(map_med_priority)[map_med_order[19:36]]
 
-zero_ind = c(which(Dn_omega_names[1:36] %in% hr_med_0), 36 + which(Dn_omega_names[37:90] %in% map_med_0))
-omega[zero_ind] = 0
-one_ind = c(which(Dn_omega_names[1:36] %in% hr_med_1), 36 + which(Dn_omega_names[37:90] %in% map_med_1))
+zero_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_0), 
+             hr_max_ind + which(Dn_omega_names[(hr_max_ind+1):map_max_ind] %in% map_med_0))
+one_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_1), 
+            hr_max_ind + which(Dn_omega_names[(hr_max_ind+1):map_max_ind] %in% map_med_1))
+
+omega[zero_ind] = omega[zero_ind] / 6
 omega[one_ind] = omega[one_ind] / 2
 
 upsilon_omega = runif(length(omega))
@@ -163,8 +170,8 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$omega_tilde = 199:288
-par_index$vec_upsilon_omega = 289:378
+par_index$omega_tilde = 199:286
+par_index$vec_upsilon_omega = 287:374
 
 save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
@@ -179,10 +186,12 @@ for (www in 1:1) {
     Dir = 'Data/'
     
     use_data = NULL
+    
+    rbc_bleed_correct = NULL
     for(i in 1:N){
         
-        # id_num = EIDs[i]
-        id_num = sample(x = EIDs, size = 1, replace = T)
+        id_num = EIDs[i]
+        # id_num = sample(x = EIDs, size = 1, replace = T)
         ind_i = which(EIDs == id_num)
         Dn_omega_sim[[i]] = Dn_omega[[ind_i]]
         D_i_omega = Dn_omega_sim[[i]]
@@ -202,53 +211,51 @@ for (www in 1:1) {
         bleed_indicator_update = c(bleed_indicator_update, bleed_ind_i)
         
         # Generate realizations of latent bleeding process ---------------------
-        repeat {
-            D_i = vector(mode = 'list', length = n_i)
-            X_i = vector(mode = 'list', length = n_i)
-            
-            if(length(D_i_omega) != n_i) {
-                print(paste0("issue n_i: ", i))
-            }
-            
-            P_i = init_logit / sum(init_logit)
-            for(k in 1:n_i){
-                if(k==1){
-                    b_i = sample(1:3, size=1, prob=P_i)
-                } else{
-                    q1   = exp(z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
-                    q2   = exp(z_i[k,, drop=F] %*% zeta[,  2, drop=F])
-                    q3   = exp(z_i[k,, drop=F] %*% zeta[,  3, drop=F])
-                    q4   = exp(z_i[k,, drop=F] %*% zeta[,  4, drop=F])
-                    
-                    # transitions: 1->2, 2->3, 3->1, 3->2
-                    Q = matrix(c(  1,  q1,  0,
-                                   0,   1, q2,
-                                   q3,  q4,  1), ncol=3, byrow=T)
-                    P_i = Q / rowSums(Q)
-                    # Sample the latent state sequence
-                    b_i = c( b_i, sample(1:3, size=1, prob=P_i[tail(b_i,1),]))
-                }
+        D_i = vector(mode = 'list', length = n_i)
+        X_i = vector(mode = 'list', length = n_i)
+        
+        if(length(D_i_omega) != n_i) {
+            print(paste0("issue n_i: ", i))
+        }
+        
+        P_i = init_logit / sum(init_logit)
+        for(k in 1:n_i){
+            if(k==1){
+                b_i = sample(1:3, size=1, prob=P_i)
+            } else{
+                q1   = exp(z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
+                q2   = exp(z_i[k,, drop=F] %*% zeta[,  2, drop=F])
+                q3   = exp(z_i[k,, drop=F] %*% zeta[,  3, drop=F])
+                q4   = exp(z_i[k,, drop=F] %*% zeta[,  4, drop=F])
                 
-                D_i_temp = matrix(c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3)), nrow = 1, ncol = 3)
-                D_i[[k]] = diag(4) %x% D_i_temp
-                
-                x_i_temp = matrix(c(x_i[k,]), ncol = 1)
-                X_i[[k]] = diag(4) %x% x_i[k,]
+                # transitions: 1->2, 2->3, 3->1, 3->2
+                Q = matrix(c(  1,  q1,  0,
+                               0,   1, q2,
+                               q3,  q4,  1), ncol=3, byrow=T)
+                P_i = Q / rowSums(Q)
+                # Sample the latent state sequence
+                b_i = c( b_i, sample(1:3, size=1, prob=P_i[tail(b_i,1),]))
             }
             
-            if(rbc_rule) {
-                print(paste0("bleed check: ", i, ", ", id_num))
-                if(2 %in% b_i) {
-                    first_bleed_ind = which(bleed_ind_i == 1)
-                    sim_bleed_ind = which(b_i == 2)
-                    if((sum(sim_bleed_ind <= first_bleed_ind) > 0) & 
-                       (2 %in% b_i[c(first_bleed_ind, first_bleed_ind - 1)])) {
-                        correct_bleed = T
-                    }
-                }
-            }
+            D_i_temp = matrix(c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3)), nrow = 1, ncol = 3)
+            D_i[[k]] = diag(4) %x% D_i_temp
             
-            if(correct_bleed) {break}
+            x_i_temp = matrix(c(x_i[k,]), ncol = 1)
+            X_i[[k]] = diag(4) %x% x_i[k,]
+        }
+        
+        if(rbc_rule) {
+            rbc_bleed_correct = c(rbc_bleed_correct, -1)
+            # print(paste0("bleed check: ", i, ", ", id_num))
+            if(2 %in% b_i) {
+                first_bleed_ind = which(bleed_ind_i == 1)
+                sim_bleed_ind = which(b_i == 2)
+                if((sum(sim_bleed_ind <= first_bleed_ind) > 0) & 
+                   (2 %in% b_i[c(first_bleed_ind, first_bleed_ind - 1)])) {
+                    correct_bleed = T
+                    rbc_bleed_correct[length(rbc_bleed_correct)] = 1
+                } 
+            } 
         }
         # ---------------------------------------------------------------------------
         
@@ -309,9 +316,9 @@ for (www in 1:1) {
         rules = Y[ Y[,'EID']==as.numeric(id_num), c('RBC_rule'), drop=F]
         rules = cbind(rules, 0)
 
-        if((1 %in% rules[,1]) & !(2 %in% b_i)) {
+        if((1 %in% rules[,1]) & !(correct_bleed)) {
             rules[,1] = 0
-            print("changed rule")
+            print("Bleed rule is changed to 0")
         }
         
         use_data = rbind( use_data, cbind( i, t_i, Y_i, b_i, 
@@ -329,6 +336,9 @@ for (www in 1:1) {
     cat('\n','Proption of occurances in each state:','\n')
     print(table(use_data[,'b_true'])/dim(use_data)[1])
     cat('\n')
+    
+    print(paste0("RBC rule is found in ", length(rbc_bleed_correct), " patients"))
+    print(paste0(sum(rbc_bleed_correct == 1), " were correct with the bleed event"))
 }
 
 bleed_indicator = bleed_indicator_update

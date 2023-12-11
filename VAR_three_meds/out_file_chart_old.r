@@ -5,8 +5,8 @@ set.seed(args[1])
 
 trialNum = 6
 itNum = 4
-data_num = 3
-simulation = F
+data_num = 4
+simulation = T
 
 Dir = 'Model_out/'
 

@@ -7,19 +7,20 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-data_num = 4
+sim_dat_num = 4
+real_dat_num = 3
 
-steps  = 50000
+steps  = 70000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
-  load(paste0('Data/use_data1_', data_num, '.rda'))
+  load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
   data_format = use_data
-  trialNum = 5
+  trialNum = 1
 } else {
-  load('Data/data_format_new2.rda')
-  trialNum = 6
+  load(paste0('Data/data_format_new', real_dat_num, '.rda'))
+  trialNum = 7
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -52,12 +53,13 @@ R = diag(4)
 zeta = matrix(c(-5.236006, -3.078241,        -4,     -5.23,
                  2.006518, -1.688983, -0.056713,  2.044297), nrow = 2,byrow = T)
 
-omega =c(1,  1,  1,  1, -1, -1, -1,  1, -1,  1, -1,  1,  1,  1, -1, 
-        -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  
-         1, -1, -1, -1, -1, -1, -1,  1, -1,  1,  1,  1, -1, -1, -1, 
-        -1, -1,  1, -1,  1,  1, -1,  1, -1, -1, -1, -1, -1,  1, -1, 
-        -1, -1, -1,  1,  1,  1, -1,  1,  1, -1, -1, -1, -1, -1, -1,
-        -1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
+omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
+          -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
+          -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
+           1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
+          -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
+          -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
+
 omega = 6 * omega
 upsilon_omega = rep(1, length(omega))
 
@@ -74,26 +76,25 @@ par_index$vec_A = 161:172
 par_index$vec_R = 173:188
 par_index$vec_zeta = 189:196
 par_index$vec_init = 197:198
-par_index$omega_tilde = 199:288
-par_index$vec_upsilon_omega = 289:378
+par_index$omega_tilde = 199:286
+par_index$vec_upsilon_omega = 287:374
 # -----------------------------------------------------------------------------
 
 if(simulation) {
-    load(paste0('Data/true_pars_', data_num, '.rda'))
-    load(paste0('Data/alpha_i_mat_', data_num, '.rda'))
-    load(paste0('Data/omega_i_mat_', data_num, '.rda'))
-    load(paste0('Data/Dn_omega_sim_', data_num, '.rda'))
-    load(paste0('Data/bleed_indicator_sim_', data_num,'.rda'))
+    load(paste0('Data/true_pars_', sim_dat_num, '.rda'))
+    load(paste0('Data/alpha_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data/omega_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data/Dn_omega_sim_', sim_dat_num, '.rda'))
+    load(paste0('Data/bleed_indicator_sim_', sim_dat_num,'.rda'))
     
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load('Model_out/mcmc_out_interm_1_5it5.rda')
-    load('Data/Dn_omega.rda')
-    load('Data/bleed_indicator_real.rda')
+    load('Model_out/mcmc_out_interm_1_6it5.rda')
+    load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
+    bleed_indicator = b_ind_fnc(data_format)
     par_temp = colMeans(mcmc_out_temp$chain)
     rownames(par_temp) = NULL
-    par = par_temp
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -106,8 +107,8 @@ for(i in EIDs){
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
-      # b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      # b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
+      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)

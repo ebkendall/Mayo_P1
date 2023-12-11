@@ -7,8 +7,8 @@ library(RcppDist, quietly = T)
 sourceCpp("likelihood_fnc_arm.cpp")
 
 # Needed for OpenMP C++ parallel
-Sys.setenv("PKG_CXXFLAGS" = "-fopenmp")
-Sys.setenv("PKG_LIBS" = "-fopenmp")
+# Sys.setenv("PKG_CXXFLAGS" = "-fopenmp")
+# Sys.setenv("PKG_LIBS" = "-fopenmp")
 
 
 # -----------------------------------------------------------------------------
@@ -32,16 +32,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 c(par_index$vec_A[1:4]),
                 c(par_index$vec_A[5:8]),
                 c(par_index$vec_A[9:12]),
-                c(par_index$vec_upsilon_omega[c(5,6,7,9,11,15,16,17,18,19,22,23,
-                                                24,25,26,27,28,32,33,34,35,36)]),
-                c(par_index$vec_upsilon_omega[c(1,2,3,4,8,10,12,13,14,20,21,29,
-                                                30,31)]),
-                c(par_index$vec_upsilon_omega[c(37,39,43,44,45,46,47,49,52,54,55,
-                                                56,57,58,60,61,62,63,67,70,71,72,
-                                                73,74,75,76,78,80,82,83,84,85,86,
-                                                87,88,89,90)]),                                        
-                c(par_index$vec_upsilon_omega[c(38,40,41,42,48,50,51,53,59,64,65,
-                                                66,68,69,77,79,81)]),
+                c(par_index$vec_upsilon_omega[c(1,2,4,7,8,11,12,13,15,23,24,27,
+                                                30,32)]),
+                c(par_index$vec_upsilon_omega[c(3,5,6,9,10,14,16,17,18,19,20,21,
+                                                22,25,26,28,29,31,33,34,35,36)]),
+                c(par_index$vec_upsilon_omega[c(38,40,42,43,44,45,47,48,50,52,55,
+                                                56,57,58,60,61,62,64,66,67,70,71,
+                                                73,75,76,77,78,79,80,83,84,85,86,
+                                                87,88)]),                                        
+                c(par_index$vec_upsilon_omega[c(37,39,41,46,49,51,53,54,59,63,65,
+                                                68,69,72,74,81,82)]),
                 c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -51,17 +51,17 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        print('Real data analysis')
-        load('Model_out/mcmc_out_interm_1_5it5.rda')
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
+        # print('Real data analysis')
+        # load('Model_out/mcmc_out_interm_1_6it5.rda')
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
         
-        # Setting initial values for Y
-        # Y[, 'hemo'] = colMeans(mcmc_out_temp$hc_chain)
-        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, ])
-        Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, ])
-        # Y[, 'lactate'] = colMeans(mcmc_out_temp$la_chain)
-        rm(mcmc_out_temp)
+        # # Setting initial values for Y
+        # # Y[, 'hemo'] = colMeans(mcmc_out_temp$hc_chain)
+        # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1000, ])
+        # Y[, 'map'] = c(mcmc_out_temp$bp_chain[1000, ])
+        # # Y[, 'lactate'] = colMeans(mcmc_out_temp$la_chain)
+        # rm(mcmc_out_temp)
         # Setting initial values for Y
         print("Initializing the missing Y's for imputation")
         for(i in EIDs) {
@@ -95,6 +95,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             }
         }
         print("Done initializing")
+    } else {
+        if(ind == 2) {
+            load(paste0('Model_out/mcmc_out_interm_', 3, '_6it4_sim.rda'))  
+        } else {
+            load(paste0('Model_out/mcmc_out_interm_', ind, '_6it4_sim.rda'))     
+        }
+
+        pcov = mcmc_out_temp$pcov
+        pscale = mcmc_out_temp$pscale
+        rm(mcmc_out_temp)
     }
   
     # Begin the MCMC algorithm -------------------------------------------------
@@ -118,8 +128,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         A_check = 100
 
         # print("Update Y"); s_time = Sys.time()
-        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
-        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B)
+        colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_i
@@ -145,12 +155,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Metropolis-within-Gibbs update of the state space
         # print("Update b_i"); s_time = Sys.time()
-        if(ttt > burnin) {
-            B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-                                  debug_temp1, debug_temp2, bleed_indicator)
-            B = B_Dn[[1]]; names(B) = EIDs
-            Dn = B_Dn[[2]]; names(Dn) = EIDs
-        }
+        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
+                                debug_temp1, debug_temp2, bleed_indicator)
+        B = B_Dn[[1]]; names(B) = EIDs
+        Dn = B_Dn[[2]]; names(Dn) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters 
@@ -376,3 +384,73 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 }
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
+
+b_ind_fnc <- function(data_format) {
+    bleed_pat = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
+    bleed_indicator = rep(0, nrow(data_format))
+    for(i in 1:length(bleed_pat)) {
+        sub_dat = data_format[data_format[,"EID"] == bleed_pat[i], ]
+        
+        # Check in any 12 hour period
+        max_time = tail(sub_dat[,"time"], 1)
+        when_rbc = c(1, which(diff(sub_dat[,"n_RBC_admin"]) != 0))
+        
+        for(j in 1:length(when_rbc)) {
+            s_time = sub_dat[when_rbc[j], "time"]
+            e_time_12 = s_time + 720
+            e_time_24 = s_time + 1440
+            RBC_diff_12 = RBC_diff_24 = 0
+            
+            if (e_time_12 <= max_time) {
+                s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+                ind_12 = order(abs(sub_dat[,"time"] - e_time_12))[1]
+                RBC_diff_12 = sub_dat[ind_12, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+            } else {
+                s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+                e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
+                RBC_diff_12 = sub_dat[e_ind, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+            }
+            if (e_time_24 <= max_time) {
+                s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+                ind_24 = order(abs(sub_dat[,"time"] - e_time_24))[1]
+                RBC_diff_24 = sub_dat[ind_24, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+            } else {
+                s_ind = order(abs(sub_dat[,"time"] - s_time))[1]
+                e_ind = order(abs(sub_dat[,"time"] - max_time))[1]
+                RBC_diff_24 = sub_dat[e_ind, "n_RBC_admin"] - sub_dat[s_ind, "n_RBC_admin"]
+            }
+            
+            if(RBC_diff_12 >=3 | RBC_diff_24 >= 6) {
+                admin_times = sub_dat[sub_dat[,"RBC_admin"] != 0, "time"]
+                if(RBC_diff_12 >=3) {
+                    a_t = which(admin_times >= s_time & admin_times < e_time_12)
+                    first_time = admin_times[a_t[1]]
+                    order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
+                    if(sum(order_times <= first_time) == 0) {
+                        print(paste0(i, ", ", sub_dat[1,"EID"]))
+                        first_order_time = first_time
+                    } else {
+                        first_order_time = max(order_times[order_times <= first_time])   
+                    }
+                } else if (RBC_diff_24 >= 6) {
+                    a_t = which(admin_times >= s_time & admin_times < e_time_24)
+                    first_time = admin_times[a_t[1]]  
+                    order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
+                    if(sum(order_times <= first_time) == 0) {
+                        print(paste0(i, ", ", sub_dat[1,"EID"]))
+                        first_order_time = first_time
+                    } else {
+                        first_order_time = max(order_times[order_times <= first_time])   
+                    }
+                }
+                
+                bleed_indicator[data_format[,"EID"] == bleed_pat[i] & 
+                                    data_format[,"time"] == first_order_time] = 1
+                break
+            }
+            
+        }
+    }
+    return(bleed_indicator)
+}
+
