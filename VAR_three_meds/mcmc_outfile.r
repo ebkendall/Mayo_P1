@@ -20,9 +20,9 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = T
-data_num = 4
-load("Data/Dn_omega_names.rda")
-load('Data/hr_map_names.rda')
+data_num = 5
+load("Data/Dn_omega_names3.rda")
+load('Data/hr_map_names3.rda')
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -41,16 +41,16 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
            "logit Pr(init S2)", "logit Pr(init S3)",
-           paste0("mean (hr): ", Dn_omega_names[1:36]), paste0("mean (map): ", Dn_omega_names[37:90]), 
-           paste0("log Upsilon (hr): ", Dn_omega_names[1:36]), paste0("log Upsilon (map): ", Dn_omega_names[37:90])) 
+           paste0("mean (hr): ", Dn_omega_names[1:36]), paste0("mean (map): ", Dn_omega_names[37:88]), 
+           paste0("log Upsilon (hr): ", Dn_omega_names[1:36]), paste0("log Upsilon (map): ", Dn_omega_names[37:88])) 
 additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1:5)
-    trialNum = 1
-    itNum = 2
+    index_seeds = c(1:2)
+    trialNum = 4
+    itNum = 3
 } else {
     index_seeds = c(1:5)
     trialNum = 6 # Change this everytime!!!! ****************
@@ -236,7 +236,7 @@ if(simulation) {
     print(paste0(sum(true_par[par_index$omega_tilde] != 0), " out of ", length(par_index$omega_tilde), " medications have nonzero effect"))
 }
 
-load('Data/med_select_FINAL.rda')
+load('Data/med_select_FINAL3.rda')
 for(i in 1:nrow(red_par)) {
     if(red_par$vital[i] == "hr") {
         val = as.numeric(unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == red_par$name[i]]))

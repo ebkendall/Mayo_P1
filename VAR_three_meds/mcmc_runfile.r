@@ -7,20 +7,20 @@ set.seed(ind)
 print(ind)
 
 simulation = T
-sim_dat_num = 4
+sim_dat_num = 5
 real_dat_num = 3
 
-steps  = 70000
+steps  = 50000
 burnin =  5000
 
 data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
   data_format = use_data
-  trialNum = 1
+  trialNum = 5
 } else {
   load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-  trialNum = 7
+  trialNum = 1
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 

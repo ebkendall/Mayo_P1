@@ -3,9 +3,9 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 6
-itNum = 4
-data_num = 4
+trialNum = 4
+itNum = 3
+data_num = 5
 simulation = T
 
 Dir = 'Model_out/'
@@ -24,7 +24,7 @@ mcmc_out_temp$la_chain = mcmc_out_temp$la_chain[300:1000, ]
 if(simulation) {
     load(paste0('Data/use_data1_', data_num, '.rda'))
 } else {
-    load('Data/data_format_new2.rda')
+    load('Data/data_format_new3.rda')
     use_data = data_format   
 }
 
@@ -37,7 +37,7 @@ if(simulation) {
 
 EIDs = unique(use_data[,'EID'])
 load('Data/red_par.rda')
-load('Data/med_select_FINAL.rda')
+load('Data/med_select_FINAL3.rda')
 hr_meds_u = red_par$name[red_par$vital == 'hr' & red_par$fit_up_down == 1]
 hr_meds_d = red_par$name[red_par$vital == 'hr' & red_par$fit_up_down == -1]
 map_meds_u = red_par$name[red_par$vital == 'map' & red_par$fit_up_down == 1]

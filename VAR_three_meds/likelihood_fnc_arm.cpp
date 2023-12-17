@@ -1,8 +1,8 @@
 #include <RcppDist.h>
 // [[Rcpp::depends(RcppArmadillo, RcppDist)]]
 
-// #include <omp.h>
-// // [[Rcpp::plugins(openmp)]]
+#include <omp.h>
+// [[Rcpp::plugins(openmp)]]
 
 using namespace Rcpp;
 
@@ -297,7 +297,7 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
                          const arma::field <arma::vec> &A, const arma::field <arma::vec> &B, 
                          const arma::mat &Y, const arma::mat &z, const arma::field<arma::field<arma::mat>> &Dn, 
                          const arma::field <arma::field<arma::mat>> &Xn, const arma::field<arma::field<arma::mat>> &Dn_omega, 
-                         const arma::field <arma::vec> &W) {
+                         const arma::field <arma::vec> &W, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -306,7 +306,7 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
   // "ii" is the index of the EID
   arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
 
-    // omp_set_num_threads(31);
+    omp_set_num_threads(n_cores);
     # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
@@ -323,7 +323,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
                     const arma::field<arma::vec> &A, const arma::field<arma::vec> &B,
                     const arma::mat &Y, const arma::mat &z, const arma::field<arma::field<arma::mat>> &Dn,
                     const arma::field<arma::field<arma::mat>> &Xn, const arma::field<arma::field<arma::mat>> &Dn_omega, 
-                    const arma::field<arma::vec> &W) {
+                    const arma::field<arma::vec> &W, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -334,7 +334,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Compute the likelihood ----------------------------------------------------
   double value;
   arma::vec t_pts = {-1};
-  value = log_f_i_cpp_total(EIDs, t_pts, par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W);
+  value = log_f_i_cpp_total(EIDs, t_pts, par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores);
   // ---------------------------------------------------------------------------
 
   // Compute prior densities of all necessary model parameters -----------------
@@ -401,7 +401,7 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
                           const arma::mat Y, const arma::mat z, arma::field<arma::field<arma::mat>> Dn, 
                           const arma::field <arma::field<arma::mat>> Xn, const arma::field<arma::field<arma::mat>> Dn_omega, 
                           const arma::field <arma::vec> W, arma::mat &l1, arma::mat &l2,
-                          const arma::vec bleed_indicator) {
+                          const arma::vec bleed_indicator, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -416,7 +416,7 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
   arma::field<arma::vec> B_return(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
   
-  // omp_set_num_threads(30);
+  omp_set_num_threads(n_cores);
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
@@ -574,7 +574,7 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
 Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B, 
                              const arma::mat Y, const arma::vec par, 
                              const arma::field<arma::uvec> par_index,
-                             const arma::vec x) {
+                             const arma::vec x, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -586,7 +586,7 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
   arma::field<arma::field<arma::mat>> Dn(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Xn(EIDs.n_elem);
   
-  // omp_set_num_threads(15) ;
+  omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
@@ -633,7 +633,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
                                             const arma::field <arma::field<arma::mat>> Xn,
                                             const arma::field<arma::field<arma::mat>> Dn_omega, 
                                             const arma::field <arma::vec> W, 
-                                            arma::field <arma::vec> B){
+                                            arma::field <arma::vec> B, int n_cores){
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -672,7 +672,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
                             exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
   
-  // omp_set_num_threads(16) ;
+  omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
       int i = EIDs(ii);
@@ -767,7 +767,7 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec EIDs, const arma::ve
                                             const arma::field <arma::field<arma::mat>> Xn,
                                             const arma::field<arma::field<arma::mat>> Dn_omega, 
                                             const arma::field <arma::vec> A, 
-                                            arma::field <arma::vec> B){
+                                            arma::field <arma::vec> B, int n_cores){
 
     // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
     //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -806,7 +806,7 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec EIDs, const arma::ve
                               exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
     
-    // omp_set_num_threads(16) ;
+    omp_set_num_threads(n_cores) ;
     # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
@@ -1001,7 +1001,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
                                      arma::field<arma::field<arma::mat>> Dn, 
                                      const arma::field <arma::field<arma::mat>> Xn, 
                                      const arma::field<arma::field<arma::mat>> Dn_omega, 
-                                     const arma::field <arma::vec> W, arma::field <arma::vec> B) {
+                                     const arma::field <arma::vec> W, arma::field <arma::vec> B,
+                                     int n_cores) {
   // Conjugate updates for beta and sigma_upsilon
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -1055,7 +1056,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
   arma::field<arma::mat> in_Upsilon_cov_main(EIDs.n_elem);
   // arma::field<arma::mat> in_Upsilon_omega(EIDs.n_elem);
 
-  // omp_set_num_threads(16) ;
+  omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
       int i = EIDs(ii);
@@ -1150,7 +1151,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 
   int n_sub = EIDs.n_elem;
 
-  par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
+//   par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
   par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
 
   return par;
@@ -1163,7 +1164,8 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                           arma::field <arma::field<arma::mat>> Dn, 
                           const arma::field <arma::field<arma::mat>> Xn, const arma::mat otype,
                           const arma::field<arma::field<arma::mat>> Dn_omega,
-                          const arma::field <arma::vec> W, arma::field <arma::vec> B) {
+                          const arma::field <arma::vec> W, arma::field <arma::vec> B,
+                          int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -1195,9 +1197,10 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                             exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
   
-  // omp_set_num_threads(30) ;
+  omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
-  for (int ii = 0; ii < EIDs.n_elem; ii++) {			
+  for (int ii = 0; ii < EIDs.n_elem; ii++) {	
+      
       int i = EIDs(ii);
       
       arma::uvec sub_ind = arma::find(eids == i);
@@ -1262,11 +1265,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               } else if(k == Y_i.n_cols - 1) {
@@ -1286,11 +1289,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, R, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, R, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               } else {
@@ -1320,11 +1323,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               }
