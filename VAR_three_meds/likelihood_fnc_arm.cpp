@@ -1105,18 +1105,18 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
                               R(0,1) / (1 - vec_A(0) * vec_A(1)), 
                               R(0,2) / (1 - vec_A(0) * vec_A(2)), 
                               R(0,3) / (1 - vec_A(0) * vec_A(3))},
-                              {R(1,0) / (1 - vec_A(1) * vec_A(0)), 
-                                R(1,1) / (1 - vec_A(1) * vec_A(1)), 
-                                R(1,2) / (1 - vec_A(1) * vec_A(2)), 
-                                R(1,3) / (1 - vec_A(0) * vec_A(3))},
-                                {R(2,0) / (1 - vec_A(2) * vec_A(0)), 
-                                R(2,1) / (1 - vec_A(2) * vec_A(1)), 
-                                R(2,2) / (1 - vec_A(2) * vec_A(2)), 
-                                R(2,3) / (1 - vec_A(0) * vec_A(3))},
-                                {R(3,0) / (1 - vec_A(3) * vec_A(0)), 
-                                  R(3,1) / (1 - vec_A(3) * vec_A(1)), 
-                                  R(3,2) / (1 - vec_A(3) * vec_A(2)), 
-                                  R(3,3) / (1 - vec_A(0) * vec_A(3))}};
+                             {R(1,0) / (1 - vec_A(1) * vec_A(0)), 
+                              R(1,1) / (1 - vec_A(1) * vec_A(1)), 
+                              R(1,2) / (1 - vec_A(1) * vec_A(2)), 
+                              R(1,3) / (1 - vec_A(0) * vec_A(3))},
+                             {R(2,0) / (1 - vec_A(2) * vec_A(0)), 
+                              R(2,1) / (1 - vec_A(2) * vec_A(1)), 
+                              R(2,2) / (1 - vec_A(2) * vec_A(2)), 
+                              R(2,3) / (1 - vec_A(0) * vec_A(3))},
+                             {R(3,0) / (1 - vec_A(3) * vec_A(0)), 
+                              R(3,1) / (1 - vec_A(3) * vec_A(1)), 
+                              R(3,2) / (1 - vec_A(3) * vec_A(2)), 
+                              R(3,3) / (1 - vec_A(0) * vec_A(3))}};
       
       arma::mat inv_Gamma = arma::inv_sympd(Gamma);
       
@@ -1151,7 +1151,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 
   int n_sub = EIDs.n_elem;
 
-//   par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
+  par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
   par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
 
   return par;
@@ -1265,11 +1265,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  // while(arma::any(update_value <= 0)) {
-                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                  //     update_value = Y_i_new.col(k);
-                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  // }
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               } else if(k == Y_i.n_cols - 1) {
@@ -1289,11 +1289,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  // while(arma::any(update_value <= 0)) {
-                  //     new_value = arma::mvnrnd(y_i_mean, R, 1);
-                  //     update_value = Y_i_new.col(k);
-                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  // }
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, R, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               } else {
@@ -1323,11 +1323,11 @@ arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  // while(arma::any(update_value <= 0)) {
-                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                  //     update_value = Y_i_new.col(k);
-                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  // }
+                  while(arma::any(update_value <= 0)) {
+                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                      update_value = Y_i_new.col(k);
+                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  }
 
                   Y_i_new.col(k) = update_value;
               }

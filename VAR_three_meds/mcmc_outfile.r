@@ -19,7 +19,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$omega_tilde = 191:198
 # par_index$vec_upsilon_omega = 199:262
 
-simulation = T
+simulation = F
 data_num = 5
 load("Data/Dn_omega_names3.rda")
 load('Data/hr_map_names3.rda')
@@ -48,13 +48,13 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
 if(simulation) {
-    index_seeds = c(1:2)
-    trialNum = 4
+    index_seeds = c(1:3)
+    trialNum = 6
     itNum = 3
 } else {
-    index_seeds = c(1:5)
-    trialNum = 6 # Change this everytime!!!! ****************
-    itNum = 5
+    index_seeds = c(2:3)
+    trialNum = 5  # Change this everytime!!!! ****************
+    itNum = 4
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
@@ -75,11 +75,7 @@ if(simulation) {
   load(paste0('Data/use_data1_', data_num, '.rda'))
   data_format = use_data
 } else {
-  load('Data/data_format_new2.rda')
-#   pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-#               417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-#               732525, 758025, 763050, 843000, 117525)
-#   data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
+  load('Data/data_format_new3.rda')
 }
 
 n_subjects = length(unique(data_format[,'EID']))

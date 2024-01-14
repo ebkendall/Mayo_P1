@@ -6,21 +6,27 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+# fix everything but VAR parameters (trial 3)
+# run with state space fixed (trial 4)
+# fix everything but VAR pars and state space (trial 5)
+# Full simulation with updated data (small variance) (trial 6)
+# Full simulation with more noise (normal & long burnin) (trial 7 & 8)
+
+simulation = F
 sim_dat_num = 5
 real_dat_num = 3
 
 steps  = 50000
-burnin =  5000
+burnin =  0
 
 data_format = NULL
 if(simulation) {
   load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
   data_format = use_data
-  trialNum = 5
+  trialNum = 6
 } else {
   load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-  trialNum = 1
+  trialNum = 6
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -90,11 +96,13 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load('Model_out/mcmc_out_interm_1_6it5.rda')
+    load('Model_out/mcmc_out_interm_2_5it4.rda')
     load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
-    par_temp = colMeans(mcmc_out_temp$chain)
+    par_temp = mcmc_out_temp$chain[1001, ]
     rownames(par_temp) = NULL
+
+    par = par_temp
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -107,8 +115,8 @@ for(i in EIDs){
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      # b_temp = mcmc_out_temp$B_chain[1000, Y[,'EID']==as.numeric(i)]
-      b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+      b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
+    #   b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
