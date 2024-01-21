@@ -52,8 +52,8 @@ if(simulation) {
     trialNum = 6
     itNum = 3
 } else {
-    index_seeds = c(2:3)
-    trialNum = 5  # Change this everytime!!!! ****************
+    index_seeds = c(1:2)
+    trialNum = 6  # Change this everytime!!!! ****************
     itNum = 4
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
@@ -172,10 +172,10 @@ lab_ind = 0
 red_par = matrix(0, nrow=1,ncol=2)
 for(s in names(par_index)){
     temp_par = par_index[[s]]
-    if (s == names(par_index)[3]) {
-        temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
-                              92, 105, 118, 131, 144)]
-    }
+    # if (s == names(par_index)[3]) {
+    #     temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
+    #                           92, 105, 118, 131, 144)]
+    # }
     for(r in temp_par){
         # lab_ind = lab_ind + 1
         lab_ind = r

@@ -54,7 +54,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_2_5it4.rda')
+        load('Model_out/mcmc_out_interm_2_6it4.rda')
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
         
@@ -126,8 +126,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         A_check = 100
 
         # print("Update Y"); s_time = Sys.time()
-        Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B, n_cores)
-        colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B, n_cores)
+        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_i

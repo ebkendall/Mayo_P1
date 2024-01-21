@@ -6,27 +6,32 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-# fix everything but VAR parameters (trial 3)
-# run with state space fixed (trial 4)
-# fix everything but VAR pars and state space (trial 5)
-# Full simulation with updated data (small variance) (trial 6)
-# Full simulation with more noise (normal & long burnin) (trial 7 & 8)
+# Simulation trials:
+# trial 3: fix everything but VAR parameters
+# trial 4: run with state space fixed
+# trial 5: fix everything but VAR pars and state space
 
-simulation = F
-sim_dat_num = 5
+# trial 1: Full sim with updated data (start at correct states, no state update)
+# trial 2: Full sim with updated data (start at correct states)
+
+simulation = T
+sim_dat_num = 6
 real_dat_num = 3
-
-steps  = 50000
-burnin =  0
 
 data_format = NULL
 if(simulation) {
-  load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
-  data_format = use_data
-  trialNum = 6
+    steps  = 50000
+    burnin =  5000
+    
+    load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
+    data_format = use_data
+    trialNum = 2
 } else {
-  load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-  trialNum = 6
+    steps  = 50000
+    burnin =  0
+    
+    load(paste0('Data/data_format_new', real_dat_num, '.rda'))
+    trialNum = 7
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -96,7 +101,7 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load('Model_out/mcmc_out_interm_2_5it4.rda')
+    load('Model_out/mcmc_out_interm_2_6it4.rda')
     load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
     par_temp = mcmc_out_temp$chain[1001, ]

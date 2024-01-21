@@ -3,8 +3,8 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 4
-itNum = 3
+trialNum = 6
+itNum = 2
 data_num = 5
 simulation = F
 

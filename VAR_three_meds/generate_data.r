@@ -4,7 +4,7 @@ library(mvtnorm, quietly=T)
 real_dat_num = 3
 load(paste0('Data/data_format_new', real_dat_num, '.rda'))
 
-it_num = 5
+it_num = 6
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 
@@ -91,41 +91,68 @@ p = ncol(x)
 z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
+# Loading the parameter values to base this off of
+load('Model_out/mcmc_out_interm_2_6it4.rda')
+pars_mean = colMeans(mcmc_out_temp$chain[900:1001,])
+
+# Initializing par_index
+par_index = list()
+par_index$vec_beta = 1:4
+par_index$vec_alpha_tilde = 5:16
+par_index$vec_sigma_upsilon = 17:160
+par_index$vec_A = 161:172
+par_index$vec_R = 173:188
+par_index$vec_zeta = 189:196
+par_index$vec_init = 197:198
+par_index$omega_tilde = 199:286
+par_index$vec_upsilon_omega = 287:374
+
+save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
+
 # Parameters ------------------------------------------------------------------
-beta = c(0.6261, -1.3286, 1.6741, -0.1)
+# beta = c(0.6261, -1.3286, 1.6741, -0.1)
+beta = pars_mean[par_index$vec_beta]
 
-# columns: hemo, hr, map
-alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
-                                 -1,  5.04150472, -5.42458547,         1,
-                                  1, 	      -4, 		    4,        -1), ncol=4, byrow=T)
+# alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
+#                                  -1,  5.04150472, -5.42458547,         1,
+#                                   1, 	      -4, 		    4,        -1), ncol=4, byrow=T)
+alpha_tilde = matrix(pars_mean[par_index$vec_alpha_tilde], ncol = 4)
 
-sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 36, 1, 1, 4, 0.25, 0.25))
+# sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 36, 1, 1, 4, 0.25, 0.25))
+sigma_upsilon = Upsilon = matrix(pars_mean[par_index$vec_sigma_upsilon], ncol = 12)
 
-A_mat = matrix(c(2, -2, 0,
-                 2, -2, 0,
-                 2, -2, 0,
-                 2, -2, 0), ncol = 3, byrow = T)
+# A_mat = matrix(c(2, -2, 0,
+#                  2, -2, 0,
+#                  2, -2, 0,
+#                  2, -2, 0), ncol = 3, byrow = T)
+A_mat = matrix(pars_mean[par_index$vec_A], ncol = 3)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-R = diag(4)
+# R = diag(4)
+R = matrix(pars_mean[par_index$vec_R], ncol = 4)
 
 # transitions: 1->2, 2->3, 3->1, 3->2
-zeta = matrix(c(      -5, -4.078241, -7.000000, -7.230000,
-                3.006518,      -1.2,   -1.6713,  3.544297), ncol = 4, byrow=T)
+# zeta = matrix(c(      -5, -4.078241, -7.000000, -7.230000,
+#                 3.006518,      -1.2,   -1.6713,  3.544297), ncol = 4, byrow=T)
+zeta = matrix(pars_mean[par_index$vec_zeta], ncol = 4)
 
-init_logit = c(0,-5,-2)
-init_logit = exp(init_logit)
+# init_logit = c(0,-5,-2)
+# init_logit = exp(init_logit)
+init_logit = pars_mean[par_index$vec_init]
+init_logit = c(0, init_logit)
 
-omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
-          -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
-          -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
-           1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
-          -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
-          -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
-omega = 6 * omega
+# omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
+#           -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
+#           -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
+#            1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
+#           -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
+#           -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
+# omega = 6 * omega
+omega = pars_mean[par_index$omega_tilde]
+
 
 # Changing some medication effects
 load(paste0('Data/med_select_FINAL', real_dat_num, '.rda'))
@@ -155,25 +182,15 @@ zero_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_0),
 one_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_1), 
             hr_max_ind + which(Dn_omega_names[(hr_max_ind+1):map_max_ind] %in% map_med_1))
 
-omega[zero_ind] = omega[zero_ind] / 6
-omega[one_ind] = omega[one_ind] / 2
+# omega[zero_ind] = omega[zero_ind] / 6
+# omega[one_ind] = omega[one_ind] / 2
 
-upsilon_omega = runif(length(omega))
+# upsilon_omega = runif(length(omega))
+upsilon_omega = exp(pars_mean[par_index$vec_upsilon_omega])
 
-true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
-              log(init_logit)[2:3], omega, log(upsilon_omega))
-par_index = list()
-par_index$vec_beta = 1:4
-par_index$vec_alpha_tilde = 5:16
-par_index$vec_sigma_upsilon = 17:160
-par_index$vec_A = 161:172
-par_index$vec_R = 173:188
-par_index$vec_zeta = 189:196
-par_index$vec_init = 197:198
-par_index$omega_tilde = 199:286
-par_index$vec_upsilon_omega = 287:374
-
-save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
+# true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
+#               init_logit[2:3], omega, log(upsilon_omega))
+true_pars = pars_mean
 save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
 
@@ -191,7 +208,6 @@ for (www in 1:1) {
     for(i in 1:N){
         
         id_num = EIDs[i]
-        # id_num = sample(x = EIDs, size = 1, replace = T)
         ind_i = which(EIDs == id_num)
         Dn_omega_sim[[i]] = Dn_omega[[ind_i]]
         D_i_omega = Dn_omega_sim[[i]]
@@ -218,7 +234,7 @@ for (www in 1:1) {
             print(paste0("issue n_i: ", i))
         }
         
-        P_i = init_logit / sum(init_logit)
+        P_i = exp(init_logit) / sum(exp(init_logit))
         for(k in 1:n_i){
             if(k==1){
                 b_i = sample(1:3, size=1, prob=P_i)
@@ -347,3 +363,106 @@ save(alpha_i_mat, file = paste0('Data/alpha_i_mat_', it_num, '.rda'))
 save(omega_i_mat, file = paste0('Data/omega_i_mat_', it_num, '.rda'))
 save(bleed_indicator, file = paste0('Data/bleed_indicator_sim_', it_num, '.rda'))
 save(Dn_omega_sim, file = paste0('Data/Dn_omega_sim_', it_num, '.rda'))
+
+# Visualize the noise --------------------------------------------------------
+load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
+
+EIDs = unique(use_data[,'EID'])
+simulation = T
+
+# New patients ---------------------------------------------------------------
+pdf(paste0('Plots/initial_charts', it_num, '.pdf'))
+panels = c(4, 1)
+par(mfrow=panels, mar=c(2,4,2,4), bg='black', fg='green')
+for(i in EIDs){
+    # print(which(EIDs == i))
+    indices_i = (use_data[,'EID']==i)
+    n_i = sum(indices_i)
+    t_grid = seq( 0, n_i, by=5)[-1]
+    rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
+    rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
+
+    if(simulation){
+        b_i = use_data[ indices_i,'b_true']
+        to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
+        to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
+        to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
+    }
+    # HEART RATE --------------------------------------------------------------
+    if(sum(!is.na(use_data[indices_i, 'hr']))==0){
+        plot.new()
+    } else{
+        plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])),
+             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+        grid( nx=20, NULL, col='white')
+        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+    }
+    if(simulation){
+        abline( v=to_s1, col='dodgerblue', lwd=2)
+        abline( v=to_s2, col='firebrick1', lwd=2)
+        abline( v=to_s3, col='yellow2', lwd=2)
+        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+    }
+
+    # MAP --------------------------------------------------------------
+    if(sum(!is.na(use_data[indices_i, 'map']))==0){
+        plot.new()
+    } else{
+        plot(use_data[indices_i, 'map'], main=paste0('map: ', i),
+             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+        grid( nx=20, NULL, col='white')
+        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+    }
+    if(simulation){
+        abline( v=to_s1, col='dodgerblue', lwd=2)
+        abline( v=to_s2, col='firebrick1', lwd=2)
+        abline( v=to_s3, col='yellow2', lwd=2)
+        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+    }
+
+    # HEMO --------------------------------------------------------------
+    if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
+        plot.new()
+    } else{
+        plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i),
+             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+        grid( nx=20, NULL, col='white')
+        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+    }
+    if(simulation){
+        abline( v=to_s1, col='dodgerblue', lwd=2)
+        abline( v=to_s2, col='firebrick1', lwd=2)
+        abline( v=to_s3, col='yellow2', lwd=2)
+        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+    }
+
+    # LACTATE --------------------------------------------------------------
+    if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
+        plot.new()
+    } else{
+        plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i),
+             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+        grid( nx=20, NULL, col='white')
+        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
+    }
+    if(simulation){
+        abline( v=to_s1, col='dodgerblue', lwd=2)
+        abline( v=to_s2, col='firebrick1', lwd=2)
+        abline( v=to_s3, col='yellow2', lwd=2)
+        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
+        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
+    }
+
+}
+dev.off()
