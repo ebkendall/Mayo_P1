@@ -20,7 +20,7 @@ index_post = (steps - burnin - n_post + 1):(steps - burnin)
 # par_index$vec_upsilon_omega = 199:262
 
 simulation = F
-data_num = 5
+data_num = 6
 load("Data/Dn_omega_names3.rda")
 load('Data/hr_map_names3.rda')
 
@@ -49,12 +49,12 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 
 if(simulation) {
     index_seeds = c(1:3)
-    trialNum = 6
-    itNum = 3
+    trialNum = 2
+    itNum = 5
 } else {
-    index_seeds = c(1:2)
-    trialNum = 6  # Change this everytime!!!! ****************
-    itNum = 4
+    index_seeds = c(1,3)
+    trialNum = 7  # Change this everytime!!!! ****************
+    itNum = 5
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
@@ -96,35 +96,42 @@ chain_list = vector(mode = "list", length = length(index_seeds))
 ind = 0
 
 for(seed in index_seeds){
-    if(simulation) {
-        file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', trialNum,'it', itNum, '_sim.rda') 
-    } else {
-        file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', trialNum,'it', itNum, '.rda')
-    }
-    if (file.exists(file_name)) {
+    ind = ind + 1
+    for(it in 1:itNum) {
+        if(simulation) {
+            file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
+                                trialNum,'it', it, '_sim.rda') 
+        } else {
+            file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
+                                trialNum,'it', it, '.rda')
+        }
+
         load(file_name)
-        ind = ind + 1
         print(paste0(ind, ": ", file_name))
         print(mcmc_out_temp$accept)
         
         par_index = mcmc_out_temp$par_index
 
-        chain_list[[ind]] = mcmc_out_temp$chain[index_post,]
-
-        # Adding the A_chain components
-        for (s in 1:4) {
-            print(s)
-            main_ind = min(which(is.na(chain_bleed[[s]])))
-            for(i in 1:n_subjects) {
-                chain_base[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-2]
-                chain_bleed[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-1]
-                chain_recov[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s]
-                main_ind = main_ind + 1
-            }
+        if(it == 1) {
+            chain_list[[ind]] = mcmc_out_temp$chain[index_post,]
+        } else {
+            chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain[index_post,])
         }
-
-        rm(mcmc_out_temp)
     }
+
+    # Adding the A_chain components
+    for (s in 1:4) {
+        print(s)
+        main_ind = min(which(is.na(chain_bleed[[s]])))
+        for(i in 1:n_subjects) {
+            chain_base[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-2]
+            chain_bleed[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-1]
+            chain_recov[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s]
+            main_ind = main_ind + 1
+        }
+    }
+
+    rm(mcmc_out_temp)
 }
 
 stacked_chains = do.call( rbind, chain_list)
@@ -172,10 +179,6 @@ lab_ind = 0
 red_par = matrix(0, nrow=1,ncol=2)
 for(s in names(par_index)){
     temp_par = par_index[[s]]
-    # if (s == names(par_index)[3]) {
-    #     temp_par = temp_par[c(1 ,  14,  27,  40,  53, 66, 79,
-    #                           92, 105, 118, 131, 144)]
-    # }
     for(r in temp_par){
         # lab_ind = lab_ind + 1
         lab_ind = r
@@ -197,7 +200,7 @@ for(s in names(par_index)){
         }
         
         y_limit = range(stacked_chains[,r])
-        plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,length(index_post)),
+        plot( NULL, ylab=NA, main=labels[lab_ind], xlim=c(1,nrow(chain_list[[1]])),
               ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                           ", ", round(upper, 4), "]"),
               col.main = title_color)
