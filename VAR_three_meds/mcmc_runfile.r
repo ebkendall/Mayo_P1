@@ -14,6 +14,9 @@ print(ind)
 # trial 1: Full sim with updated data (start at correct states, no state update)
 # trial 2: Full sim with updated data (start at correct states)
 
+# trial 7 start from same values, trial 8 - on are continuations of the previous 
+# iteration
+
 simulation = T
 sim_dat_num = 6
 real_dat_num = 3

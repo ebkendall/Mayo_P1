@@ -3,10 +3,16 @@ library(plotrix)
 args <- commandArgs(TRUE)
 set.seed(args[1])
 
-trialNum = 6
-itNum = 2
-data_num = 5
+data_num = 6
 simulation = F
+
+if(simulation) {
+    trialNum = 2
+    itNum = 5
+} else {
+    trialNum = 7
+    itNum = 5
+}
 
 Dir = 'Model_out/'
 

@@ -51,10 +51,12 @@ if(simulation) {
     index_seeds = c(1:3)
     trialNum = 2
     itNum = 5
+    long_chain = F
 } else {
     index_seeds = c(1,3)
     trialNum = 7  # Change this everytime!!!! ****************
     itNum = 5
+    long_chain = T
 }
 # load('Model_out/mcmc_out_interm_3_13it10.rda')
 # par_temp = colMeans(mcmc_out_temp$chain)
@@ -97,7 +99,12 @@ ind = 0
 
 for(seed in index_seeds){
     ind = ind + 1
-    for(it in 1:itNum) {
+    if(long_chain) {
+        it_seq = 1:itNum
+    } else {
+        it_seq = itNum
+    }
+    for(it in it_seq) {
         if(simulation) {
             file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
                                 trialNum,'it', it, '_sim.rda') 

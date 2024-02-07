@@ -396,11 +396,15 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
 }
 
 // [[Rcpp::export]]
-Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma::field<arma::uvec> par_index, 
-                          const arma::field <arma::vec> A, arma::field <arma::vec> B, 
-                          const arma::mat Y, const arma::mat z, arma::field<arma::field<arma::mat>> Dn, 
-                          const arma::field <arma::field<arma::mat>> Xn, const arma::field<arma::field<arma::mat>> Dn_omega, 
-                          const arma::field <arma::vec> W, arma::mat &l1, arma::mat &l2,
+Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, 
+                          const arma::field<arma::uvec> par_index, 
+                          const arma::field <arma::vec> A, 
+                          arma::field <arma::vec> B, 
+                          const arma::mat Y, const arma::mat z, 
+                          arma::field<arma::field<arma::mat>> Dn, 
+                          const arma::field <arma::field<arma::mat>> Xn, 
+                          const arma::field<arma::field<arma::mat>> Dn_omega, 
+                          const arma::field <arma::vec> W,
                           const arma::vec bleed_indicator, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
@@ -466,16 +470,6 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
       
       pr_B.rows(k, k+1) = Omega_set.row(sampled_index-1).t();
       
-      // DEBUG ----------------------------------------------------------------
-      // Rows: likelihood b4, likelihood after, p1, p2, accept
-      if(i == -1) {
-          l1(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
-      }
-      if(i == -2) {
-          l2(arma::span(2,3), k) = Omega_set.row(sampled_index-1).t();
-      }
-      // ----------------------------------------------------------------------
-      
       // Adding clinical review
       bool valid_prop = false;
       
@@ -528,44 +522,19 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, const arma:
                                         pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
                                         Dn_omega_temp, W_temp);
         
-        // DEBUG ----------------------------------------------------------------
-        // Rows: likelihood b4, likelihood after, p1, p2, accept
-        if(i == -1) {
-            l1(0, k) = log_target_prev;
-            l1(1, k) = log_target;
-            l1(4, k) = 0;
-            l1(5, k) = B_temp(k);
-            l1(6, k) = B_temp(k+1);
-        }
-        if(i == -2) {
-            l2(0, k) = log_target_prev;
-            l2(1, k) = log_target;
-            l2(4, k) = 0;
-            l2(5, k) = B_temp(k);
-            l2(6, k) = B_temp(k + 1);
-        }
-        // ----------------------------------------------------------------------
-        
-        
         // Note that the proposal probs cancel in the MH ratio
         double diff_check = log_target - log_target_prev;
         double min_log = log(arma::randu(arma::distr_param(0,1)));
         if(diff_check > min_log){
           B_temp = pr_B;
           Dn_temp = pr_Dn;
-          
-          // DEBUG ----------------------------------------------------------------
-          // Rows: likelihood b4, likelihood after, p1, p2, accept
-          if(i == -1)  { l1(4, k) = 1;}
-          if(i == -2) { l2(4, k) = 1;}
-          // ----------------------------------------------------------------------
         }
       }
     }
     B_return(ii) = B_temp;
     Dn_return(ii) = Dn_temp;
   }
-  List B_Dn = List::create(B_return, Dn_return, l1, l2);
+  List B_Dn = List::create(B_return, Dn_return);
   
   return B_Dn;
 }

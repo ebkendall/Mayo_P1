@@ -109,12 +109,19 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     chain_length_MASTER = 1001
     chain = matrix( 0, chain_length_MASTER, length(par)) # steps
     B_chain = hc_chain = hr_chain = bp_chain = la_chain = matrix( 0, chain_length_MASTER, nrow(Y)) # steps-burnin
-    A_chain = vector(mode = "list", length = 10)
     accept = rep( 0, n_group)
 
     Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, n_cores)
     Dn = Dn_Xn[[1]]; names(Dn) = EIDs
     Xn = Dn_Xn[[2]]
+    
+    # Keeping track of the sampled alpha_i
+    A_chain = vector(mode = "list", length = 10)
+    a_chain_id = c(3, 86, 163, 237, 427, 521, 632, 646, 692, 713)
+    
+    for(a_ind in 1:10) {
+        A_chain[[a_ind]] = matrix(nrow = 12, ncol = chain_length_MASTER)
+    }
 
     for(ttt in 1:steps){
 
@@ -123,45 +130,45 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Thinning the saved chain index
         chain_ind = floor(chain_ind / 10) + 1
-        A_check = 100
 
+        # Imputing the missing Y values ----------------------------------------
         # print("Update Y"); s_time = Sys.time()
-        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, otype, Dn_omega, W, B, n_cores)
-        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, 
+        #                     otype, Dn_omega, W, B, n_cores)
+        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 
+        #                 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
-        # Gibbs updates of the alpha_i
+        # Gibbs updates of the alpha_i -----------------------------------------
         # print("Update alpha_i"); s_time = Sys.time()
-        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, W, B, n_cores)
+        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, 
+                                Dn_omega, W, B, n_cores)
         names(A) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
-        # Gibbs updates of the omega_i
+        for(aaa in 1:length(a_chain_id)) {
+            A_chain[[aaa]][,chain_ind] = A[[a_chain_id[aaa]]]
+        }
+        
+        # Gibbs updates of the omega_i -----------------------------------------
         # print("Update omega_i"); s_time = Sys.time()
-        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, Dn_omega, A, B, n_cores)
+        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, 
+                                Dn_omega, A, B, n_cores)
         names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
-        if(chain_ind %% A_check == 0) {
-            A_chain[[chain_ind / A_check]] = A
-        }
-
-        # Debug information ---------------------------------------------------
-        debug_temp1 = matrix(nrow = 7, ncol = 50)
-        debug_temp2 = matrix(nrow = 7, ncol = 50)
-        # ---------------------------------------------------------------------
-
-        # Metropolis-within-Gibbs update of the state space
+        # Metropolis-within-Gibbs update of the state space --------------------
         # print("Update b_i"); s_time = Sys.time()
-        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W,
-                                debug_temp1, debug_temp2, bleed_indicator, n_cores)
+        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, 
+                              Xn, Dn_omega, W, bleed_indicator, n_cores)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
-        # Gibbs updates of the alpha_tilde, beta, Upsilon, & R parameters 
+        # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
-        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, Dn_omega, W, B, n_cores)
+        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, 
+                                         Dn, Xn, Dn_omega, W, B, n_cores)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update alpha tilde"); s_time = Sys.time()
         par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
@@ -207,7 +214,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             print(accept / (ttt %% 480))
         }
         # ---------------------------------------------------------------------
-        log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+        
+        log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, 
+                                        Y, z, Dn, Xn, Dn_omega, W, n_cores)
 
         if(!is.finite(log_target_prev)){
             print("Infinite log-posterior; Gibbs update went wrong")
@@ -223,18 +232,23 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             
             if(sum(ind_j %in% par_index$vec_R) == 0) {
                 # logit_init, zeta, logit A1
-                proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], sigma=pscale[[j]]*pcov[[j]])
+                proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j], 
+                                           sigma=pscale[[j]]*pcov[[j]])
                 
-                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, 
+                                           A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
 
                 if(ttt < burnin){
                     while(!is.finite(log_target)){
                         print('bad proposal')
                         proposal = par
 
-                        proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],sigma=pcov[[j]]*pscale[j])
+                        proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],
+                                                   sigma=pcov[[j]]*pscale[j])
                         
-                        log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+                        log_target = log_post_cpp( as.numeric(EIDs), proposal, 
+                                                   par_index, A, B, Y, z, Dn, 
+                                                   Xn, Dn_omega, W, n_cores)
                     }
                 }
             
@@ -252,7 +266,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
                 chain[chain_ind,ind_j] = par[ind_j]
                 
-                # Proposal tuning scheme ------------------------------------------------
+                # Proposal tuning scheme ---------------------------------------
                 if(ttt < burnin){
                     # During the burnin period, update the proposal covariance in each step
                     # to capture the relationships within the parameters vectors for each
@@ -295,10 +309,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                         }
                     }
                 }
-                # -----------------------------------------------------------------------
+                # --------------------------------------------------------------
                 
             } else {
-                # Updating R ----------------------------------------------------
+                # Updating R ---------------------------------------------------
                 # Changing the proposal distribution and therefore the Metrop Ratio
                 nu_R = 6
                 psi_R = diag(4)
@@ -349,7 +363,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             bp_chain[ chain_ind,] = Y[,'map']
             la_chain[ chain_ind,] = Y[,'lactate']
         }
-        # -------------------------------------------------------------------------
+        # ----------------------------------------------------------------------
 
         if(ttt%%1==0)  cat('--->',ttt,'\n')
         if(ttt > burnin & ttt%%10000==0) {
