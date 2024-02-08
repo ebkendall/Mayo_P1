@@ -54,7 +54,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_2_6it4.rda')
+        load('Model_out/mcmc_out_interm_1_7it5.rda')
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
         

@@ -196,25 +196,29 @@ if(simulation) {
                                       "_it", itNum, ".rda"))
 }
 
+# Calculating area under ROC curve to determine the best window and c
+wind_area = matrix(nrow=length(optimal_c_win), ncol = 2)
+wind_area[,1] = 1:length(optimal_c_win)
+for(i in 1:length(optimal_c_win)) {
+    c_results = optimal_c_win[[i]]
+    
+    temp = c_results[order(c_results$false_pos), ]
+    c_results = temp
+    area = 0
+    
+    # Estimate area using Trapezoid rule
+    for(k in 2:nrow(c_results)) {
+        area = area + 0.5 * (c_results$true_pos[k] + c_results$true_pos[k-1]) * 
+                (c_results$false_pos[k] - c_results$false_pos[k-1])
+    }
+    
+    wind_area[i,2] = area
+}
 
-# -----------------------------------------------------------------------------
-# Plotting cumulative probabilities  ------------------------------------------
-# -----------------------------------------------------------------------------
-# barplot( cumulative_post_prob, 
-# 				col=c('firebrick1', 'black'), 
-# 				main=paste0('cumulative prob.'), xlab='time', xaxt='n', space=0, 
-# 				col.main='green', border=NA) 
-# grid( nx=NA, NULL, col='white')
-# legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-# 		legend=c( 'bleeding', 'LIMBO'), pch=15, pt.cex=1.5, 
-# 				col=c('firebrick1', 'black'))
-# axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-# axis( side=2, at=0:1, col.axis='green')
-# abline(v = rbc_times, col = 'darkorchid2', lwd = 2)
-# if(simulation){
-# 	abline( v=to_s1, col='cyan', lwd=3)
-# 	abline( v=to_s2, col='brown4', lwd=3)
-# 	abline( v=to_s3, col='darkgoldenrod3', lwd=3)
-# 	col_choice = c('cyan', 'brown4', 'darkgoldenrod3')
-# 	abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-# }
+print(wind_area)
+
+
+
+
+
+

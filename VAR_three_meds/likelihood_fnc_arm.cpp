@@ -907,7 +907,34 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     arma::vec mu = U * hold;
     
     arma::uvec vec_alpha_tilde_ind = par_index(1);
-    par.elem(vec_alpha_tilde_ind - 1) = rmvnorm(1, mu, U);
+    arma::vec alpha_tilde_temp = arma::mvnrnd(mu, U, 1);
+    
+    // Rcpp::Rcout << "main diagonal" << std::endl;
+    // Rcpp::Rcout << U.diag() << std::endl;
+    // 
+    // Rcpp::Rcout << "cov(hr  bleed, hr  recov) = "<< U(4,5) << std::endl;
+    // Rcpp::Rcout << "cov(map bleed, map recov) = "<< U(7,8) << std::endl;
+    // Rcpp::Rcout << "cov(hr  bleed, map bleed) = "<< U(4,7) << std::endl;
+    // Rcpp::Rcout << "cov(hr  recov, map recov) = "<< U(5,8) << std::endl;
+    // 
+    // Rcpp::Rcout << "mean" << std::endl;
+    // Rcpp::Rcout << mu << std::endl;
+    // 
+    // 
+    // // Ensuring that the parent means for HR and MAP obey the directional assumption
+    // int count_while_loop = 0;
+    // while((alpha_tilde_temp(4) < alpha_tilde_temp(5)) || (alpha_tilde_temp(7) > alpha_tilde_temp(8))) {
+    //     alpha_tilde_temp = arma::mvnrnd(mu, U, 1);
+    //     count_while_loop += 1;
+    //     if(count_while_loop > 100) {
+    //         Rcpp::Rcout << "stuck in alpha tilde" << std::endl;
+    //         // Rcpp::Rcout << "hr bleed: " << alpha_tilde_temp(4) << ", hr recov: " << alpha_tilde_temp(5) <<
+    //         //     ", MAP bleed: " << alpha_tilde_temp(7) << ", MAP recov: " << alpha_tilde_temp(8) << std::endl;
+    //         count_while_loop = 0;
+    //     }
+    // }
+    
+    par.elem(vec_alpha_tilde_ind - 1) = alpha_tilde_temp;
     
     return par;
 }

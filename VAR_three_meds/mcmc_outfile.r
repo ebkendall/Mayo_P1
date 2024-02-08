@@ -1,26 +1,10 @@
-dir = 'Model_out/' # Change this everytime!!!! ****************
-
 # Size of posterior sample from mcmc chains
-n_post = 1000
-# Step number at 3ich the adaptive tuning scheme was frozen
+n_post = 1001
 burnin = 0
-# Total number of steps the mcmc algorithm is computed for
-steps = 1000
-# Matrix row indices for the posterior sample to use for GFF computation
+steps = 1001
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
-# par_index$vec_beta = 1:4
-# par_index$vec_alpha_tilde = 5:16
-# par_index$vec_sigma_upsilon = 17:160
-# par_index$vec_logit_A = 161:164
-# par_index$vec_R = 165:168
-# par_index$vec_zeta = 169:176
-# par_index$vec_init = 177:178
-# par_index$log_lambda = 179:190
-# par_index$omega_tilde = 191:198
-# par_index$vec_upsilon_omega = 199:262
 
 simulation = F
-data_num = 6
 load("Data/Dn_omega_names3.rda")
 load('Data/hr_map_names3.rda')
 
@@ -47,30 +31,25 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
 
+dir = 'Model_out/'
+
 if(simulation) {
     index_seeds = c(1:3)
     trialNum = 2
     itNum = 5
     long_chain = F
-} else {
-    index_seeds = c(1,3)
-    trialNum = 7  # Change this everytime!!!! ****************
-    itNum = 5
-    long_chain = T
-}
-# load('Model_out/mcmc_out_interm_3_13it10.rda')
-# par_temp = colMeans(mcmc_out_temp$chain)
-# rownames(par_temp) = NULL
-if(simulation) {
+    
+    data_num = 6
     load(paste0('Data/true_pars_', data_num, '.rda'))
-    load(paste0('Data/true_par_index_', data_num, '.rda'))
-    true_par = true_pars                                                
+    true_par = true_pars     
 } else {
+    index_seeds = c(1:3)
+    trialNum = 8
+    itNum = 1
+    long_chain = T
+    
     true_par = NULL
 }
-
-par_index = NULL
-accept_rat = rep(NA, length(index_seeds))
 
 data_format = NULL
 if(simulation) {
@@ -82,18 +61,15 @@ if(simulation) {
 
 n_subjects = length(unique(data_format[,'EID']))
 
-chain_base = chain_bleed = chain_recov = 
-    chain_NBE = chain_l_recov = vector(mode = 'list', length = 4)
-
-chain_base[[1]] = chain_base[[2]] = chain_base[[3]] = chain_base[[4]] =     
-    chain_bleed[[1]] = chain_bleed[[2]] = chain_bleed[[3]] = chain_bleed[[4]] =
-        chain_recov[[1]] = chain_recov[[2]] = chain_recov[[3]] = chain_recov[[4]] =
-                    rep(NA, n_subjects * length(index_seeds))
-
 # -----------------------------------------------------------------------------
 # Create mcmc trace plots and histograms
 # -----------------------------------------------------------------------------
 chain_list = vector(mode = "list", length = length(index_seeds))
+a_chain_list = vector(mode = 'list', length = length(index_seeds))
+
+for(a in 1:length(a_chain_list)) {
+    a_chain_list[[a]] = vector(mode = 'list', length = 10)
+}
 
 ind = 0
 
@@ -104,6 +80,7 @@ for(seed in index_seeds){
     } else {
         it_seq = itNum
     }
+    
     for(it in it_seq) {
         if(simulation) {
             file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
@@ -121,24 +98,18 @@ for(seed in index_seeds){
 
         if(it == 1) {
             chain_list[[ind]] = mcmc_out_temp$chain[index_post,]
+            for(a in 1:length(a_chain_list[[ind]])) {
+                a_chain_list[[ind]][[a]] = mcmc_out_temp$A_chain[[a]]
+            }
         } else {
             chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain[index_post,])
+            for(a in 1:length(a_chain_list[[ind]])) {
+                a_chain_list[[ind]][[a]] = cbind(a_chain_list[[ind]][[a]], mcmc_out_temp$A_chain[[a]])
+            }
         }
+        
+        rm(mcmc_out_temp)
     }
-
-    # Adding the A_chain components
-    for (s in 1:4) {
-        print(s)
-        main_ind = min(which(is.na(chain_bleed[[s]])))
-        for(i in 1:n_subjects) {
-            chain_base[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-2]
-            chain_bleed[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s-1]
-            chain_recov[[s]][main_ind] = mcmc_out_temp$A_chain[[5]][[i]][3*s]
-            main_ind = main_ind + 1
-        }
-    }
-
-    rm(mcmc_out_temp)
 }
 
 stacked_chains = do.call( rbind, chain_list)
@@ -261,98 +232,93 @@ if(nrow(red_par_diff) == 0) {
     print(red_par_diff)
 }
 
-save(red_par, file = 'Data/red_par.rda')
+chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / steps)
+for(i in 1:length(chain_list_gamma)) {
+    max_ind = i * steps
+    chain_list_gamma[[i]] = gamma_chain[(max_ind - (steps - 1)):max_ind, ]
+}
 
-# chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / 1000)
-# for(i in 1:length(chain_list_gamma)) {
-#     max_ind = i * 1000
-#     chain_list_gamma[[i]] = gamma_chain[(max_ind - 999):max_ind, ]
-# }
+for(rr in 1:ncol(gamma_chain)){
+    # lab_ind = lab_ind + 1
+    lab_ind = rr
+    parMean = round( mean(gamma_chain[,rr]), 4)
+    parMedian = round( median(gamma_chain[,rr]), 4)
+    upper = quantile( gamma_chain[,rr], prob=.975)
+    lower = quantile( gamma_chain[,rr], prob=.025)
 
-# for(rr in 1:ncol(gamma_chain)){
-#     # lab_ind = lab_ind + 1
-#     lab_ind = rr
-#     parMean = round( mean(gamma_chain[,rr]), 4)
-#     parMedian = round( median(gamma_chain[,rr]), 4)
-#     upper = quantile( gamma_chain[,rr], prob=.975)
-#     lower = quantile( gamma_chain[,rr], prob=.025)
+    y_limit = range(gamma_chain[,rr])
+
+    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
+          ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
+                                      ", ", round(upper, 4), "]"))
+
+    for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
+
+    if (simulation) {
+        x_label = paste0('Mean =',toString(parMean),
+                         ' Median =',toString(parMedian),
+                         ' True =', round(true_gamma[rr], 3))
+    } else {
+        x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
+    }
+    hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
+          xlab=x_label)
+    abline( v=upper, col='red', lwd=2, lty=2)
+    abline( v=lower, col='purple', lwd=2, lty=2)
+    abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
+}
+
+# Plotting the sampled alpha_i
+a_chain_id = c(3, 86, 163, 237, 427, 521, 632, 646, 692, 713)
+hist_a_chain_list = vector(mode = 'list', length = length(a_chain_id))
+for(i in 1:length(a_chain_id)) {
+    for(j in 1:length(index_seeds)) {
+        if(j==1) {
+            hist_a_chain_list[[i]] = a_chain_list[[j]][[i]]
+        } else {
+            hist_a_chain_list[[i]] = cbind(hist_a_chain_list[[i]], a_chain_list[[j]][[i]])
+        }
+    }
+}
+
+hist_names = c("alpha_i baseline for hemo", "alpha_i slopes for hemo",
+               "alpha_i baseline for hr", "alpha_i slopes for hr",
+               "alpha_i baseline for map", "alpha_i slopes for map",
+               "alpha_i baseline for lactate", "alpha_i slopes for lactate")
+
+for (s in 1:length(a_chain_id)) {
+
+    patient_a = hist_a_chain_list[[s]]
     
-#     y_limit = range(gamma_chain[,rr])
-    
-#     plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
-#           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
-#                                       ", ", round(upper, 4), "]"))
-    
-#     for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
-    
-#     if (simulation) {
-#         x_label = paste0('Mean =',toString(parMean),
-#                          ' Median =',toString(parMedian),
-#                          ' True =', round(true_gamma[rr], 3))
-#     } else {
-#         x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
-#     }
-#     hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
-#           xlab=x_label)
-#     abline( v=upper, col='red', lwd=2, lty=2)
-#     abline( v=lower, col='purple', lwd=2, lty=2)
-#     abline( v=true_gamma[rr], col='green', lwd=2, lty=2)
-# }
-
-hist_names = c("alpha_i slopes for hemo",
-               "alpha_i slopes for hr",
-               "alpha_i slopes for map",
-               "alpha_i slopes for lactate")
-base_names = c("alpha_i baseline for hemo",
-               "alpha_i baseline for hr",
-               "alpha_i baseline for map",
-               "alpha_i baseline for lactate")
-
-for (s in 1:4) {
-
-    xlim_calc = c(min(c(chain_bleed[[s]], chain_recov[[s]])), max(c(chain_bleed[[s]], chain_recov[[s]])))
-
-    hist(chain_base[[s]], main = base_names[s], col = "darkolivegreen4", breaks = sqrt(length(chain_base[[s]])),
-         xlab = "baseline")
-
-    hist(chain_recov[[s]], main = hist_names[s], col = "yellow2", breaks = sqrt(length(chain_recov[[s]])),
-            xlim = xlim_calc, 
-            xlab = paste0("S2 -> (", round(mean(chain_bleed[[s]]), 3), ", ", round(sd(chain_bleed[[s]]), 3),
-                          "), S3 -> (", round(mean(chain_recov[[s]]), 3), ", ", round(sd(chain_recov[[s]]), 3), ")"))
-    hist(chain_bleed[[s]], col = "firebrick1", breaks = sqrt(length(chain_bleed[[s]])),
-         add = T) 
-    hist(chain_recov[[s]], col = "yellow2", breaks = sqrt(length(chain_recov[[s]])), add = T)
-    hist(chain_bleed[[s]], col=rgb(1,0,0,0.5), breaks = sqrt(length(chain_bleed[[s]])), add=T)
-    
-    temp_df = data.frame("bleed" = chain_bleed[[s]],
-                         "recov_bleed" = chain_recov[[s]])
-                        #  "NBE" = chain_NBE[[s]],
-                        #  "recov_NBE" = chain_l_recov[[s]]
-    # boxplot(temp_df, col = c('firebrick1', 'yellow2', 'green', 'darkgray'),
-    #         main = hist_names[s])
-
-    # print(base_names[s])
-    # print(summary(temp_df$bleed)); print(summary(temp_df$recov_bleed))
+    for(k in 1:4) {
+        base_ind = 3*k - 2
+        b_ind = 3*k - 1
+        r_ind = 3*k
+        xlim_calc = c(min(c(patient_a[b_ind,], patient_a[r_ind,])), 
+                      max(c(patient_a[b_ind,], patient_a[r_ind,])))
+        
+        hist(patient_a[base_ind,], main = paste0(a_chain_id[s], ": ", hist_names[2*k-1]), 
+             col = "darkolivegreen4", breaks = floor(sqrt(ncol(patient_a))),
+             xlab = "baseline")
+        
+        hist(patient_a[r_ind,], main = paste0(a_chain_id[s], ": ", hist_names[2*k]), 
+             col = "yellow2", breaks = floor(sqrt(ncol(patient_a))), xlim = xlim_calc, 
+             xlab = paste0("S2 -> (", 
+                           round(mean(patient_a[b_ind,]), 3), ", ", round(sd(patient_a[b_ind,]), 3),
+                           "), S3 -> (", 
+                           round(mean(patient_a[r_ind,]), 3), ", ", round(sd(patient_a[r_ind,]), 3), ")"))
+        
+        hist(patient_a[b_ind,], col = "firebrick1", 
+             breaks = floor(sqrt(ncol(patient_a))),
+             add = T) 
+        hist(patient_a[r_ind,], col = "yellow2", 
+             breaks = floor(sqrt(ncol(patient_a))), 
+             add = T)
+        hist(patient_a[b_ind,], col=rgb(1,0,0,0.5), 
+             breaks = floor(sqrt(ncol(patient_a))), 
+             add=T)   
+    }
 
 }
 
 dev.off()
-
-# Investigation into each plot -----------------------------------------------
-# load('Model_out/final_debug1_6it1i.rda')
-# barplot( rbind( colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 1),
-#                 colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 2),
-#                 colMeans(final_debug[["l_1"]][[1]][1:4999, 1:187] == 3)),
-#          col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-#          xlab='time', xaxt='n', space=0,
-#          col.main='green', border='gray')
-# final_debug[["l_1"]][[2]][[1]][,136:162]
-
-# load('Model_out/final_debug1_6it1g.rda')
-# barplot( rbind( colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 1),
-#                 colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 2),
-#                 colMeans(final_debug[["l_2"]][[1]][1:4999, 1:117] == 3)),
-#          col=c( 'dodgerblue', 'firebrick1', 'yellow2'),
-#          xlab='time', xaxt='n', space=0,
-#          col.main='green', border='gray')
-# final_debug[["l_2"]][[2]][[1]][,90:116]

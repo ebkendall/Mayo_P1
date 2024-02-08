@@ -17,14 +17,13 @@ print(ind)
 # trial 7 start from same values, trial 8 - on are continuations of the previous 
 # iteration
 
-simulation = T
-sim_dat_num = 6
-real_dat_num = 3
-
+simulation = F
 data_format = NULL
+
 if(simulation) {
     steps  = 50000
     burnin =  5000
+    sim_dat_num = 6
     
     load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
@@ -32,9 +31,10 @@ if(simulation) {
 } else {
     steps  = 50000
     burnin =  0
+    real_dat_num = 3
     
     load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-    trialNum = 7
+    trialNum = 9 # trial 9 tests the restriction on alpha tilde
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -104,7 +104,7 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load('Model_out/mcmc_out_interm_2_6it4.rda')
+    load('Model_out/mcmc_out_interm_1_7it5.rda')
     load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
     par_temp = mcmc_out_temp$chain[1001, ]
@@ -124,7 +124,7 @@ for(i in EIDs){
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
       b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
-    #   b_temp = rep( 1, sum(Y[,'EID']==as.numeric(i)))
+    
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
