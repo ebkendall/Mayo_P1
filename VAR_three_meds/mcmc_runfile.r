@@ -34,7 +34,7 @@ if(simulation) {
     real_dat_num = 3
     
     load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-    trialNum = 9 # trial 9 tests the restriction on alpha tilde
+    trialNum = 8 # trial 9 tests the restriction on alpha tilde
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 

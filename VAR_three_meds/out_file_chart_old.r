@@ -9,7 +9,7 @@ if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
-    trialNum = 7
+    trialNum = 8
     itNum = 5
 }
 
@@ -108,8 +108,6 @@ for(i in EIDs){
         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
         to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
-    } else {
-        
     }
 
     pb = barplot(rbind(colMeans(B_chain[, indices_i] == 1),
@@ -489,7 +487,7 @@ for(i in EIDs){
     plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of bleeding',
          xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
          xlim = range(pb) + c(-0.5,0.5),
-         xaxt='n', yaxt='n', ylim = c(-1,2), col = 'white')
+         xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
     axis( side=1, at=pb, col.axis='green', labels=t_grid)
     axis( side=2, at=0:1, col.axis='green', labels = c("S1/S3", "S2"),
           cex.axis=1)

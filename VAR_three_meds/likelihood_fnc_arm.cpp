@@ -396,16 +396,16 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
 }
 
 // [[Rcpp::export]]
-Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par, 
-                          const arma::field<arma::uvec> par_index, 
-                          const arma::field <arma::vec> A, 
-                          arma::field <arma::vec> B, 
-                          const arma::mat Y, const arma::mat z, 
-                          arma::field<arma::field<arma::mat>> Dn, 
-                          const arma::field <arma::field<arma::mat>> Xn, 
-                          const arma::field<arma::field<arma::mat>> Dn_omega, 
-                          const arma::field <arma::vec> W,
-                          const arma::vec bleed_indicator, int n_cores) {
+Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par, 
+                          const arma::field<arma::uvec> &par_index, 
+                          const arma::field <arma::vec> &A, 
+                          arma::field <arma::vec> &B, 
+                          const arma::mat &Y, const arma::mat &z, 
+                          arma::field<arma::field<arma::mat>> &Dn, 
+                          const arma::field <arma::field<arma::mat>> &Xn, 
+                          const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                          const arma::field <arma::vec> &W,
+                          const arma::vec &bleed_indicator, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -540,10 +540,10 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec par,
 }
 
 // [[Rcpp::export]]
-Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B, 
-                             const arma::mat Y, const arma::vec par, 
-                             const arma::field<arma::uvec> par_index,
-                             const arma::vec x, int n_cores) {
+Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> &B, 
+                             const arma::mat &Y, const arma::vec &par, 
+                             const arma::field<arma::uvec> &par_index,
+                             const arma::vec &x, int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -596,13 +596,13 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> B,
 }
 
 // [[Rcpp::export]]
-arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::vec par, 
-                                            const arma::field<arma::uvec> par_index,
-                                            const arma::mat Y, arma::field<arma::field<arma::mat>> Dn, 
-                                            const arma::field <arma::field<arma::mat>> Xn,
-                                            const arma::field<arma::field<arma::mat>> Dn_omega, 
-                                            const arma::field <arma::vec> W, 
-                                            arma::field <arma::vec> B, int n_cores){
+arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::vec &par, 
+                                            const arma::field<arma::uvec> &par_index,
+                                            const arma::mat &Y, arma::field<arma::field<arma::mat>> &Dn, 
+                                            const arma::field <arma::field<arma::mat>> &Xn,
+                                            const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                                            const arma::field <arma::vec> &W, 
+                                            arma::field <arma::vec> &B, int n_cores){
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
   //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -730,13 +730,13 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec EIDs, const arma::ve
 }
 
 // [[Rcpp::export]]
-arma::field <arma::vec> update_omega_i_cpp( const arma::vec EIDs, const arma::vec par, 
-                                            const arma::field<arma::uvec> par_index,
-                                            const arma::mat Y, arma::field<arma::field<arma::mat>> Dn, 
-                                            const arma::field <arma::field<arma::mat>> Xn,
-                                            const arma::field<arma::field<arma::mat>> Dn_omega, 
-                                            const arma::field <arma::vec> A, 
-                                            arma::field <arma::vec> B, int n_cores){
+arma::field <arma::vec> update_omega_i_cpp( const arma::vec &EIDs, const arma::vec &par, 
+                                            const arma::field<arma::uvec> &par_index,
+                                            const arma::mat &Y, arma::field<arma::field<arma::mat>> &Dn, 
+                                            const arma::field <arma::field<arma::mat>> &Xn,
+                                            const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                                            const arma::field <arma::vec> &A, 
+                                            arma::field <arma::vec> &B, int n_cores){
 
     // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
     //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -991,13 +991,13 @@ arma::vec update_omega_tilde_cpp( const arma::vec EIDs, arma::vec par,
 }
 
 // [[Rcpp::export]]
-arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par, 
-                                     const arma::field<arma::uvec> par_index,
-                                     const arma::field <arma::vec> A, const arma::mat Y,
-                                     arma::field<arma::field<arma::mat>> Dn, 
-                                     const arma::field <arma::field<arma::mat>> Xn, 
-                                     const arma::field<arma::field<arma::mat>> Dn_omega, 
-                                     const arma::field <arma::vec> W, arma::field <arma::vec> B,
+arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par, 
+                                     const arma::field<arma::uvec> &par_index,
+                                     const arma::field <arma::vec> &A, const arma::mat &Y,
+                                     const arma::field<arma::field<arma::mat>> &Dn, 
+                                     const arma::field <arma::field<arma::mat>> &Xn, 
+                                     const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                                     const arma::field <arma::vec> &W, arma::field <arma::vec> &B,
                                      int n_cores) {
   // Conjugate updates for beta and sigma_upsilon
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
@@ -1154,13 +1154,13 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec EIDs, arma::vec par,
 }
 
 // [[Rcpp::export]]
-arma::mat update_Y_i_cpp( const arma::vec EIDs, const arma::vec par, 
-                          const arma::field<arma::uvec> par_index, 
-                          const arma::field <arma::vec> A, arma::mat Y,
-                          arma::field <arma::field<arma::mat>> Dn, 
-                          const arma::field <arma::field<arma::mat>> Xn, const arma::mat otype,
-                          const arma::field<arma::field<arma::mat>> Dn_omega,
-                          const arma::field <arma::vec> W, arma::field <arma::vec> B,
+arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par, 
+                          const arma::field<arma::uvec> &par_index, 
+                          const arma::field <arma::vec> &A, arma::mat Y,
+                          arma::field <arma::field<arma::mat>> &Dn, 
+                          const arma::field <arma::field<arma::mat>> &Xn, const arma::mat &otype,
+                          const arma::field<arma::field<arma::mat>> &Dn_omega,
+                          const arma::field <arma::vec> &W, arma::field <arma::vec> &B,
                           int n_cores) {
 
   // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 

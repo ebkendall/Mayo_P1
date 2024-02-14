@@ -19,6 +19,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
   
     n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
+    print(paste0("Number of cores: ", n_cores))
+
     EIDs = as.character(unique(Y[,'EID']))
 
     # Index of observed versus missing data
@@ -133,10 +135,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Imputing the missing Y values ----------------------------------------
         # print("Update Y"); s_time = Sys.time()
-        # Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, 
-        #                     otype, Dn_omega, W, B, n_cores)
-        # colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 
-        #                 'RBC_rule', 'clinic_rule')
+        Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, 
+                            otype, Dn_omega, W, B, n_cores)
+        colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 
+                        'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha_i -----------------------------------------
@@ -224,9 +226,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             break
         }
 
+        # print("Update metropolis step"); s_time = Sys.time()
         # Metropolis-within-Gibbs updates -------------------------------------
         for(j in 1:n_group) {
-            # print("Update metropolis step"); s_time = Sys.time()
             ind_j = mpi[[j]]
             proposal = par
             
@@ -351,8 +353,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                     accept[j] = accept[j] +1
                 }
             }
-            # e_time = Sys.time() - s_time; print(paste0(j, ", ", e_time))
         }
+        # e_time = Sys.time() - s_time; print(e_time)
 
         # Restart the acceptance ratio at burnin
         if(ttt == burnin) accept = rep( 0, n_group)

@@ -9,7 +9,7 @@ if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
-    trialNum = 7
+    trialNum = 8
     itNum = 5
 }
 
