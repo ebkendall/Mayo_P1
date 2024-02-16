@@ -15,12 +15,6 @@ for(i in 1:length(long_data_agg)) {
 # Removing time issues
 all_keys_temp = all_keys[!(all_keys %in% timing_issues)]
 
-# Removing pacing patients
-# pace_info = read.csv('Data/_raw_data_new/jw_pacemaker.csv')
-# no_pace_patient = pace_info$key[is.na(pace_info$pacemaker_attention) 
-#                                 & is.na(pace_info$pacemaker_present)]
-# all_keys_temp = all_keys_temp[all_keys_temp %in% no_pace_patient]
-
 # Removing patients who died in the ICU
 deaths = cov_info[cov_info[,"icu_death"] == 1, "key"]
 all_keys_temp = all_keys_temp[!(all_keys_temp %in% deaths)]
@@ -40,12 +34,12 @@ for(i in 1:length(long_data_agg)) {
     }
 }
 
-# Convert to hours and only take patients with >= 10 and <= 48 length stay
+# Convert to hours and only take patients with >= 10 length of stay
 max_times[,2] = max_times[,2] / 60
-max_times = max_times[max_times[,2] >= 10 & max_times[,2] <= 48, ]
+max_times = max_times[max_times[,2] >= 10, ]
 all_keys_temp = c(max_times[,1])
 
-# Temporarily subsetting long_data_agg -----
+# Temporarily sub-setting long_data_agg ----------------------------------------
 long_data_agg_sub = vector(mode = 'list', length = length(all_keys_temp))
 ldas = 1
 for(i in 1:length(long_data_agg)) {
@@ -57,18 +51,111 @@ for(i in 1:length(long_data_agg)) {
 for(i in 1:length(long_data_agg_sub)) {
     if(long_data_agg_sub[[i]]$key != all_keys_temp[i]) print("wrong order")
 }
-# ------------------------------------------
+# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Go through and look at the missingness of the data and see if it is because of 
+# level of care
+level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
+care_props = rep(0, length(long_data_agg_sub))
+check_patients_ind = c(5966, 7321, 12557, 21995)
+
+for(i in 1:length(long_data_agg_sub)) {
+    ii = all_keys_temp[i]
+    temp = long_data_agg_sub[[i]]$covariates
+    if(ii != long_data_agg_sub[[i]]$key[1]) print(paste0(i, ": wrong ID!"))
+    
+    care_time_df = matrix(nrow = nrow(temp), ncol = 3)
+    care_time_df[,1] = temp[,'EID']
+    care_time_df[,2] = temp[,'time']
+    
+    level_of_care_patient = level_of_care[level_of_care$key %in% temp[,"EID"],]
+    level_of_care_patient$level_of_care_datetime = level_of_care_patient$level_of_care_datetime / 60
+    
+    sub_level = level_of_care_patient[level_of_care_patient$key == ii, ]
+    sub_df    = temp[temp[,"EID"] == ii, ]
+    sub_care  = care_time_df[care_time_df[,1] == ii, ]
+    level_times = sub_level$level_of_care_datetime
+    
+    if(sum(sub_level$patient_level_of_care == "Intensive Care") != nrow(sub_level)) {
+        for(j in 1:nrow(sub_df)) {
+            time_j = sub_df[j,"time"]
+            
+            if(time_j < level_times[1]) {
+                ind = which(level_times == level_times[1])
+                sub_care[j,3] = sub_level$patient_level_of_care[ind]
+            } else if(time_j > tail(level_times,1)) {
+                ind = which(level_times == tail(level_times,1))
+                sub_care[j,3] = sub_level$patient_level_of_care[ind]
+            } else {
+                end_pts = c(max(level_times[level_times <= time_j]), 
+                            min(level_times[level_times >= time_j]))
+                
+                if(sum(is.finite(end_pts)) != length(end_pts)) print(paste0("issue: ", i))
+                
+                ind = which(level_times == end_pts[1])
+                care_ind = NULL
+                if("Intensive Care" %in% sub_level$patient_level_of_care[ind] &
+                   sub_level$patient_level_of_care[max(ind) + 1] == "Intensive Care") {
+                    care_ind = ind[which("Intensive Care" %in% sub_level$patient_level_of_care[ind])]
+                } else {
+                    care_ind = max(ind)
+                }
+                sub_care[j,3] = sub_level$patient_level_of_care[care_ind]
+            }
+        }
+        care_time_df[, 3] = sub_care[,3]   
+    } else {
+        care_time_df[, 3] = rep("Intensive Care", nrow(care_time_df))
+        sub_care[,3] = rep("Intensive Care", nrow(sub_care))
+    }
+    
+    care_props[i] = sum(sub_care[,3] == "Intensive Care") / nrow(sub_care)
+    
+    # Only keep data from the first Intensive Care time to the last
+    long_data_agg_sub[[i]]$covariates = cbind(long_data_agg_sub[[i]]$covariates, 
+                                              sub_care[,3])
+    
+    if(care_props[i] > 0) {
+        min_icu = min(which(sub_care[,3] == "Intensive Care"))
+        max_icu = max(which(sub_care[,3] == "Intensive Care"))
+        
+        long_data_agg_sub[[i]]$covariates = long_data_agg_sub[[i]]$covariates[min_icu:max_icu, ,drop=F]   
+    }
+}
+
+# Remove the patients with 0 Intensive care time
+all_keys_temp2 = all_keys_temp[care_props != 0]
+long_data_agg_sub2 = vector(mode = 'list', length = length(all_keys_temp2))
+ldas = 1
+for(i in 1:length(long_data_agg_sub)) {
+    if(long_data_agg_sub[[i]]$key %in% all_keys_temp2) {
+        long_data_agg_sub2[[ldas]] = long_data_agg_sub[[i]]
+        ldas = ldas + 1
+    }
+}
+for(i in 1:length(long_data_agg_sub2)) {
+    if(long_data_agg_sub2[[i]]$key != all_keys_temp2[i]) print("wrong order")
+}
+
+all_keys_temp = all_keys_temp2
+long_data_agg_sub = long_data_agg_sub2
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Choose patients with enough observations of hr and map 
 enough_dat = rep(0, length(all_keys_temp))
+icu_stay_prop = rep(0, length(all_keys_temp))
 for(i in 1:length(enough_dat)) {
     temp = long_data_agg_sub[[i]]$covariates
     hr_ratio = sum(!is.na(temp[,"hr"])) / nrow(temp)
     map_ratio = sum(!is.na(temp[,"map"])) / nrow(temp)
     
-    if(hr_ratio > 0.6 & map_ratio > 0.6) {
+    if(hr_ratio > 0.5 & map_ratio > 0.5) {
         enough_dat[i] = 1
     }
+    
+    icu_stay_prop[i] = sum(temp[,11] == "Intensive Care") / nrow(temp)
 }
 
 all_keys_temp = all_keys_temp[enough_dat == 1]
@@ -85,7 +172,7 @@ for(i in 1:length(long_data_agg_sub)) {
 # Add a column to the df
 data_format = cbind(data_format, rep(0, nrow(data_format)), rep(0, nrow(data_format)))
 colnames(data_format) = c('EID', 'time', 'temperature', 'hemo', 'map', 'hr', 'lactate', 'RBC',
-                          'n_labs', 'n_RBC', 'RBC_rule', 'clinic_rule')
+                          'n_labs', 'n_RBC', 'levelCare', 'RBC_rule', 'clinic_rule')
 
 # ------------------------------------------------------------------------------
 # (2) Add the new RBC transfusions ---------------------------------------------
@@ -223,61 +310,7 @@ for(i in unique(data_format[,"EID"])) {
 }
 
 data_format = data_format[!(data_format[,"EID"] %in% pace_ids), ]
-# ------------------------------------------------------------------------------
-# (6) Filter based on level of care --------------------------------------------
-# ------------------------------------------------------------------------------
-level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
-# load('Data/data_format_new2.rda')
-care_time_df = matrix(nrow = nrow(data_format), ncol = 3)
-care_time_df[,1] = data_format[,'EID']
-care_time_df[,2] = data_format[,'time']
 
-level_of_care_patient = level_of_care[level_of_care$key %in% data_format[,"EID"],]
-level_of_care_patient$level_of_care_datetime = level_of_care_patient$level_of_care_datetime / 60
-
-for(i in unique(care_time_df[,1])) {
-    print(i)
-    sub_level = level_of_care_patient[level_of_care_patient$key == i, ]
-    sub_df    = data_format[data_format[,"EID"] == i, ]
-    sub_care  = care_time_df[care_time_df[,1] == i, ]
-    
-    level_times = sub_level$level_of_care_datetime
-    
-    for(j in 1:nrow(sub_df)) {
-        time_j = sub_df[j,"time"]
-        
-        if(time_j < level_times[1]) {
-            ind = which(level_times == level_times[1])
-            sub_care[j,3] = sub_level$patient_level_of_care[ind]
-        } else if(time_j > tail(level_times,1)) {
-            ind = which(level_times == tail(level_times,1))
-            sub_care[j,3] = sub_level$patient_level_of_care[ind]
-        } else {
-            end_pts = c(max(level_times[level_times < time_j]), 
-                        min(level_times[level_times > time_j]))
-            ind = which(level_times == end_pts[1])
-            care_ind = NULL
-            if("Intensive Care" %in% sub_level$patient_level_of_care[ind] &
-               sub_level$patient_level_of_care[max(ind) + 1] == "Intensive Care") {
-                care_ind = ind[which("Intensive Care" %in% sub_level$patient_level_of_care[ind])]
-            } else {
-                care_ind = max(ind)
-            }
-            sub_care[j,3] = sub_level$patient_level_of_care[care_ind]
-        }
-    }
-    care_time_df[care_time_df[,1] == i, 3] = sub_care[,3]
-}
-
-care_props = NULL
-for(i in unique(data_format[,"EID"])) {
-    sub_dat = care_time_df[care_time_df[,1] == i, ]
-    care_props = c(care_props, sum(sub_dat[,3] == "Intensive Care") / nrow(sub_dat))
-}
-
-care_props = cbind(unique(data_format[,"EID"]), care_props)
-
-temp_df = data_format
 # ------------------------------------------------------------------------------
 # (4) Saving the data_format with subset of IDs --------------------------------
 # ------------------------------------------------------------------------------
