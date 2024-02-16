@@ -23,10 +23,11 @@ jw14 = read.csv("Data/_raw_data_new/jw14b.csv")
 jw_t = read.csv("Data/_raw_data_new/jw_transfusions.csv")
 
 # (2) Define the training and testing data -------------------------------------
-all_keys = jw1$key
+all_keys = unique(jw1$key)
 load('Data/test_keys.rda')
-all_keys = all_keys[-which(all_keys %in% test_keys)]
-save(all_keys, file = 'Data/all_keys.rda')
+# all_keys = all_keys[-which(all_keys %in% test_keys)]
+save(all_keys, file = 'Data_updates/all_keys.rda')
+save(test_keys, file = 'Data_updates/test_keys.rda')
 
 # (3) Get the baseline info ----------------------------------------------------
 print('getting baseline covariates')
@@ -43,7 +44,7 @@ cov_info = cbind(cov_info, jw14[rowInd, c("admit_service", "icu_type")])
 
 colnames(cov_info)[c(8, 11)] = c('los_icu', 'septic_shock') # LOS = "length of stay"
 
-save(cov_info, file = "Data/cov_info.rda")
+save(cov_info, file = "Data_updates/cov_info.rda")
 
 # (4) Get the longitudinal info ------------------------------------------------
 set.seed(2022)
@@ -408,8 +409,8 @@ for (key_num in all_keys) {
 }
 
 
-save(long_data_rd, file = "Data/long_data_rd.rda")
-save(timing_issues, file = "Data/timing_issues.rda")
+save(long_data_rd, file = "Data_updates/long_data_rd.rda")
+save(timing_issues, file = "Data_updates/timing_issues.rda")
 
 
 # (5) Cleaning and reorganizing ------------------------------------------------
@@ -432,26 +433,6 @@ for (i in 1:length(long_data_clean)) {
         temp = long_data_clean[[i]]$covariates[, "TIME"]
         long_data_clean[[i]]$covariates[, "TIME"] = temp / 60
     }
-    
-    # Filter out any extreme values
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_map1"] > 150, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] > 150), 
-    #                                 "resultn_map1"] = NA
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_map1"] < 25, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_map1"] < 25), 
-    #                                 "resultn_map1"] = NA
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hr1"] > 200, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] > 200), 
-    #                                 "resultn_hr1"] = NA
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hr1"] < 20, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hr1"] < 20), 
-    #                                 "resultn_hr1"] = NA
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hemo1"] > 20, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] > 20), 
-    #                                 "resultn_hemo1"] = NA
-    # print(paste0(i, ": ", sum(long_data_clean[[i]]$covariates[,"resultn_hemo1"] < 0, na.rm = T)))
-    # long_data_clean[[i]]$covariates[which(long_data_clean[[i]]$covariates[,"resultn_hemo1"] < 0), 
-    #                                 "resultn_hemo1"] = NA
 }
 
 # Add number of n_labs up to that time point
@@ -577,7 +558,7 @@ for(i in 1:length(long_data_agg)) {
     }
 }
 
-save(long_data_agg, file = "Data/long_data_agg.rda")
+save(long_data_agg, file = "Data_updates/long_data_agg.rda")
 
 
 

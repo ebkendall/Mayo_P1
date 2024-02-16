@@ -9,7 +9,7 @@ jw19 = read.csv("Data/_raw_data_new/jw19b.csv")
 #             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
 #             732525, 758025, 763050, 843000)
 # data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-load('Data/data_format_new2.rda')
+load('Data/data_format_new3.rda')
 select_id = unique(data_format[,"EID"])
 med_select_id = jw15[jw15$key %in% select_id, ]
 med_select_id = rbind(med_select_id, jw16[jw16$key %in% select_id, ])
@@ -51,24 +51,31 @@ for(i in 1:nrow(med_name_simple_mat)) {
         med_name_simple_mat[i,2] = i_name
     }
 }
-print(paste0("Number of mismatches: ", sum(is.na(med_name_simple_mat))))
 
-med_name_simple_mat[1,2] = " METOPROLOL TARTRATE" 
-med_name_simple_mat[5,2] = " METOPROLOL SUCCINATE"
-med_name_simple_mat[8,2] = " EPINEPHRINE "
-med_name_simple_mat[20,2] = " PHENYLEPHRINE"
-med_name_simple_mat[22,2] = " METOPROLOL TARTRATE"
-med_name_simple_mat[25,2] = " CALCIUM GLUCONATE"
-med_name_simple_mat[26,2] = " METOPROLOL TARTRATE"
-med_name_simple_mat[30,2] = " METOPROLOL TARTRATE"
-med_name_simple_mat[32,2] = " CALCIUM GLUCONATE"
-med_name_simple_mat[36,2] = " DEXMEDETOMIDINE "
-med_name_simple_mat[47,2] = " METOPROLOL TARTRATE"
-med_name_simple_mat[76,2] = " EPHEDRINE"
-med_name_simple_mat[83,2] = " ESMOLOL "
-med_name_simple_mat[92,2] = " METOPROLOL SUCCINATE"
-med_name_simple_mat[117,2] = " METOPROLOL SUCCINATE"
-print(paste0("Number of mismatches: ", sum(is.na(med_name_simple_mat))))
+print(paste0("Number of mismatches before: ", sum(is.na(med_name_simple_mat))))
+watch_out_meds = data.frame("ind" = watch_out,
+                            "med" = rep(NA, length(watch_out)))
+for(i in 1:length(watch_out)) {
+    full_term = unique_meds[watch_out[i]]
+    test_phrase = med_key$id[med_list[watch_out[i],] != 0]
+    test_phrase_pos = NULL
+    for(j in test_phrase) {
+        test_phrase_pos = c(test_phrase_pos, stringi::stri_locate_first_fixed(full_term, j)[, 1])
+    }
+    
+    if(length(which(test_phrase_pos == min(test_phrase_pos))) > 1) {
+        n_char_phrase = NULL
+        for(j in test_phrase) {
+            n_char_phrase = c(n_char_phrase, nchar(j))
+        }
+        watch_out_meds[i, "med"] = test_phrase[which.max(n_char_phrase)]   
+        med_name_simple_mat[watch_out[i], 2] = test_phrase[which.max(n_char_phrase)]   
+    } else {
+        watch_out_meds[i, "med"] = test_phrase[which.min(test_phrase_pos)]   
+        med_name_simple_mat[watch_out[i], 2] = test_phrase[which.min(test_phrase_pos)]   
+    }
+}
+print(paste0("Number of mismatches after: ", sum(is.na(med_name_simple_mat))))
 
 hr_map = matrix(0, ncol = 2, nrow = length(med_name_simple))
 colnames(hr_map) = c("hr", "map")
@@ -135,6 +142,7 @@ status_med[med_select_id_sub$Status %in% status_update[["Start"]]] = "Start"
 status_med[med_select_id_sub$Status %in% status_update[["Stop"]]] = "Stop"
 status_med[med_select_id_sub$Status %in% status_update[["Continue"]]] = "Continue"
 status_med[med_select_id_sub$Status %in% status_update[["Changed"]]] = "Changed"
+print(unique(status_med))
 
 # Looking through if things are too simplified ---------------------------------
 meds_to_check = NULL
@@ -147,11 +155,11 @@ for(i in 1:length(total_simple_meds)) {
 }
 
 # List: meds_to_check
-print(meds_to_check); print(13)
+print(meds_to_check)
 # " ALBUMIN", " AMIODARONE ", " CALCIUM CHLORIDE", " CLEVIDIPINE ", " DILTIAZEM "
-# " EPINEPHRINE ", " ESMOLOL " " KETAMINE ", " NITROGLYCERIN ", " PHENYLEPHRINE", " PROPOFOL "
-# " SODIUM BICARBONATE ", " VASOPRESSIN "
-# med_d = med_select_id_sub[med_select_id_sub$med_name_simple == " ESMOLOL ", ,drop = F]
+# " EPINEPHRINE ", " ESMOLOL ", " KETAMINE ", " LABETALOL ", " NITROGLYCERIN ", 
+# " PHENYLEPHRINE", " PROPOFOL ", " SODIUM BICARBONATE ", " VASOPRESSIN "
+# med_d = med_select_id_sub[med_select_id_sub$med_name_simple == " LABETALOL ", ,drop = F]
 # unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
 # unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
 
@@ -193,6 +201,11 @@ med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
                         med_select_id_sub$continuous_med == 1] = "KETAMINE_1"
 med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
                         med_select_id_sub$continuous_med == 0] = "KETAMINE_0"
+
+med_name_simple_new[med_select_id_sub$med_name_simple == " LABETALOL " &
+                        med_select_id_sub$continuous_med == 1] = "LABETALOL_1"
+med_name_simple_new[med_select_id_sub$med_name_simple == " LABETALOL " &
+                        med_select_id_sub$continuous_med == 0] = "LABETALOL_0"
 
 med_name_simple_new[med_select_id_sub$med_name_simple == " NITROGLYCERIN " &
                         med_select_id_sub$continuous_med == 1] = "NITROGLYCERIN_1"
@@ -253,21 +266,24 @@ for(i in 1:length(strength_units)) {
 }
 names(strength_units) = names(dose_units) = all_med_types
 
+# ******************************************************************************
+# Manually check the strength units and dose units to see which has multiple ***
+# ******************************************************************************
+
 # looking at which strength_units and dose_units have more than 1 per drug
-strength_check = c("ALBUMIN_0", " CALCIUM GLUCONATE0"," LABETALOL 0",
+strength_check = c("ALBUMIN_0", " CALCIUM GLUCONATE0","LABETALOL_0",
                    "AMIODARONE_0","DILTIAZEM_0"," NIFEDIPINE0",
                    " NIMODIPINE 0")
 dose_check = c("NITROGLYCERIN_1", " NOREPINEPHRINE1","PROPOFOL_1", "PROPOFOL_0",
-               "CALCIUM CHLORIDE_0", " CALCIUM GLUCONATE0",
-               "SODIUM BICARBONATE_0", "CLEVIDIPINE_1", "PHENYLEPHRINE_0"," NIFEDIPINE0")
+               "CALCIUM CHLORIDE_0", " CALCIUM GLUCONATE0", "ALBUMIN_0", "EPINEPHRINE_0",
+               "SODIUM BICARBONATE_0", "CLEVIDIPINE_1", "PHENYLEPHRINE_0"," NIFEDIPINE0",
+               " DOBUTAMINE 1", " CLONIDINE 0", " NIFEDIPINE0")
 dose_strength_combo = unique(c(strength_check, dose_check))
 print(dose_strength_combo)
 
 med_select_FINAL$Strength[!(med_select_FINAL$med_name_admin %in% dose_strength_combo)] = 1
 # **************************************************************** 
-# FINISH RIGHT HERE!!!!!!!!!
-# **************************************************************** 
-# specific_med = med_select_FINAL[med_select_FINAL$med_name_admin =="PHENYLEPHRINE_0" , ]
+# specific_med = med_select_FINAL[med_select_FINAL$med_name_admin ==" CLONIDINE 0", ]
 # apply(specific_med[,c("Dose", "Dose_Units", "Strength")], 2, table)
 # ALBUMIN ---------------------------------------------------------------------
 # mL -> g (divide by 10)
@@ -287,7 +303,7 @@ med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" &
                               med_select_FINAL$Strength != 5] = 1
 # LABETALOL -------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LABETALOL 0"] = 1
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "LABETALOL_0"] = 1
 # AMIODARONE -------------------------------------------------------------------
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "AMIODARONE_0"] = 1
 # DILTIAZEM -------------------------------------------------------------------
@@ -305,6 +321,8 @@ med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == " NOREP
                                           med_select_FINAL$Dose == 4000), ]
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NOREPINEPHRINE1"] = 1
 # PROPOFOL 1 ------------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == "PROPOFOL_1" &
+                                          med_select_FINAL$Dose == 1000), ]
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_1"] = 1
 # PROPOFOL 0 ------------------------------------------------------------------
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_0"] = 1
@@ -320,13 +338,21 @@ med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "CLEVIDIPINE_1"] = 
 p_ind = which(med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0" &  med_select_FINAL$Dose_Units == "mcg")
 med_select_FINAL$Dose[p_ind] = med_select_FINAL$Dose[p_ind] / 1000
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0"] = 1
+# EPINEPHRINE -----------------------------------------------------------------
+ep_ind = which(med_select_FINAL$med_name_admin == "EPINEPHRINE_0" &  med_select_FINAL$Dose_Units == "mcg")
+med_select_FINAL$Dose[ep_ind] = med_select_FINAL$Dose[ep_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "EPINEPHRINE_0"] = 1
+# DOBUTAMINE ------------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DOBUTAMINE 1"] = 1
+# CLONIDINE  ------------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " CLONIDINE 0", ]
 
 Strength_num = as.numeric(med_select_FINAL$Strength)
 med_select_FINAL = cbind(med_select_FINAL, Strength_num)
 med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
 med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
 
-save(med_select_FINAL, file = "Data/med_select_FINAL.rda")
+save(med_select_FINAL, file = paste0("Data/med_select_FINAL", 3, ".rda"))
 
 # SCALING DOSE! ************************************************************
 med_dose_unique = unique(med_select_FINAL$med_name_admin)
@@ -339,7 +365,7 @@ for(i in 1:length(med_dose_unique)){
     med_dose_scale_factor[i, 2] = mean_i
     med_select_FINAL$Dose[med_i] = med_select_FINAL$Dose[med_i] / mean_i
 }
-save(med_dose_scale_factor, file = 'Data/med_dose_scale_factor.rda')
+save(med_dose_scale_factor, file = paste0('Data/med_dose_scale_factor', 3, '.rda'))
 # *************************************************************************
 
 # Create a column with the "instance" number of that med to help determine if
@@ -375,12 +401,12 @@ map_disc = map_medications[map_medications$continuous_med == 0, ,drop=F]
 map_disc_names = unique(map_disc$med_name_admin)
 
 Dn_omega_names = c(hr_cont_names, hr_disc_names, map_cont_names, map_disc_names)
-save(Dn_omega_names, file = "Data/Dn_omega_names.rda")
+save(Dn_omega_names, file = paste0("Data/Dn_omega_names", 3, ".rda"))
 hr_map_names = c(rep("hr_cont", length(hr_cont_names)),
                  rep("hr_disc", length(hr_disc_names)),
                  rep("map_cont", length(map_cont_names)),
                  rep("map_disc", length(map_disc_names)))
-save(hr_map_names, file = 'Data/hr_map_names.rda')
+save(hr_map_names, file = paste0('Data/hr_map_names', 3, '.rda'))
 
 EIDs = unique(data_format[,"EID"])
 hr_cont_design = hr_disc_design = map_cont_design = map_disc_design = vector(mode = 'list', length = length(EIDs))
@@ -632,7 +658,7 @@ for(i in 1:length(Dn_omega)) {
     }
 }
 
-save(Dn_omega, file = 'Data/Dn_omega.rda')
+save(Dn_omega, file = paste0('Data/Dn_omega', 3, '.rda'))
 
 # Understanding what the mean of Dn_omega should be
 upp_down_omega = matrix(nrow = length(Dn_omega_names), ncol = 2)

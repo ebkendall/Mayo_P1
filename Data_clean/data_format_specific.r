@@ -3,6 +3,11 @@ load('Data/all_keys.rda')      # all_keys
 load('Data/cov_info.rda')      # cov_info
 load('Data/timing_issues.rda') # timing_issues
 
+times = rep(NA, length(long_data_agg))
+for(i in 1:length(long_data_agg)) {
+    times[i] = nrow(long_data_agg[[i]]$covariates) / 4
+}
+
 # ------------------------------------------------------------------------------
 # (1) Filtering people based on undesirable characteristics --------------------
 # ------------------------------------------------------------------------------
@@ -323,6 +328,8 @@ for(i in 1:nrow(data_format)) {
     }
 
 }
+
+print(length(unique(data_format[,"EID"])))
 
 save(data_format, file = 'Data/data_format_new3.rda')
 # Quick check for no pacing
