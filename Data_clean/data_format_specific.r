@@ -1,12 +1,16 @@
-load("Data/long_data_agg.rda") # long_data_agg
-load('Data/all_keys.rda')      # all_keys
-load('Data/cov_info.rda')      # cov_info
-load('Data/timing_issues.rda') # timing_issues
+load("Data_updates/long_data_agg.rda") # long_data_agg
+load('Data_updates/all_keys.rda')      # all_keys
+load('Data_updates/cov_info.rda')      # cov_info
+load('Data_updates/timing_issues.rda') # timing_issues
 
 times = rep(NA, length(long_data_agg))
 for(i in 1:length(long_data_agg)) {
     times[i] = nrow(long_data_agg[[i]]$covariates) / 4
 }
+
+clinical_lab = c(109125, 111375, 133750, 156325, 165725, 195475, 198975, 208100, 327375, 360525,
+                 431400, 467200, 494300, 531650, 533825, 543625, 588100, 622450, 633100, 697600,
+                 727675, 750900, 758025, 781875, 785950, 801300, 820775, 827350, 841925, 843000)
 
 # ------------------------------------------------------------------------------
 # (1) Filtering people based on undesirable characteristics --------------------
@@ -51,6 +55,8 @@ for(i in 1:length(long_data_agg)) {
 for(i in 1:length(long_data_agg_sub)) {
     if(long_data_agg_sub[[i]]$key != all_keys_temp[i]) print("wrong order")
 }
+rm(long_data_agg)
+rm(cov_info)
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
@@ -60,6 +66,7 @@ level_of_care = read.csv('Data/_raw_data_new/jw_patient_level_of_care.csv')
 care_props = rep(0, length(long_data_agg_sub))
 check_patients_ind = c(5966, 7321, 12557, 21995)
 
+print("Going through level of care to find ICU times")
 for(i in 1:length(long_data_agg_sub)) {
     ii = all_keys_temp[i]
     temp = long_data_agg_sub[[i]]$covariates
@@ -123,6 +130,7 @@ for(i in 1:length(long_data_agg_sub)) {
         long_data_agg_sub[[i]]$covariates = long_data_agg_sub[[i]]$covariates[min_icu:max_icu, ,drop=F]   
     }
 }
+print("Done")
 
 # Remove the patients with 0 Intensive care time
 all_keys_temp2 = all_keys_temp[care_props != 0]
@@ -140,6 +148,11 @@ for(i in 1:length(long_data_agg_sub2)) {
 
 all_keys_temp = all_keys_temp2
 long_data_agg_sub = long_data_agg_sub2
+
+print(paste0("Remaining clinical patients: ", sum(clinical_lab %in% all_keys_temp)))
+
+rm(all_keys_temp2)
+rm(long_data_agg_sub2)
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
@@ -159,20 +172,35 @@ for(i in 1:length(enough_dat)) {
 }
 
 all_keys_temp = all_keys_temp[enough_dat == 1]
+print(paste0("Remaining clinical patients: ", sum(clinical_lab %in% all_keys_temp)))
 
 # Formatting the existing data into one data set
+print("Compiling all information into data_format")
 data_format = NULL
 for(i in 1:length(long_data_agg_sub)) {
     if(long_data_agg_sub[[i]]$key %in% all_keys_temp) {
-        print(long_data_agg_sub[[i]]$key)
         data_format = rbind(data_format, long_data_agg_sub[[i]]$covariates)
     }
 }
+print("Done")
 
 # Add a column to the df
 data_format = cbind(data_format, rep(0, nrow(data_format)), rep(0, nrow(data_format)))
 colnames(data_format) = c('EID', 'time', 'temperature', 'hemo', 'map', 'hr', 'lactate', 'RBC',
                           'n_labs', 'n_RBC', 'levelCare', 'RBC_rule', 'clinic_rule')
+
+# Adjust for how much data we have
+print("Counting how many observations each patient has")
+unique_id = unique(data_format[,"EID"])
+total_obs = rep(0, length(unique_id))
+for(i in 1:length(total_obs)) {
+    total_obs[i] = sum(data_format[,'EID'] == unique_id[i])
+}
+print("Done")
+
+id_keep = unique_id[total_obs >= 40]
+print(paste0("Remaining clinical patients: ", sum(clinical_lab %in% id_keep)))
+data_format = data_format[data_format[,"EID"] %in% id_keep, ]
 
 # ------------------------------------------------------------------------------
 # (2) Add the new RBC transfusions ---------------------------------------------
@@ -197,11 +225,11 @@ RBC_ordered = 0
 RBC_admin = 0
 data_format = cbind(cbind(data_format, RBC_ordered), RBC_admin)
 
+print("Adding transfusion order and admin time")
 for(i in 1:length(data_keys)) {
-    print(i)
     if(data_keys[i] %in% times$key) {
-        sub_dat = data_format[data_format[,"EID"] == data_keys[i], ]
-        sub_rbc = times[times$key == data_keys[i], ]
+        sub_dat = data_format[data_format[,"EID"] == data_keys[i], ,drop = F]
+        sub_rbc = times[times$key == data_keys[i], , drop = F]
         for(j in 1:(nrow(sub_dat) - 1)) {
             timed_rbc_order = which(sub_rbc$transfus_order_datetime > sub_dat[j,"time"] & sub_rbc$transfus_order_datetime <= sub_dat[j+1,"time"])
             if(length(timed_rbc_order) > 0) {
@@ -217,22 +245,25 @@ for(i in 1:length(data_keys)) {
         data_format[data_format[,"EID"] == data_keys[i], ] = sub_dat
     }
 }
-
+print("Done")
 
 # Adding n_RBC_ordered and n_RBC_admin
 n_RBC_ordered = 0
 n_RBC_admin = 0
 data_format = cbind(cbind(data_format, n_RBC_ordered), n_RBC_admin)
 
+print("Calculating n_RBC_ordered and n_RBC_admin")
 for(i in unique(data_format[,'EID'])){
-    print(i)
     data_format[data_format[,'EID'] == i, 'n_RBC_ordered'] = cumsum(data_format[data_format[,'EID'] == i, 'RBC_ordered'])
     data_format[data_format[,'EID'] == i, 'n_RBC_admin'] = cumsum(data_format[data_format[,'EID'] == i, 'RBC_admin'])
 }
-
+print("Done")
 # ------------------------------------------------------------------------------
 # (2) Adding new variables such as RBC rule ------------------------------------
 # ------------------------------------------------------------------------------
+
+data_format = data_format[,-11]
+data_format = apply(data_format, 2, as.numeric)
 
 # Get patients that had at least 3 RBC at some point in their stay
 min_three_RBC = unique(data_format[data_format[,"n_RBC_admin"] >= 3, "EID"])
@@ -274,8 +305,8 @@ for(i in 1:length(bleed_pat)) {
         
         if(RBC_diff_12 >=3 | RBC_diff_24 >= 6) {
             data_format[data_format[,"EID"] == bleed_pat[i], "RBC_rule"] = 1
-            print(paste0("Bleeding: ", i))
-            print(unique(sub_dat[,"n_RBC_admin"]))
+            # print(paste0("Bleeding: ", i))
+            # print(unique(sub_dat[,"n_RBC_admin"]))
             break
         }
         
@@ -284,10 +315,6 @@ for(i in 1:length(bleed_pat)) {
 }
 
 # Adding the clinical rule
-clinical_lab = c(109125, 111375, 133750, 156325, 165725, 195475, 198975, 208100, 327375, 360525,
-                 431400, 467200, 494300, 531650, 533825, 543625, 588100, 622450, 633100, 697600,
-                 727675, 750900, 758025, 781875, 785950, 801300, 820775, 827350, 841925, 843000)
-
 data_format[data_format[,"EID"] %in% c(111375, 133750, 327375, 431400, 
                                        531650, 633100, 697600, 727675,
                                        758025, 820775, 827350, 841925, 843000), "clinic_rule"] = 1 # bleed
@@ -312,32 +339,6 @@ for(i in unique(data_format[,"EID"])) {
 data_format = data_format[!(data_format[,"EID"] %in% pace_ids), ]
 
 # ------------------------------------------------------------------------------
-# (4) Saving the data_format with subset of IDs --------------------------------
-# ------------------------------------------------------------------------------
-set.seed(2023)
-load('Data/data_format_new2.rda')
-curr_id = unique(data_format[,"EID"])
-rm(data_format)
-data_format = temp_df
-rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
-no_rbc_rule = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
-clinic_rule = unique(data_format[data_format[,"clinic_rule"] != 0, "EID"])
-
-curr_id = curr_id[curr_id %in% data_format[,"EID"]]
-
-curr_id = unique(c(curr_id, rbc_rule, clinic_rule))
-
-# How many curr_id have majority intensive care status
-curr_id = curr_id[curr_id %in% care_props[care_props[,2] > 0.8, 1]]
-
-add_id = no_rbc_rule[no_rbc_rule %in% care_props[care_props[,2] > 0.8, 1]]
-
-curr_id = c(curr_id, sample(add_id, 800 - length(curr_id)))
-curr_id = sort(unique(curr_id))
-
-data_format = data_format[data_format[,"EID"] %in% curr_id, ]
-
-# ------------------------------------------------------------------------------
 # (5) Remove any eroneous data points ------------------------------------------
 # ------------------------------------------------------------------------------
 for(i in 1:nrow(data_format)) {
@@ -359,29 +360,11 @@ for(i in 1:nrow(data_format)) {
             data_format[i, 'map'] = NA
         } 
     }
-
+    
 }
 
-print(length(unique(data_format[,"EID"])))
+print(paste0("Of the ", length(clinical_lab), " clinically reviewed patients, ", 
+             sum(clinical_lab %in% data_format[,"EID"]), " remain"))
 
-save(data_format, file = 'Data/data_format_new3.rda')
-# Quick check for no pacing
-pdf("Data/quick_check.pdf")
-par(mfrow=c(4,1))
-for(i in unique(data_format[,"EID"])) {
-    plot(data_format[data_format[,"EID"] == i, "time"], data_format[data_format[,"EID"] == i, "hr"],
-         main = i)
-}
-dev.off()
-
-# # Quick edit to data_format_new2
-# rbc_rule1 = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
-# rbc_rule0 = unique(data_format[data_format[,"RBC_rule"] == 0, "EID"])
-# 
-# load('Data/data_format_new2.rda')
-# data_format[data_format[,"EID"] %in% rbc_rule1, "RBC_rule"] = 1
-# data_format[!(data_format[,"EID"] %in% rbc_rule1), "RBC_rule"] = 0
-# new_rbc = unique(data_format[data_format[,"RBC_rule"] == 1, "EID"])
-# print(sum(new_rbc %in% rbc_rule1) / length(new_rbc))
-# save(data_format, file = 'Data/data_format_new2.rda')
+save(data_format, file = "Data_updates/data_format.rda")
 
