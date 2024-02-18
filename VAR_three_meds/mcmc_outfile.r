@@ -232,10 +232,19 @@ if(nrow(red_par_diff) == 0) {
     print(red_par_diff)
 }
 
-chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / steps)
+if(long_chain) {
+    chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / (itNum*steps))
+} else {
+    chain_list_gamma = vector(mode = 'list', length = nrow(stacked_chains) / steps)   
+}
 for(i in 1:length(chain_list_gamma)) {
-    max_ind = i * steps
-    chain_list_gamma[[i]] = gamma_chain[(max_ind - (steps - 1)):max_ind, ]
+    if(long_chain) {
+        max_ind = i * (itNum*steps)
+        chain_list_gamma[[i]] = gamma_chain[(max_ind - (itNum*steps - 1)):max_ind, ]
+    } else {
+        max_ind = i * steps   
+        chain_list_gamma[[i]] = gamma_chain[(max_ind - (steps - 1)):max_ind, ]
+    }
 }
 
 for(rr in 1:ncol(gamma_chain)){

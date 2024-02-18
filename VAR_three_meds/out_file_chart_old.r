@@ -266,7 +266,7 @@ for(i in EIDs){
             xlim=range(pb) + c(-0.5,0.5)) 
 	grid( nx=20, NULL, col='white')
 	legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-			legend=c( 'Baseline', 'Bleed', 'Recov(B)'), pch=15, pt.cex=1.5, 
+			legend=c( 'Baseline', 'State 2', 'State 3'), pch=15, pt.cex=1.5, 
 					col=c( 'dodgerblue', 'firebrick1', 'yellow2'))
 	legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
 			legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
@@ -426,7 +426,7 @@ for(i in EIDs){
             xlim=range(pb) + c(-0.5,0.5)) 
     grid( nx=20, NULL, col='white')
     legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'Baseline', 'Bleed', 'Recov(B)'), pch=15, pt.cex=1.5, 
+            legend=c( 'Baseline', 'State 2', 'State 3'), pch=15, pt.cex=1.5, 
             col=c( 'dodgerblue', 'firebrick1', 'yellow2'))
     legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
@@ -465,7 +465,7 @@ for(i in EIDs){
              xlim=range(pb) + c(-0.5,0.5))
     grid( nx=20, NULL, col='white')
     legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'bleeding', 'LIMBO'), pch=15, pt.cex=1.5,
+            legend=c( 'State 2', 'State 1,3'), pch=15, pt.cex=1.5,
             col=c('darkred', 'black'))
     axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
     axis( side=2, at=0:1, col.axis='green')
@@ -484,7 +484,7 @@ for(i in EIDs){
     
     # State verification  ------------------------------------------------------
     bleed_or_no = as.numeric(cumulative_post_prob[1,] > c)
-    plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of bleeding',
+    plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of State 2',
          xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
          xlim = range(pb) + c(-0.5,0.5),
          xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')

@@ -14,7 +14,7 @@ print(ind)
 # trial 1: Full sim with updated data (start at correct states, no state update)
 # trial 2: Full sim with updated data (start at correct states)
 
-# trial 7 start from same values, trial 8 - on are continuations of the previous 
+# trial 7 start from same values, trial 8 & on are continuations of the previous 
 # iteration
 
 simulation = F
@@ -34,7 +34,8 @@ if(simulation) {
     real_dat_num = 3
     
     load(paste0('Data/data_format_new', real_dat_num, '.rda'))
-    trialNum = 8 # trial 9 tests the restriction on alpha tilde
+    trialNum = 8 
+    max_ind = 10
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -104,13 +105,20 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load('Model_out/mcmc_out_interm_1_7it5.rda')
+    load(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
+    
     load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
-    par_temp = mcmc_out_temp$chain[1001, ]
+    
+    par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
     rownames(par_temp) = NULL
-
     par = par_temp
+    
+    b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
+    rm(mcmc_out_temp)
+    
+    print("initial values based on:")
+    print(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -123,14 +131,13 @@ for(i in EIDs){
       B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
       W[[i]] = omega_i_mat[[which(EIDs == i)]]
   } else {
-      b_temp = mcmc_out_temp$B_chain[1001, Y[,'EID']==as.numeric(i)]
+      b_temp = b_chain[Y[,'EID']==as.numeric(i)]
     
       B[[i]] = matrix(b_temp, ncol = 1)
       A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
       W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
   }
 }
-if(!simulation) rm(mcmc_out_temp)
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")
@@ -163,5 +170,5 @@ print(par[par_index$vec_upsilon_omega])
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
-                         trialNum, Dn_omega, simulation, bleed_indicator)
+                         trialNum, Dn_omega, simulation, bleed_indicator, max_ind)
 e_time = Sys.time() - s_time; print(e_time)

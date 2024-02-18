@@ -15,7 +15,7 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
-                         trialNum, Dn_omega, simulation, bleed_indicator){
+                         trialNum, Dn_omega, simulation, bleed_indicator, max_ind){
   
     n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
@@ -56,7 +56,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load('Model_out/mcmc_out_interm_1_7it5.rda')
+        load(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
         
@@ -374,15 +374,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                                 la_chain = la_chain, A_chain = A_chain,
                                 otype=otype, accept=accept/length(burnin:ttt), 
                                 pscale=pscale, pcov = pcov, par_index=par_index)
-            # if(ttt/10000 > 1) {
-                if(simulation) {
-                    save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
-                                                trialNum, 'it', ttt/10000, '_sim.rda'))
-                } else {
-                    save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
-                                                trialNum, 'it', ttt/10000, '.rda'))
-                }
-            # }
+            if(simulation) {
+                save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+                                                  trialNum, 'it', ttt/10000 + (max_ind - 5), '_sim.rda'))
+            } else {
+                save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
+                                                  trialNum, 'it', ttt/10000 + (max_ind - 5), '.rda'))
+            }
             # Reset the chains
             chain = matrix( NA, chain_length_MASTER, length(par)) 
             B_chain = hc_chain = hr_chain = bp_chain = la_chain = matrix( NA, chain_length_MASTER, nrow(Y))
