@@ -1,15 +1,14 @@
+# Load the medication data
 jw15 = read.csv("Data/_raw_data_new/jw15b.csv")
 jw16 = read.csv("Data/_raw_data_new/jw16b.csv")
 jw17 = read.csv("Data/_raw_data_new/jw17b.csv")
 jw18 = read.csv("Data/_raw_data_new/jw18b.csv")
 jw19 = read.csv("Data/_raw_data_new/jw19b.csv")
 
-# load('Data/data_format_new.rda')
-# pace_id = c(53475, 110750, 125025, 260625, 273425, 296500, 310100, 384925,
-#             417300, 448075, 538075, 616025, 660075, 665850, 666750, 677225,
-#             732525, 758025, 763050, 843000)
-# data_format = data_format[!(data_format[,'EID'] %in% pace_id), ]
-load('Data/data_format_new3.rda')
+data_num = 1
+
+# Load the existing patient information
+load('Data_updates/data_format.rda')
 select_id = unique(data_format[,"EID"])
 med_select_id = jw15[jw15$key %in% select_id, ]
 med_select_id = rbind(med_select_id, jw16[jw16$key %in% select_id, ])
@@ -75,14 +74,16 @@ for(i in 1:length(watch_out)) {
         med_name_simple_mat[watch_out[i], 2] = test_phrase[which.min(test_phrase_pos)]   
     }
 }
+print("Original")
+print(names(check_vec[watch_out]))
+print("Corrected")
+print(watch_out_meds)
 print(paste0("Number of mismatches after: ", sum(is.na(med_name_simple_mat))))
 
 hr_map = matrix(0, ncol = 2, nrow = length(med_name_simple))
 colnames(hr_map) = c("hr", "map")
 for(i in 1:nrow(med_key)) {
     simple_name_ind = med_name_simple_mat[med_name_simple_mat[,2] == med_key$id[i], 1]
-    # print(med_key$id[i])
-    # print(simple_name_ind)
     ind = which(med_name_simple %in% simple_name_ind)
     if(length(ind) > 0) {
         med_name_simple[ind] = med_key$id[i]
@@ -113,6 +114,10 @@ for(i in unique(med_select_id_sub$key)) {
 med_select_id_sub = med_select_id_sub[!is.na(med_select_id_sub$administered_dtm), ]
 
 # Combine Med Name & med administration to fully characterize
+# Do we count administration at a frequency of "every 15 min" or faster as continuous?
+# temp = med_select_id_sub[med_select_id_sub$Frequency %in% c("Every 5 min PRN", "Every 10 min PRN",
+#                                                             "Every 2 min PRN", "Every 15 min"), ]
+
 continuous_app = c("Continuous Infusion: Per Instructions PRN",
                    "Continuous")
 names_of_meds_cont = unique(med_select_id_sub$Med_Name_Desc[med_select_id_sub$Frequency %in% continuous_app])
@@ -142,6 +147,7 @@ status_med[med_select_id_sub$Status %in% status_update[["Start"]]] = "Start"
 status_med[med_select_id_sub$Status %in% status_update[["Stop"]]] = "Stop"
 status_med[med_select_id_sub$Status %in% status_update[["Continue"]]] = "Continue"
 status_med[med_select_id_sub$Status %in% status_update[["Changed"]]] = "Changed"
+print("Current Med Status Values:")
 print(unique(status_med))
 
 # Looking through if things are too simplified ---------------------------------
@@ -155,86 +161,30 @@ for(i in 1:length(total_simple_meds)) {
 }
 
 # List: meds_to_check
+print("medications that have both continuous and discrete forms of admin")
 print(meds_to_check)
-# " ALBUMIN", " AMIODARONE ", " CALCIUM CHLORIDE", " CLEVIDIPINE ", " DILTIAZEM "
-# " EPINEPHRINE ", " ESMOLOL ", " KETAMINE ", " LABETALOL ", " NITROGLYCERIN ", 
-# " PHENYLEPHRINE", " PROPOFOL ", " SODIUM BICARBONATE ", " VASOPRESSIN "
-# med_d = med_select_id_sub[med_select_id_sub$med_name_simple == " LABETALOL ", ,drop = F]
-# unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
-# unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
+
+prev_meds_to_check = c(" ALBUMIN", " AMIODARONE ", " CALCIUM CHLORIDE", 
+                       " CLEVIDIPINE ", " DEXMEDETOMIDINE ", " DILTIAZEM ", 
+                       " EPINEPHRINE ", " ESMOLOL ", " KETAMINE ", 
+                       " LABETALOL ", " MILRINONE ", " NITROGLYCERIN ", 
+                       " PHENYLEPHRINE", " PROPOFOL ", " SODIUM BICARBONATE ", 
+                       " VASOPRESSIN ")
+
+print(paste0("The previous med_check list contains ", sum(meds_to_check %in% prev_meds_to_check), 
+      " of the total ", length(meds_to_check), " current meds to check"))
+
+med_d = med_select_id_sub[med_select_id_sub$med_name_simple == prev_meds_to_check[11], ,drop = F]
+unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
+unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
 
 med_name_simple_new = paste0(med_select_id_sub$med_name_simple, continuous_med)
 
-med_name_simple_new[med_select_id_sub$med_name_simple == " ALBUMIN"] = "ALBUMIN_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " AMIODARONE " &
-                    med_select_id_sub$continuous_med == 1] = "AMIODARONE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " AMIODARONE " &
-                    med_select_id_sub$continuous_med == 0] = "AMIODARONE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " CALCIUM CHLORIDE" &
-                        med_select_id_sub$continuous_med == 1] = "CALCIUM CHLORIDE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " CALCIUM CHLORIDE" &
-                        med_select_id_sub$continuous_med == 0] = "CALCIUM CHLORIDE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " CLEVIDIPINE " &
-                        med_select_id_sub$continuous_med == 1] = "CLEVIDIPINE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " CLEVIDIPINE " &
-                        med_select_id_sub$continuous_med == 0] = "CLEVIDIPINE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " DILTIAZEM " &
-                        med_select_id_sub$continuous_med == 1] = "DILTIAZEM_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " DILTIAZEM " &
-                        med_select_id_sub$continuous_med == 0] = "DILTIAZEM_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " EPINEPHRINE " &
-                        med_select_id_sub$continuous_med == 1] = "EPINEPHRINE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " EPINEPHRINE " &
-                        med_select_id_sub$continuous_med == 0] = "EPINEPHRINE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " ESMOLOL " &
-                        med_select_id_sub$continuous_med == 1] = "ESMOLOL_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " ESMOLOL " &
-                        med_select_id_sub$continuous_med == 0] = "ESMOLOL_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
-                        med_select_id_sub$continuous_med == 1] = "KETAMINE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " KETAMINE " &
-                        med_select_id_sub$continuous_med == 0] = "KETAMINE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " LABETALOL " &
-                        med_select_id_sub$continuous_med == 1] = "LABETALOL_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " LABETALOL " &
-                        med_select_id_sub$continuous_med == 0] = "LABETALOL_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " NITROGLYCERIN " &
-                        med_select_id_sub$continuous_med == 1] = "NITROGLYCERIN_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " NITROGLYCERIN " &
-                        med_select_id_sub$continuous_med == 0] = "NITROGLYCERIN_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " PHENYLEPHRINE" &
-                        med_select_id_sub$continuous_med == 1] = "PHENYLEPHRINE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " PHENYLEPHRINE" &
-                        med_select_id_sub$continuous_med == 0] = "PHENYLEPHRINE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " PROPOFOL " &
-                        med_select_id_sub$continuous_med == 1] = "PROPOFOL_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " PROPOFOL " &
-                        med_select_id_sub$continuous_med == 0] = "PROPOFOL_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " SODIUM BICARBONATE " &
-                        med_select_id_sub$continuous_med == 1] = "SODIUM BICARBONATE_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " SODIUM BICARBONATE " &
-                        med_select_id_sub$continuous_med == 0] = "SODIUM BICARBONATE_0"
-
-med_name_simple_new[med_select_id_sub$med_name_simple == " VASOPRESSIN " &
-                        med_select_id_sub$continuous_med == 1] = "VASOPRESSIN_1"
-med_name_simple_new[med_select_id_sub$med_name_simple == " VASOPRESSIN " &
-                        med_select_id_sub$continuous_med == 0] = "VASOPRESSIN_0"
-
 # med_name_admin = paste0(med_select_id_sub$Med_Name_Desc, continuous_med)
 med_name_admin = med_name_simple_new
-unique_med_names = sort(unique(med_name_admin)); print(length(unique_med_names))
+unique_med_names = sort(unique(med_name_admin)); 
+print(paste0("Num. meds broken up based on continuous vs. discrete admin: ", 
+             length(unique_med_names)))
 # ------------------------------------------------------------------------------
 
 instance_num = rep(0, nrow(med_select_id_sub))
@@ -252,10 +202,18 @@ for(i in unique(med_select_update$key)){
     }
 }
 med_select_FINAL = med_select_FINAL[-1, ,drop=F]; rownames(med_select_FINAL) = NULL
-med_select_FINAL = med_select_FINAL[med_select_FINAL$Dose != 0, ]
-med_select_FINAL = med_select_FINAL[!is.na(med_select_FINAL$Dose), ]
-med_select_FINAL$continuous_med[med_select_FINAL$med_name_admin == "ALBUMIN_0"] = 0
+# med_select_FINAL = med_select_FINAL[med_select_FINAL$Dose != 0, ]
+# med_select_FINAL = med_select_FINAL[!is.na(med_select_FINAL$Dose), ]
+# med_select_FINAL$continuous_med[med_select_FINAL$med_name_admin == "ALBUMIN_0"] = 0
 # *****************************************************************************
+
+# First, check all time instances when the medication is stopped and set
+# the dose and strength to 0.
+med_select_FINAL[med_select_FINAL$status_med == "Stop", "Dose"] = 0
+med_select_FINAL[med_select_FINAL$status_med == "Stop", "Strength"] = ""
+
+# Second, when is Dose NA
+na_dose = med_select_FINAL[is.na(med_select_FINAL$Dose), ]
 
 # making the strength numeric
 all_med_types = unique(med_select_FINAL$med_name_admin)
@@ -269,6 +227,76 @@ names(strength_units) = names(dose_units) = all_med_types
 # ******************************************************************************
 # Manually check the strength units and dose units to see which has multiple ***
 # ******************************************************************************
+# " ADENOSINE 0" ---------------------------------------------------------------
+# " ALBUMIN1" ---------------------------------------------------------------                     
+# " AMIODARONE 0" ---------------------------------------------------------------                  
+# " AMIODARONE 1" ---------------------------------------------------------------                 
+# " AMLODIPINE 0" ---------------------------------------------------------------                  
+# " ANGIOTENSIN 1" ---------------------------------------------------------------                 
+# " ATENOLOL 0" ---------------------------------------------------------------                   
+# " ATROPINE 0" ---------------------------------------------------------------                    
+# " BISOPROLOL0" ---------------------------------------------------------------                   
+# " CALCIUM CHLORIDE0" ---------------------------------------------------------------             
+# " CALCIUM CHLORIDE1" ---------------------------------------------------------------             
+# " CALCIUM GLUCONATE0" ---------------------------------------------------------------            
+# " CANDESARTAN 0" ---------------------------------------------------------------                 
+# " CAPTOPRIL 0" ---------------------------------------------------------------                   
+# " CARVEDILOL0" ---------------------------------------------------------------                   
+# " CLEVIDIPINE 0" ---------------------------------------------------------------                
+# " CLEVIDIPINE 1" ---------------------------------------------------------------                
+# " CLONIDINE 0" ---------------------------------------------------------------                   
+# " DEXMEDETOMIDINE 0" ---------------------------------------------------------------             
+# " DEXMEDETOMIDINE 1" ---------------------------------------------------------------            
+# " DIGOXIN 0" ---------------------------------------------------------------                    
+# " DILTIAZEM 0" ---------------------------------------------------------------                  
+# " DILTIAZEM 1" ---------------------------------------------------------------                  
+# " DOBUTAMINE 1" ---------------------------------------------------------------                 
+# " DOPAMINE 1" ---------------------------------------------------------------                   
+# " ENALAPRIL0" ---------------------------------------------------------------                   
+# " ENALAPRILAT 0" ---------------------------------------------------------------                
+# " EPHEDRINE0" ---------------------------------------------------------------                   
+# " EPINEPHRINE 0" ---------------------------------------------------------------                
+# " EPINEPHRINE 1" ---------------------------------------------------------------                
+# " ESMOLOL 0" ---------------------------------------------------------------                    
+# " ESMOLOL 1" ---------------------------------------------------------------                    
+# " IRBESARTAN 0" ---------------------------------------------------------------                 
+# " ISOPROTERENOL 1" ---------------------------------------------------------------              
+# " ISOSORBIDE DINITRATE0" ---------------------------------------------------------------        
+# " ISOSORBIDE MONONITRATE0" ---------------------------------------------------------------      
+# " KETAMINE 0" ---------------------------------------------------------------                   
+# " KETAMINE 1" ---------------------------------------------------------------                   
+# " LABETALOL 0" ---------------------------------------------------------------                  
+# " LABETALOL 1" ---------------------------------------------------------------                  
+# " LISINOPRIL 0" ---------------------------------------------------------------                 
+# " LOSARTAN 0"  ---------------------------------------------------------------                  
+# " LOSARTAN-HYDROCHLOROTHIAZIDE 0"---------------------------------------------------------------
+# " METOPROLOL SUCCINATE0"---------------------------------------------------------------         
+# " METOPROLOL TARTRATE0" ---------------------------------------------------------------         
+# " METOPROLOL0" ---------------------------------------------------------------                  
+# " MILRINONE 0" ---------------------------------------------------------------                  
+# " MILRINONE 1" ---------------------------------------------------------------                  
+# " NADOLOL 0" ---------------------------------------------------------------                    
+# " NICARDIPINE 1"---------------------------------------------------------------                 
+# " NIFEDIPINE0" ---------------------------------------------------------------                  
+# " NIMODIPINE 0"---------------------------------------------------------------                  
+# " NITROGLYCERIN 0"---------------------------------------------------------------               
+# " NITROGLYCERIN 1" ---------------------------------------------------------------              
+# " NITROPRUSSIDE 1" ---------------------------------------------------------------              
+# " NOREPINEPHRINE1" ---------------------------------------------------------------              
+# " OLMESARTAN 0"  ---------------------------------------------------------------                
+# " PHENYLEPHRINE0" ---------------------------------------------------------------               
+# " PHENYLEPHRINE1"---------------------------------------------------------------                
+# " PROPOFOL 0"    ---------------------------------------------------------------                
+# " PROPOFOL 1"  ---------------------------------------------------------------                  
+# " SILDENAFIL 0"   ---------------------------------------------------------------               
+# " SODIUM BICARBONATE 0" ---------------------------------------------------------------        
+# " SODIUM BICARBONATE 1" ---------------------------------------------------------------         
+# " SOTALOL 0"   ---------------------------------------------------------------                  
+# " SPIRONOLACTONE 0"   ---------------------------------------------------------------           
+# " VALSARTAN 0"     ---------------------------------------------------------------              
+# " VASOPRESSIN 0"   ---------------------------------------------------------------              
+# " VASOPRESSIN 1"   ---------------------------------------------------------------              
+# " VERAPAMIL 0"  ---------------------------------------------------------------
 
 # looking at which strength_units and dose_units have more than 1 per drug
 strength_check = c("ALBUMIN_0", " CALCIUM GLUCONATE0","LABETALOL_0",
@@ -352,7 +380,7 @@ med_select_FINAL = cbind(med_select_FINAL, Strength_num)
 med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
 med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
 
-save(med_select_FINAL, file = paste0("Data/med_select_FINAL", 3, ".rda"))
+save(med_select_FINAL, file = paste0("Data_updates/med_select_FINAL", data_num, ".rda"))
 
 # SCALING DOSE! ************************************************************
 med_dose_unique = unique(med_select_FINAL$med_name_admin)
@@ -365,7 +393,7 @@ for(i in 1:length(med_dose_unique)){
     med_dose_scale_factor[i, 2] = mean_i
     med_select_FINAL$Dose[med_i] = med_select_FINAL$Dose[med_i] / mean_i
 }
-save(med_dose_scale_factor, file = paste0('Data/med_dose_scale_factor', 3, '.rda'))
+save(med_dose_scale_factor, file = paste0('Data_updates/med_dose_scale_factor', data_num, '.rda'))
 # *************************************************************************
 
 # Create a column with the "instance" number of that med to help determine if
@@ -401,12 +429,12 @@ map_disc = map_medications[map_medications$continuous_med == 0, ,drop=F]
 map_disc_names = unique(map_disc$med_name_admin)
 
 Dn_omega_names = c(hr_cont_names, hr_disc_names, map_cont_names, map_disc_names)
-save(Dn_omega_names, file = paste0("Data/Dn_omega_names", 3, ".rda"))
+save(Dn_omega_names, file = paste0("Data_updates/Dn_omega_names", data_num, ".rda"))
 hr_map_names = c(rep("hr_cont", length(hr_cont_names)),
                  rep("hr_disc", length(hr_disc_names)),
                  rep("map_cont", length(map_cont_names)),
                  rep("map_disc", length(map_disc_names)))
-save(hr_map_names, file = paste0('Data/hr_map_names', 3, '.rda'))
+save(hr_map_names, file = paste0('Data_updates/hr_map_names', data_num, '.rda'))
 
 EIDs = unique(data_format[,"EID"])
 hr_cont_design = hr_disc_design = map_cont_design = map_disc_design = vector(mode = 'list', length = length(EIDs))
@@ -658,7 +686,7 @@ for(i in 1:length(Dn_omega)) {
     }
 }
 
-save(Dn_omega, file = paste0('Data/Dn_omega', 3, '.rda'))
+save(Dn_omega, file = paste0('Data_updates/Dn_omega', data_num, '.rda'))
 
 # Understanding what the mean of Dn_omega should be
 upp_down_omega = matrix(nrow = length(Dn_omega_names), ncol = 2)
