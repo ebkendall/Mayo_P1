@@ -224,105 +224,107 @@ for(i in 1:length(strength_units)) {
 }
 names(strength_units) = names(dose_units) = all_med_types
 
+med_names_alphabet = sort(all_med_types)
+
 # ******************************************************************************
 # Manually check the strength units and dose units to see which has multiple ***
 # ******************************************************************************
-# " ADENOSINE 0" ---------------------------------------------------------------
-# " ALBUMIN1" ---------------------------------------------------------------                     
-# " AMIODARONE 0" ---------------------------------------------------------------                  
-# " AMIODARONE 1" ---------------------------------------------------------------                 
-# " AMLODIPINE 0" ---------------------------------------------------------------                  
-# " ANGIOTENSIN 1" ---------------------------------------------------------------                 
-# " ATENOLOL 0" ---------------------------------------------------------------                   
-# " ATROPINE 0" ---------------------------------------------------------------                    
-# " BISOPROLOL0" ---------------------------------------------------------------                   
-# " CALCIUM CHLORIDE0" ---------------------------------------------------------------             
-# " CALCIUM CHLORIDE1" ---------------------------------------------------------------             
-# " CALCIUM GLUCONATE0" ---------------------------------------------------------------            
-# " CANDESARTAN 0" ---------------------------------------------------------------                 
-# " CAPTOPRIL 0" ---------------------------------------------------------------                   
-# " CARVEDILOL0" ---------------------------------------------------------------                   
-# " CLEVIDIPINE 0" ---------------------------------------------------------------                
-# " CLEVIDIPINE 1" ---------------------------------------------------------------                
-# " CLONIDINE 0" ---------------------------------------------------------------                   
-# " DEXMEDETOMIDINE 0" ---------------------------------------------------------------             
-# " DEXMEDETOMIDINE 1" ---------------------------------------------------------------            
-# " DIGOXIN 0" ---------------------------------------------------------------                    
-# " DILTIAZEM 0" ---------------------------------------------------------------                  
-# " DILTIAZEM 1" ---------------------------------------------------------------                  
-# " DOBUTAMINE 1" ---------------------------------------------------------------                 
-# " DOPAMINE 1" ---------------------------------------------------------------                   
-# " ENALAPRIL0" ---------------------------------------------------------------                   
-# " ENALAPRILAT 0" ---------------------------------------------------------------                
-# " EPHEDRINE0" ---------------------------------------------------------------                   
-# " EPINEPHRINE 0" ---------------------------------------------------------------                
-# " EPINEPHRINE 1" ---------------------------------------------------------------                
-# " ESMOLOL 0" ---------------------------------------------------------------                    
-# " ESMOLOL 1" ---------------------------------------------------------------                    
-# " IRBESARTAN 0" ---------------------------------------------------------------                 
-# " ISOPROTERENOL 1" ---------------------------------------------------------------              
-# " ISOSORBIDE DINITRATE0" ---------------------------------------------------------------        
-# " ISOSORBIDE MONONITRATE0" ---------------------------------------------------------------      
-# " KETAMINE 0" ---------------------------------------------------------------                   
-# " KETAMINE 1" ---------------------------------------------------------------                   
-# " LABETALOL 0" ---------------------------------------------------------------                  
-# " LABETALOL 1" ---------------------------------------------------------------                  
-# " LISINOPRIL 0" ---------------------------------------------------------------                 
-# " LOSARTAN 0"  ---------------------------------------------------------------                  
-# " LOSARTAN-HYDROCHLOROTHIAZIDE 0"---------------------------------------------------------------
-# " METOPROLOL SUCCINATE0"---------------------------------------------------------------         
-# " METOPROLOL TARTRATE0" ---------------------------------------------------------------         
-# " METOPROLOL0" ---------------------------------------------------------------                  
-# " MILRINONE 0" ---------------------------------------------------------------                  
-# " MILRINONE 1" ---------------------------------------------------------------                  
-# " NADOLOL 0" ---------------------------------------------------------------                    
-# " NICARDIPINE 1"---------------------------------------------------------------                 
-# " NIFEDIPINE0" ---------------------------------------------------------------                  
-# " NIMODIPINE 0"---------------------------------------------------------------                  
-# " NITROGLYCERIN 0"---------------------------------------------------------------               
-# " NITROGLYCERIN 1" ---------------------------------------------------------------              
-# " NITROPRUSSIDE 1" ---------------------------------------------------------------              
-# " NOREPINEPHRINE1" ---------------------------------------------------------------              
-# " OLMESARTAN 0"  ---------------------------------------------------------------                
-# " PHENYLEPHRINE0" ---------------------------------------------------------------               
-# " PHENYLEPHRINE1"---------------------------------------------------------------                
-# " PROPOFOL 0"    ---------------------------------------------------------------                
-# " PROPOFOL 1"  ---------------------------------------------------------------                  
-# " SILDENAFIL 0"   ---------------------------------------------------------------               
-# " SODIUM BICARBONATE 0" ---------------------------------------------------------------        
-# " SODIUM BICARBONATE 1" ---------------------------------------------------------------         
-# " SOTALOL 0"   ---------------------------------------------------------------                  
-# " SPIRONOLACTONE 0"   ---------------------------------------------------------------           
-# " VALSARTAN 0"     ---------------------------------------------------------------              
-# " VASOPRESSIN 0"   ---------------------------------------------------------------              
-# " VASOPRESSIN 1"   ---------------------------------------------------------------              
-# " VERAPAMIL 0"  ---------------------------------------------------------------
-
-# looking at which strength_units and dose_units have more than 1 per drug
-strength_check = c("ALBUMIN_0", " CALCIUM GLUCONATE0","LABETALOL_0",
-                   "AMIODARONE_0","DILTIAZEM_0"," NIFEDIPINE0",
-                   " NIMODIPINE 0")
-dose_check = c("NITROGLYCERIN_1", " NOREPINEPHRINE1","PROPOFOL_1", "PROPOFOL_0",
-               "CALCIUM CHLORIDE_0", " CALCIUM GLUCONATE0", "ALBUMIN_0", "EPINEPHRINE_0",
-               "SODIUM BICARBONATE_0", "CLEVIDIPINE_1", "PHENYLEPHRINE_0"," NIFEDIPINE0",
-               " DOBUTAMINE 1", " CLONIDINE 0", " NIFEDIPINE0")
-dose_strength_combo = unique(c(strength_check, dose_check))
-print(dose_strength_combo)
-
-med_select_FINAL$Strength[!(med_select_FINAL$med_name_admin %in% dose_strength_combo)] = 1
-# **************************************************************** 
-# specific_med = med_select_FINAL[med_select_FINAL$med_name_admin ==" CLONIDINE 0", ]
-# apply(specific_med[,c("Dose", "Dose_Units", "Strength")], 2, table)
-# ALBUMIN ---------------------------------------------------------------------
+# 1. " ADENOSINE 0" ------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ADENOSINE 0"] = 1
+med_select_FINAL$Dose[med_select_FINAL$med_name_admin == " ADENOSINE 0" & 
+                          is.na(med_select_FINAL$Dose)] = 0
+# 2. " ALBUMIN1" ---------------------------------------------------------------
 # mL -> g (divide by 10)
-alb_ind = which(med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
+alb_ind = which(med_select_FINAL$med_name_admin == " ALBUMIN1" & 
                     med_select_FINAL$Dose_Units == "mL")
 med_select_FINAL[alb_ind, "Dose"] = med_select_FINAL[alb_ind, "Dose"] / 10
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
-                    med_select_FINAL$Strength == "25 %"] = 0.25
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "ALBUMIN_0" & 
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ALBUMIN1" & 
+                              med_select_FINAL$Strength == "25 %"] = 0.25
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ALBUMIN1" & 
                               med_select_FINAL$Strength == "5 %"] = 0.05
-# CALCIUM GLUCONATE0 ----------------------------------------------------------
+alb_ind_miss = which(med_select_FINAL$med_name_admin == " ALBUMIN1" & 
+                         med_select_FINAL$Strength == "")
+med_select_FINAL[alb_ind_miss, "Dose"] = med_select_FINAL[alb_ind_miss, "Strength"] = 0
+
+# 3. " AMIODARONE 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " AMIODARONE 0")
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], " ")[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " AMIODARONE 0"] = 1
+
+# 4. " AMIODARONE 1" -----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " AMIODARONE 1"] = 1
+
+# 5. " AMLODIPINE 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " AMLODIPINE 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], " ")[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " AMLODIPINE 0"] = 1
+
+# 6. " ANGIOTENSIN 1" ----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ANGIOTENSIN 1"] = 1
+
+# 7. " ATENOLOL 0" -------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ATENOLOL 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[- ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ATENOLOL 0"] = 1
+
+# 8. " ATROPINE 0" -------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ATROPINE 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ATROPINE 0"] = 1
+
+# 9. " BISOPROLOL0" ------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " BISOPROLOL0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " BISOPROLOL0"] = 1
+
+# 10. " CALCIUM CHLORIDE0" -----------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CALCIUM CHLORIDE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+cc_ind = which(med_select_FINAL$med_name_admin == " CALCIUM CHLORIDE0" &  
+                   (med_select_FINAL$Dose_Units %in% c("mg", "mg/hr")))
+med_select_FINAL$Dose[cc_ind] = med_select_FINAL$Dose[cc_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM CHLORIDE0"] = 1
+
+# 11. " CALCIUM CHLORIDE1" -----------------------------------------------------
+cc_ind = which(med_select_FINAL$med_name_admin == " CALCIUM CHLORIDE1" &  
+                   (med_select_FINAL$Dose_Units %in% c("g/day")))
+med_select_FINAL$Dose[cc_ind] = med_select_FINAL$Dose[cc_ind] * (1000 / 24)
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM CHLORIDE1"] = 1
+
+# 12. " CALCIUM GLUCONATE0" ----------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
 cal_g_ind = which(med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" & 
                       med_select_FINAL$Dose_Units == "mg")
 med_select_FINAL[cal_g_ind, "Dose"] = med_select_FINAL[cal_g_ind, "Dose"] / 1000
@@ -330,50 +332,422 @@ med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE
                               med_select_FINAL$Strength == "10%"] = 5
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CALCIUM GLUCONATE0" &
                               med_select_FINAL$Strength != 5] = 1
-# LABETALOL -------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "LABETALOL_0"] = 1
-# AMIODARONE -------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "AMIODARONE_0"] = 1
-# DILTIAZEM -------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "DILTIAZEM_0"] = 1
-# NIFEDIPINE ------------------------------------------------------------------
-med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " NIFEDIPINE0", ]
-# NIMODIPINE ------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NIMODIPINE 0"] = 1
-# NITROGLYCERIN ---------------------------------------------------------------
-med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == "NITROGLYCERIN_1" &
-                                        med_select_FINAL$Dose_Units == "mcg"), ]
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "NITROGLYCERIN_1"] = 1
-# NOREPINEPHRINE --------------------------------------------------------------
-med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == " NOREPINEPHRINE1" &
-                                          med_select_FINAL$Dose == 4000), ]
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NOREPINEPHRINE1"] = 1
-# PROPOFOL 1 ------------------------------------------------------------------
-med_select_FINAL = med_select_FINAL[!(med_select_FINAL$med_name_admin == "PROPOFOL_1" &
-                                          med_select_FINAL$Dose == 1000), ]
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_1"] = 1
-# PROPOFOL 0 ------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PROPOFOL_0"] = 1
-# CALCIUM CHLORIDE ------------------------------------------------------------
-cc_ind = which(med_select_FINAL$med_name_admin == "CALCIUM CHLORIDE_0" &  med_select_FINAL$Dose_Units == "mg")
-med_select_FINAL$Dose[cc_ind] = med_select_FINAL$Dose[cc_ind] / 1000
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "CALCIUM CHLORIDE_0"] = 1
-# SODIUM BICARBONATE ----------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "SODIUM BICARBONATE_0"] = 1
-# CLEVIDIPINE -----------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "CLEVIDIPINE_1"] = 1
-# PHENYLEPHRINE ---------------------------------------------------------------
-p_ind = which(med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0" &  med_select_FINAL$Dose_Units == "mcg")
-med_select_FINAL$Dose[p_ind] = med_select_FINAL$Dose[p_ind] / 1000
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "PHENYLEPHRINE_0"] = 1
-# EPINEPHRINE -----------------------------------------------------------------
-ep_ind = which(med_select_FINAL$med_name_admin == "EPINEPHRINE_0" &  med_select_FINAL$Dose_Units == "mcg")
-med_select_FINAL$Dose[ep_ind] = med_select_FINAL$Dose[ep_ind] / 1000
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == "EPINEPHRINE_0"] = 1
-# DOBUTAMINE ------------------------------------------------------------------
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DOBUTAMINE 1"] = 1
-# CLONIDINE  ------------------------------------------------------------------
+
+# 13. " CANDESARTAN 0" ---------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " CANDESARTAN 0", ]
+
+# 14. " CAPTOPRIL 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CAPTOPRIL 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CAPTOPRIL 0"] = 1
+
+# 15. " CARVEDILOL0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CARVEDILOL0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Med_Name_Desc[na_dose[d]], '[ ]+')[[1]][2])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CARVEDILOL0"] = 1
+
+# 16. " CLEVIDIPINE 0" ---------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CLEVIDIPINE 0"] = 1
+
+# 17. " CLEVIDIPINE 1" -------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CLEVIDIPINE 1")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " CLEVIDIPINE 1"] = 1
+
+# 18. " CLONIDINE 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " CLONIDINE 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
 med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " CLONIDINE 0", ]
+
+# 19. " DEXMEDETOMIDINE 0" -----------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " DEXMEDETOMIDINE 0", ]
+
+# 20. " DEXMEDETOMIDINE 1" -----------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DEXMEDETOMIDINE 1" ] = 1
+
+# 21. " DIGOXIN 0" -------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " DIGOXIN 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+d_0 = which(med_select_FINAL$med_name_admin == " DIGOXIN 0" & med_select_FINAL$Dose_Units == "mg")
+med_select_FINAL = med_select_FINAL[-d_0, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DIGOXIN 0" ] = 1
+
+# 22. " DILTIAZEM 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " DILTIAZEM 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DILTIAZEM 0"] = 1
+
+# 23. " DILTIAZEM 1" -----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DILTIAZEM 1"] = 1
+
+# 24. " DOBUTAMINE 1" ----------------------------------------------------------
+dob_1 = which(med_select_FINAL$med_name_admin == " DOBUTAMINE 1" & med_select_FINAL$Dose_Units == "mg")
+med_select_FINAL = med_select_FINAL[-dob_1, ]
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DOBUTAMINE 1"] = 1
+
+# 25. " DOPAMINE 1" ------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " DOPAMINE 1"] = 1
+
+# 26. " ENALAPRIL0" ------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " ENALAPRIL0", ]
+
+# 27. " ENALAPRILAT 0" ---------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " ENALAPRILAT 0", ]
+
+# 28. " EPHEDRINE0" ------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " EPHEDRINE0"] = 1
+
+# 29. " EPINEPHRINE 0" ---------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " EPINEPHRINE 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+ep_ind = which(med_select_FINAL$med_name_admin == " EPINEPHRINE 0" &  med_select_FINAL$Dose_Units %in% c("mcg","mcg/kg/min"))
+med_select_FINAL$Dose[ep_ind] = med_select_FINAL$Dose[ep_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " EPINEPHRINE 0"] = 1
+
+# 30. " EPINEPHRINE 1" ---------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " EPINEPHRINE 1")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " EPINEPHRINE 1"] = 1
+
+# 31. " ESMOLOL 0" -------------------------------------------------------------  
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ESMOLOL 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ESMOLOL 0"] = 1
+
+# 32. " ESMOLOL 1" ------------------------------------------------------------- 
+t_strength = which((med_select_FINAL$med_name_admin == " ESMOLOL 1") & (med_select_FINAL$Strength == "20 mg/mL"))
+med_select_FINAL$Strength[t_strength] = 2
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ESMOLOL 1" &
+                              med_select_FINAL$Strength != "20 mg/mL"] = 1
+
+# 33. " IRBESARTAN 0" ----------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " IRBESARTAN 0", ]
+
+# 34. " ISOPROTERENOL 1" -------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ISOPROTERENOL 1"] = 1
+
+# 35. " ISOSORBIDE DINITRATE0" -------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ISOSORBIDE DINITRATE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ISOSORBIDE DINITRATE0"] = 1
+
+# 36. " ISOSORBIDE MONONITRATE0" -----------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ISOSORBIDE MONONITRATE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " ISOSORBIDE MONONITRATE0"] = 1
+
+# 37. " KETAMINE 0" ------------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " KETAMINE 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " KETAMINE 0"] = 1
+
+# 38. " KETAMINE 1" ------------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " KETAMINE 1"] = 1
+
+# 39. " LABETALOL 0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " LABETALOL 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LABETALOL 0"] = 1
+
+# 40. " LABETALOL 1" -----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LABETALOL 1"] = 1
+
+# 41. " LISINOPRIL 0" ----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " LISINOPRIL 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Med_Name_Desc[na_dose[d]], '[ ]+')[[1]][2])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LISINOPRIL 0"] = 1
+
+# 42. " LOSARTAN 0"  -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " LOSARTAN 0" )
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Med_Name_Desc[na_dose[d]], '[ ]+')[[1]][2])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " LOSARTAN 0" ] = 1
+
+# 43. " LOSARTAN-HYDROCHLOROTHIAZIDE 0"-----------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " LOSARTAN-HYDROCHLOROTHIAZIDE 0", ]
+
+# 44. " METOPROLOL SUCCINATE0"--------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " METOPROLOL SUCCINATE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " METOPROLOL SUCCINATE0"] = 1
+
+# 45. " METOPROLOL TARTRATE0" --------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " METOPROLOL TARTRATE0" )
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Med_Name_Desc[na_dose[d]], '[ ]+')[[1]][3])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " METOPROLOL TARTRATE0" ] = 1
+
+# 46. " METOPROLOL0" -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " METOPROLOL0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " METOPROLOL0"] = 1
+
+# 47. " MILRINONE 0" -----------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " MILRINONE 0", ]
+
+# 48. " MILRINONE 1" -----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " MILRINONE 1"] = 1
+
+# 49. " NADOLOL 0" -------------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " NADOLOL 0", ]
+
+# 50. " NICARDIPINE 1"----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NICARDIPINE 1"] = 1
+
+# 51. " NIFEDIPINE0" -----------------------------------------------------------
+app_nif = which(med_select_FINAL$med_name_admin == " NIFEDIPINE0" & 
+                    med_select_FINAL$Dose_Units == "application")
+med_select_FINAL = med_select_FINAL[-app_nif, ]
+app_nif = which(med_select_FINAL$med_name_admin == " NIFEDIPINE0" & 
+                    med_select_FINAL$Strength == "0.1 %")
+med_select_FINAL = med_select_FINAL[-app_nif, ]
+
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " NIFEDIPINE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NIFEDIPINE0"] = 1
+
+# 52. " NIMODIPINE 0"-----------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NIMODIPINE 0"] = 1
+
+# 53. " NITROGLYCERIN 0"--------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " NITROGLYCERIN 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+nitro_inch = which(med_select_FINAL$med_name_admin == " NITROGLYCERIN 0" & 
+                       med_select_FINAL$Dose_Units == "inch")
+med_select_FINAL = med_select_FINAL[-nitro_inch, ]
+
+med_select_FINAL$Dose[med_select_FINAL$med_name_admin == " NITROGLYCERIN 0" & 
+                          med_select_FINAL$Dose_Units == "mcg"] = med_select_FINAL$Dose[med_select_FINAL$med_name_admin == " NITROGLYCERIN 0" & 
+                                                                                            med_select_FINAL$Dose_Units == "mcg"] / 1000
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NITROGLYCERIN 0"] = 1
+
+# 54. " NITROGLYCERIN 1" -------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " NITROGLYCERIN 1")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+mcg_ind = which(med_select_FINAL$med_name_admin == " NITROGLYCERIN 1" & 
+                    med_select_FINAL$Dose_Units %in% c("mcg", "mcg/kg/min"))
+
+med_select_FINAL$Dose[mcg_ind] = med_select_FINAL$Dose[mcg_ind] / 1000
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NITROGLYCERIN 1"] = 1
+
+# 55. " NITROPRUSSIDE 1" -------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NITROPRUSSIDE 1"] = 1
+
+# 56. " NOREPINEPHRINE1" -------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " NOREPINEPHRINE1")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+new_bag_nor = which(med_select_FINAL$med_name_admin == " NOREPINEPHRINE1" & med_select_FINAL$Dose > 16)
+med_select_FINAL = med_select_FINAL[-new_bag_nor, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NOREPINEPHRINE1"] = 1
+
+# 57. " OLMESARTAN 0"  ---------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " OLMESARTAN 0", ]
+
+# 58. " PHENYLEPHRINE0" --------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " PHENYLEPHRINE0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+p_ind = which(med_select_FINAL$med_name_admin == " PHENYLEPHRINE0" &  med_select_FINAL$Dose_Units == "mcg")
+med_select_FINAL$Dose[p_ind] = med_select_FINAL$Dose[p_ind] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " PHENYLEPHRINE0"] = 1
+
+# 59. " PHENYLEPHRINE1"---------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " PHENYLEPHRINE1")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " PHENYLEPHRINE1"] = 1
+
+# 60. " PROPOFOL 0"    ---------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " PROPOFOL 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+prop_mcg = which(med_select_FINAL$med_name_admin == " PROPOFOL 0" &  med_select_FINAL$Dose_Units == "mcg/kg/min")
+med_select_FINAL$Dose[prop_mcg] = med_select_FINAL$Dose[prop_mcg] / 1000
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " PROPOFOL 0"] = 1
+
+# 61. " PROPOFOL 1"  -----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " PROPOFOL 1")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " PROPOFOL 1"] = 1
+
+# 62. " SILDENAFIL 0"   --------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " SILDENAFIL 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SILDENAFIL 0"] = 1
+
+# 63. " SODIUM BICARBONATE 0" --------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " SODIUM BICARBONATE 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SODIUM BICARBONATE 0"] = 1
+
+# 64. " SODIUM BICARBONATE 1" --------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " SODIUM BICARBONATE 1")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SODIUM BICARBONATE 1"] = 1
+
+# 65. " SOTALOL 0"   -----------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " SOTALOL 0", ]
+
+# 66. " SPIRONOLACTONE 0"   ----------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " SPIRONOLACTONE 0")
+na_med = med_select_FINAL[na_dose, ]
+dose_nums = rep(0, length(na_dose))
+for(d in 1:length(dose_nums)) {
+    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
+}
+med_select_FINAL$Dose[na_dose] = dose_nums
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SPIRONOLACTONE 0"] = 1
+
+# 67. " VALSARTAN 0"     -------------------------------------------------------
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " VALSARTAN 0", ]
+
+# 68. " VASOPRESSIN 0"   -------------------------------------------------------
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " VASOPRESSIN 0"] = 1
+
+# 69. " VASOPRESSIN 1"   -------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " VASOPRESSIN 1")
+na_keys = med_select_FINAL$key[na_dose]
+temp = med_select_FINAL[med_select_FINAL$key %in% na_keys & med_select_FINAL$med_name_admin == " VASOPRESSIN 1", ]
+
+med_select_FINAL$Dose[na_dose] = 0.04
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " VASOPRESSIN 1"] = 1
+
+# 70. " VERAPAMIL 0"  ----------------------------------------------------------
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " VERAPAMIL 0")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
+med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " VERAPAMIL 0"] = 1
+
+# # ==============================================================================
+# m_id = 70
+# print(med_names_alphabet[m_id])
+# specific_med = med_select_FINAL[med_select_FINAL$med_name_admin == med_names_alphabet[m_id], ]
+# apply(specific_med[,c("Dose", "Dose_Units", "Strength")], 2, table)
+# na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == med_names_alphabet[m_id])
+# na_med = med_select_FINAL[na_dose, ]
+# # ==============================================================================
+
+# ******************************************************************************
+# ******************************************************************************
+# ******************************************************************************
+
 
 Strength_num = as.numeric(med_select_FINAL$Strength)
 med_select_FINAL = cbind(med_select_FINAL, Strength_num)
@@ -394,7 +768,7 @@ for(i in 1:length(med_dose_unique)){
     med_select_FINAL$Dose[med_i] = med_select_FINAL$Dose[med_i] / mean_i
 }
 save(med_dose_scale_factor, file = paste0('Data_updates/med_dose_scale_factor', data_num, '.rda'))
-# *************************************************************************
+# ******************************************************************************
 
 # Create a column with the "instance" number of that med to help determine if
 #       the patient is just starting the medicine or if they've been using it
