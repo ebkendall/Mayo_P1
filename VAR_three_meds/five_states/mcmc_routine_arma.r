@@ -34,8 +34,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     mpi = list(c(par_index$vec_init),
                c(par_index$vec_zeta),
                c(par_index$vec_A[1:4]),
-               c(par_index$vec_A[5:8]),
-               c(par_index$vec_A[9:12]),
+               c(par_index$vec_A[5:12]),
+               c(par_index$vec_A[13:20]),
                c(par_index$vec_upsilon_omega[c(1,2,4,7,8,11,12,13,15,23,24,27,
                                                30,32)]),
                c(par_index$vec_upsilon_omega[c(3,5,6,9,10,14,16,17,18,19,20,21,
@@ -56,9 +56,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
+        load(paste0('../Model_out/mcmc_out_interm_', 1, '_8it', 15, '.rda'))
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
         
         # Setting initial values for Y
         Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1001, ])
@@ -122,7 +122,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     a_chain_id = c(3, 86, 163, 237, 427, 521, 632, 646, 692, 713)
     
     for(a_ind in 1:10) {
-        A_chain[[a_ind]] = matrix(nrow = 12, ncol = chain_length_MASTER)
+        A_chain[[a_ind]] = matrix(nrow = 20, ncol = chain_length_MASTER)
     }
 
     for(ttt in 1:steps){
@@ -140,7 +140,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                                 otype, Dn_omega, W, B, n_cores)
             colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 
                             'RBC_rule', 'clinic_rule')
-            # e_time = Sys.time() - s_time; print(e_time)   
+            # e_time = Sys.time() - s_time; print(e_time)
         }
 
         # Gibbs updates of the alpha_i -----------------------------------------
@@ -190,7 +190,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
             
             print("diag of Sigma_Upsilon")
-            Sigma_t = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 12)
+            Sigma_t = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 20)
             print(round(diag(Sigma_t), 3))
             
             print("A1")

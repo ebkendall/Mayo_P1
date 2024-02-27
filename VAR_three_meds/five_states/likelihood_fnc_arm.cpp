@@ -7,13 +7,17 @@
 using namespace Rcpp;
 
 // Defining the Omega_List as a global variable when pre-compiling ----------
-const arma::mat adj_mat = { {1, 1, 0},
-                            {0, 1, 1},
-                            {1, 1, 1} };
+const arma::mat adj_mat = { {1, 1, 0, 1, 0},
+                            {0, 1, 1, 1, 0},
+                            {1, 1, 1, 1, 0},
+                            {0, 1, 0, 1, 1},
+                            {1, 1, 0, 1, 1} };
 
-const arma::mat adj_mat_sub = { {1, 0, 0},
-                                {0, 1, 0},
-                                {1, 0, 1} };
+const arma::mat adj_mat_sub = { {1, 0, 0, 1, 0},
+                                {0, 1, 1, 1, 0},
+                                {1, 0, 1, 1, 0},
+                                {0, 0, 0, 1, 1},
+                                {1, 0, 0, 1, 1} };
 
 arma::field<arma::field<arma::mat>> Omega_set(const arma::mat &G) {
   int N = G.n_cols; // dimension of adj matrix
@@ -181,11 +185,19 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
                             exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                             exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                            exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                           exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                           exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                           exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                           exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                           exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                           exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                           exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                           exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                           exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                           exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
   arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
-  arma::mat zeta = arma::reshape(vec_zeta_content, 2, 4); // THREE STATE
+  arma::mat zeta = arma::reshape(vec_zeta_content, 2, 12); // THREE STATE
   
   // The time-homogeneous probability transition matrix
   arma::uvec sub_ind = arma::find(eids == i);
@@ -195,7 +207,8 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   // The state transition likelihood component for current iterate of b_i
   arma::vec b_i = B;
   arma::vec vec_init_content = par.elem(par_index(6) - 1);
-  arma::vec init_logit = {1, exp(vec_init_content(0)), exp(vec_init_content(1))}; // THREE STATE
+  arma::vec init_logit = {1, exp(vec_init_content(0)), exp(vec_init_content(1)),
+                             exp(vec_init_content(2)), exp(vec_init_content(3))}; // THREE STATE
   arma::vec P_init = init_logit / arma::accu(init_logit); 
   
   // Subsetting the data
@@ -251,19 +264,36 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
         // State space component
         double q1_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(0));
         double q1 = exp(q1_sub);
-        
         double q2_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(1));
         double q2 = exp(q2_sub);
-        
         double q3_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(2));
         double q3 = exp(q3_sub);
-        
         double q4_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(3));
         double q4 = exp(q4_sub);
         
-        arma::mat Q = {{  1,  q1,  0},
-                     {  0,   1, q2},
-                     { q3,  q4,  1}}; // THREE STATE
+        double q5_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(4));
+        double q5 = exp(q5_sub);
+        double q6_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(5));
+        double q6 = exp(q6_sub);
+        double q7_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(6));
+        double q7 = exp(q7_sub);
+        double q8_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(7));
+        double q8 = exp(q8_sub);
+        
+        double q9_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(8));
+        double q9 = exp(q9_sub);
+        double q10_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(9));
+        double q10 = exp(q10_sub);
+        double q11_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(10));
+        double q11 = exp(q11_sub);
+        double q12_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(11));
+        double q12 = exp(q12_sub);
+        
+        arma::mat Q = {{   1,   q1,  0,  q2,  0},
+                       {   0,    1, q3,  q4,  0},
+                       {  q5,   q6,  1,  q7,  0},
+                       {   0,   q8,  0,   1, q9},
+                       { q10,  q11,  0, q12,  1}}; // THREE STATE
         
         arma::vec q_row_sums = arma::sum(Q, 1);
         arma::mat P_i = Q.each_col() / q_row_sums;
@@ -341,10 +371,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Zeta priors ---------------------------------------------------------------
   arma::uvec vec_zeta_ind = par_index(5);
   arma::vec vec_zeta_content = par.elem(vec_zeta_ind - 1);
-  arma::mat zeta = arma::reshape(vec_zeta_content, 2, 4); // THREE STATE
+  arma::mat zeta = arma::reshape(vec_zeta_content, 2, 12); // THREE STATE
 
-  arma::vec vec_zeta_mean(8, arma::fill::zeros);
-  arma::vec scalar_1 = {10, 10, 10, 10, 10, 10, 10, 10}; // UNINFORMATIVE
+  arma::vec vec_zeta_mean(vec_zeta_content.n_elem, arma::fill::zeros);
+  arma::vec scalar_1(vec_zeta_content.n_elem, arma::fill::ones); 
+  scalar_1 = 10 * scalar_1; // UNINFORMATIVE
   arma::mat zeta_sd = arma::diagmat(scalar_1);
 
   arma::vec prior_zeta = dmvnorm(vec_zeta_content.t(), vec_zeta_mean, zeta_sd, true);
@@ -353,8 +384,9 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Initial Probabilities priors ----------------------------------------------
   arma::uvec vec_init_ind = par_index(6);
   arma::vec vec_init_content = par.elem(vec_init_ind - 1);
-  arma::vec vec_init_mean = {0, 0}; // THREE STATE
-  arma::vec scalar_2 = {10,10}; // THREE STATE
+  arma::vec vec_init_mean(vec_init_content.n_elem, arma::fill::zeros); // THREE STATE
+  arma::vec scalar_2(vec_init_content.n_elem, arma::fill::ones); // THREE STATE
+  scalar_2 = 10 * scalar_2;
   arma::mat init_sd = arma::diagmat(scalar_2);
 
   arma::vec prior_init = dmvnorm(vec_init_content.t(), vec_init_mean, init_sd, true);
@@ -363,8 +395,9 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // A_1 priors ----------------------------------------------------------------
   arma::vec vec_A1_content = par.elem(par_index(3) - 1);
   
-  arma::vec vec_A1_mean = {0, 0, 0, 0,    0, 0, 0, 0,    0, 0, 0, 0};
-  arma::vec A1_scalar   = {2, 2, 2, 2,    2, 2, 2, 2,    2, 2, 2, 2}; 
+  arma::vec vec_A1_mean(vec_A1_content.n_elem, arma::fill::zeros);
+  arma::vec A1_scalar(vec_A1_content.n_elem, arma::fill::ones);
+  A1_scalar = 2 * A1_scalar;
   arma::mat A1_sd = arma::diagmat(A1_scalar);
   
   arma::vec prior_A1 = dmvnorm(vec_A1_content.t(), vec_A1_mean, A1_sd, true);
@@ -498,20 +531,27 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       }
       
       if(valid_prop) {
+          
         double log_target_prev = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
                                              B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,
                                              Dn_omega_temp, W_temp);
-        
+    
         arma::vec twos(pr_B.n_elem, arma::fill::zeros);
         arma::vec threes = twos; // THREE STATE
+        arma::vec fours = twos;
+        arma::vec fives = twos;
         
         twos.elem(arma::find(pr_B == 2)) += 1;
         threes.elem(arma::find(pr_B == 3)) += 1; // THREE STATE
+        fours.elem(arma::find(pr_B == 4)) += 1;
+        fives.elem(arma::find(pr_B == 5)) += 1;
         
         arma::vec ones(pr_B.n_elem, arma::fill::ones);
         
         arma::mat bigB = arma::join_rows(ones, arma::cumsum(twos));
         bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
+        bigB = arma::join_rows(bigB, arma::cumsum(fours));
+        bigB = arma::join_rows(bigB, arma::cumsum(fives));
         
         arma::mat I = arma::eye(4,4);
         for(int jj = 0; jj < n_i; jj++) {
@@ -570,14 +610,20 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> &B,
     
     arma::vec twos(b_i.n_elem, arma::fill::zeros);
     arma::vec threes = twos; // THREE STATE
+    arma::vec fours = twos;
+    arma::vec fives = twos;
     
     twos.elem(arma::find(b_i == 2)) += 1;
     threes.elem(arma::find(b_i == 3)) += 1; // THREE STATE
+    fours.elem(arma::find(b_i == 4)) += 1;
+    fives.elem(arma::find(b_i == 5)) += 1;
     
     arma::vec ones(b_i.n_elem, arma::fill::ones);
     
     arma::mat bigB = arma::join_rows(ones, arma::cumsum(twos));
     bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
+    bigB = arma::join_rows(bigB, arma::cumsum(fours));
+    bigB = arma::join_rows(bigB, arma::cumsum(fives));
     
     arma::mat I = arma::eye(4,4);
 
@@ -621,7 +667,7 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
   arma::vec vec_beta = par.elem(par_index(0) - 1);
 
   arma::vec sigma_upsilon_vec = par.elem(par_index(2) - 1);
-  arma::mat Upsilon = arma::reshape(sigma_upsilon_vec, 12, 12); // THREE STATE
+  arma::mat Upsilon = arma::reshape(sigma_upsilon_vec, 20, 20); // THREE STATE
   arma::mat inv_Upsilon = arma::inv_sympd(Upsilon);
 
   arma::field<arma::vec> A(EIDs.n_elem);
@@ -638,8 +684,16 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
                             exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                             exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                             exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
   omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
@@ -660,8 +714,8 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
       arma::field<arma::mat> Xn_full = Xn(ii);
       arma::vec vec_omega_ii = W(ii);
       
-      arma::mat interm_W(12,12,arma::fill::zeros);
-      arma::vec interm_V(12,arma::fill::zeros);
+      arma::mat interm_W(20,20,arma::fill::zeros); // THREE STATE
+      arma::vec interm_V(20,arma::fill::zeros); // THREE STATE
       for(int k=1; k < n_i; k++) {
           arma::mat D_k = Dn_alpha_full(k);
           arma::mat D_k_1 = Dn_alpha_full(k-1);
@@ -772,8 +826,16 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec &EIDs, const arma::v
                               exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                               exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                               exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-    arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                              exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                              exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                              exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                              exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                              exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                              exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                              exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                              exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
     omp_set_num_threads(n_cores) ;
     # pragma omp parallel for
@@ -872,20 +934,22 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     // "ii" is the index of the EID
     
     // The prior mean for vec_alpha_tilde
-    arma::vec vec_alpha_tilde_0 = {9.57729783, -1, 0.1,
-                                  88.69780576, 5.04150472, -4,
-                                  79.74903940, -5.04150472, 4,
-                                  5.2113319, 0.5360813, -0.6866748};
+    arma::vec vec_alpha_tilde_0 = {9.57729783,          -1,        0.1, 0, 0,
+                                  88.69780576,  5.04150472,         -4, 0, 0,
+                                  79.74903940, -5.04150472,          4, 0, 0,
+                                    5.2113319,   0.5360813, -0.6866748, 0, 0}; // THREE STATE
     
     // The prior PRECISION matrix for vec_alpha_tilde
     // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = {0.1, 0.3, 0.5, 0.05, 0.5, 0.5,
-                                    0.05, 0.5, 0.5, 0.1, 0.3, 0.5};
+    arma::vec inv_Sigma_alpha_diag = { 0.1, 0.3, 0.5, 0.5, 0.5,
+                                      0.05, 0.5, 0.5, 0.5, 0.5,
+                                      0.05, 0.5, 0.5, 0.5, 0.5,
+                                       0.1, 0.3, 0.5, 0.5, 0.5}; // THREE STATE
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     
     arma::vec sigma_upsilon_vec = par.elem(par_index(2) - 1);
-    arma::mat sigma_upsilon = arma::reshape(sigma_upsilon_vec, 12, 12); // THREE STATE
+    arma::mat sigma_upsilon = arma::reshape(sigma_upsilon_vec, 20, 20); // THREE STATE
     
     arma::mat Upsilon = sigma_upsilon;
     arma::mat inv_Upsilon = arma::inv_sympd(Upsilon);
@@ -1030,14 +1094,22 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
                             exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                             exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                             exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
   arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
   // The prior info for sigma_upsilon ----------------------------------------
-  int nu_Upsilon = 14;
-  arma::vec scalar_mult2(12, arma::fill::ones);
+  int nu_Upsilon = 22;
+  arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
   arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
 
   arma::uvec vec_sigma_upsilon_ind = par_index(2);
@@ -1190,8 +1262,16 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                             exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                             exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                             exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
   omp_set_num_threads(n_cores) ;
   # pragma omp parallel for
@@ -1261,11 +1341,12 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // // Prevent negatives
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               } else if(k == Y_i.n_cols - 1) {
@@ -1285,11 +1366,12 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, R, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // // Prevent negatives
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, R, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               } else {
@@ -1319,11 +1401,12 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                   arma::uvec ind_replace = arma::find(otype_i.col(k) == 0);
                   update_value.elem(ind_replace) = new_value.elem(ind_replace);
                   
-                  while(arma::any(update_value <= 0)) {
-                      new_value = arma::mvnrnd(y_i_mean, W_i, 1);
-                      update_value = Y_i_new.col(k);
-                      update_value.elem(ind_replace) = new_value.elem(ind_replace);
-                  }
+                  // // Prevent negatives
+                  // while(arma::any(update_value <= 0)) {
+                  //     new_value = arma::mvnrnd(y_i_mean, W_i, 1);
+                  //     update_value = Y_i_new.col(k);
+                  //     update_value.elem(ind_replace) = new_value.elem(ind_replace);
+                  // }
 
                   Y_i_new.col(k) = update_value;
               }
@@ -1361,8 +1444,16 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
                             exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
                             exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
                             exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 3);
+                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
   arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
 
@@ -1423,7 +1514,47 @@ void test_fnc() {
     // 
     // test.for_each( [](arma::mat& X) {arma::mat new_mat = {{1,2}, {3,4}}; X = new_mat * X; } ); 
     // 
-    // Rcpp::Rcout << test << std::endl;
+    int N = 5;
+    Rcpp::Rcout << "Case (c) Full" << std::endl;
+    for(int w=0; w < N; w++) {
+      Rcpp::Rcout << "() -> () -> " << w+1 << std::endl;
+      Rcpp::Rcout << Omega_List_GLOBAL(0)(w) << std::endl;
+    }
+    
+    Rcpp::Rcout << "Case (b) Full" << std::endl;
+    for(int i = 0; i < N; i++) {
+      for(int j = 0; j < N; j++) {
+        Rcpp::Rcout << i+1 << "-->" << j+1 << std::endl;
+        Rcpp::Rcout << Omega_List_GLOBAL(1)(i, j) << std::endl;
+      }
+    }
+    
+    Rcpp::Rcout << "Case (a) Full" << std::endl;
+    for(int w=0; w < N; w++) {
+      Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
+      Rcpp::Rcout << Omega_List_GLOBAL(2)(w) << std::endl;
+    }
+
+
+    Rcpp::Rcout << "Case (c) Sub" << std::endl;
+    for (int w = 0; w < N; w++) {
+      Rcpp::Rcout << "() -> () -> " << w + 1 << std::endl;
+      Rcpp::Rcout << Omega_List_GLOBAL_sub(0)(w) << std::endl;
+    }
+
+    Rcpp::Rcout << "Case (b) Sub" << std::endl;
+    for (int i = 0; i < N; i++) {
+      for (int j = 0; j < N; j++) {
+        Rcpp::Rcout << i + 1 << "-->" << j + 1 << std::endl;
+        Rcpp::Rcout << Omega_List_GLOBAL_sub(1)(i, j) << std::endl;
+      }
+    }
+
+    Rcpp::Rcout << "Case (a) Sub" << std::endl;
+    for (int w = 0; w < N; w++) {
+      Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
+      Rcpp::Rcout << Omega_List_GLOBAL_sub(2)(w) << std::endl;
+    }
     
     bool valid_prop = false;
     
