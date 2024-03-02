@@ -1,35 +1,44 @@
 # Size of posterior sample from mcmc chains
-n_post = 1001
-burnin = 0
+n_post = 501
+burnin = 500
 steps = 1001
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
 
 simulation = F
-load("Data/Dn_omega_names3.rda")
-load('Data/hr_map_names3.rda')
+load("../Data/Dn_omega_names3.rda")
+load('../Data/hr_map_names3.rda')
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
-           "intercept (hemo)", "slope bleeding (hemo)", "slope recovery (hemo)",
-           "intercept (hr)", "slope bleeding (hr)", "slope recovery (hr)",
-           "intercept (map)", "slope bleeding (map)", "slope recovery (map)",
-           "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)",
-           paste0("Upsilon (", 1:12, ", ", rep(1:12, each = 12), ")"), 
+           "intercept (hemo)", "slope bleeding (hemo)", "slope recovery (hemo)", "slope state 4 (hemo)", "slope state 5 (hemo)",
+           "intercept (hr)", "slope bleeding (hr)", "slope recovery (hr)", "slope state 4 (hr)", "slope state 5 (hr)",
+           "intercept (map)", "slope bleeding (map)", "slope recovery (map)", "slope state 4 (map)", "slope state 5 (map)",
+           "intercept (lact)", "slope bleeding (lact)", "slope recovery (lact)", "slope state 4 (lact)", "slope state 5 (lact)",
+           paste0("Upsilon (", 1:20, ", ", rep(1:20, each = 20), ")"), 
            "A1 (baseline)", "A2 (baseline)", "A3 (baseline)", "A4 (baseline)",
            "A1 (bleed)", "A2 (bleed)", "A3 (bleed)", "A4 (bleed)",
            "A1 (recovery)", "A2 (recovery)", "A3 (recovery)", "A4 (recovery)",
+           "A1 (state 4)", "A2 (state 4)", "A3 (state 4)", "A4 (state 4)",
+           "A1 (state 5)", "A2 (state 5)", "A3 (state 5)", "A4 (state 5)",
            "Var(hemo)", "Cov(hemo, hr)", "Cov(hemo, map)", "Cov(hemo, lact)", 
            "Cov(hr, hemo)", "Var(hr)", "Cov(hr, map)", "Cov(hr, lact)",
            "Cov(map, hemo)", "Cov(map, hr)", "Var(map)", "Cov(map, lact)",
            "Cov(lact, hemo)", "Cov(lact, hr)", "Cov(lact, map)", "Var(lact)",
-           "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S2 --> S3", "RBC_order: S2 --> S3", 
+           "intercept: S1 --> S2", "RBC_order: S1 --> S2",  "intercept: S1 --> S4", "RBC_order: S1 --> S4",
+           "intercept: S2 --> S3", "RBC_order: S2 --> S3",  "intercept: S2 --> S4", "RBC_order: S2 --> S4", 
            "intercept: S3 --> S1", "RBC_order: S3 --> S1",  "intercept: S3 --> S2", "RBC_order: S3 --> S2",
+           "intercept: S3 --> S4", "RBC_order: S3 --> S4",  "intercept: S4 --> S2", "RBC_order: S4 --> S2",
+           "intercept: S4 --> S5", "RBC_order: S4 --> S5",  "intercept: S5 --> S1", "RBC_order: S5 --> S1",
+           "intercept: S5 --> S2", "RBC_order: S5 --> S2",  "intercept: S5 --> S4", "RBC_order: S5 --> S4",
            "logit Pr(init S2)", "logit Pr(init S3)",
            paste0("mean (hr): ", Dn_omega_names[1:36]), paste0("mean (map): ", Dn_omega_names[37:88]), 
            paste0("log Upsilon (hr): ", Dn_omega_names[1:36]), paste0("log Upsilon (map): ", Dn_omega_names[37:88])) 
 additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
-                      "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov")
+                      "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov",
+                      "Gamma(1,1) state 4", "Gamma(2,2) state 4", "Gamma(3,3) state 4", "Gamma(4,4) state 4",
+                      "Gamma(1,1) state 5", "Gamma(2,2) state 5", "Gamma(3,3) state 5", "Gamma(4,4) state 5")
+
 
 dir = 'Model_out/'
 
@@ -40,12 +49,12 @@ if(simulation) {
     long_chain = F
     
     data_num = 6
-    load(paste0('Data/true_pars_', data_num, '.rda'))
+    load(paste0('../Data/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 8
-    itNum = 10
+    trialNum = 1
+    itNum = 2
     long_chain = T
     
     true_par = NULL
@@ -53,10 +62,10 @@ if(simulation) {
 
 data_format = NULL
 if(simulation) {
-  load(paste0('Data/use_data1_', data_num, '.rda'))
+  load(paste0('../Data/use_data1_', data_num, '.rda'))
   data_format = use_data
 } else {
-  load('Data/data_format_new3.rda')
+  load('../Data/data_format_new3.rda')
 }
 
 n_subjects = length(unique(data_format[,'EID']))
@@ -97,12 +106,12 @@ for(seed in index_seeds){
         par_index = mcmc_out_temp$par_index
 
         if(it == 1) {
-            chain_list[[ind]] = mcmc_out_temp$chain[index_post,]
+            chain_list[[ind]] = mcmc_out_temp$chain
             for(a in 1:length(a_chain_list[[ind]])) {
                 a_chain_list[[ind]][[a]] = mcmc_out_temp$A_chain[[a]]
             }
         } else {
-            chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain[index_post,])
+            chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain)
             for(a in 1:length(a_chain_list[[ind]])) {
                 a_chain_list[[ind]][[a]] = cbind(a_chain_list[[ind]][[a]], mcmc_out_temp$A_chain[[a]])
             }
@@ -114,22 +123,10 @@ for(seed in index_seeds){
 
 stacked_chains = do.call( rbind, chain_list)
 
-# # Re-calculating the Upsilon matrix
-if(simulation) {
-    true_R = matrix(true_par[par_index$vec_R], ncol = 4)
-    true_A = true_par[par_index$vec_A]
-    true_A_scale = exp(true_A) / (1+exp(true_A))
-    true_gamma = c(true_R[1,1] / (true_A_scale[1]^2), true_R[2,2] / (true_A_scale[2]^2),
-                   true_R[3,3] / (true_A_scale[3]^2), true_R[4,4] / (true_A_scale[4]^2),
-                   true_R[1,1] / (true_A_scale[5]^2), true_R[2,2] / (true_A_scale[6]^2),
-                   true_R[3,3] / (true_A_scale[7]^2), true_R[4,4] / (true_A_scale[8]^2),
-                   true_R[1,1] / (true_A_scale[9]^2), true_R[2,2] / (true_A_scale[10]^2),
-                   true_R[3,3] / (true_A_scale[11]^2), true_R[4,4] / (true_A_scale[12]^2))
-} else {
-    true_gamma = NULL
-}
+# Re-calculating the Upsilon matrix
+true_gamma = NULL
 
-gamma_chain = matrix(nrow = nrow(stacked_chains), ncol = 12)
+gamma_chain = matrix(nrow = nrow(stacked_chains), ncol = 20)
 for(i in 1:nrow(stacked_chains)) {
     R = matrix(stacked_chains[i, par_index$vec_R], ncol = 4)
     vec_A1 = stacked_chains[i, par_index$vec_A]
@@ -140,7 +137,11 @@ for(i in 1:nrow(stacked_chains)) {
                    R[1,1] / (scale_A1[5]^2), R[2,2] / (scale_A1[6]^2),
                    R[3,3] / (scale_A1[7]^2), R[4,4] / (scale_A1[8]^2),
                    R[1,1] / (scale_A1[9]^2), R[2,2] / (scale_A1[10]^2),
-                   R[3,3] / (scale_A1[11]^2), R[4,4] / (scale_A1[12]^2))
+                   R[3,3] / (scale_A1[11]^2), R[4,4] / (scale_A1[12]^2),
+                   R[1,1] / (scale_A1[13]^2), R[2,2] / (scale_A1[14]^2),
+                   R[3,3] / (scale_A1[15]^2), R[4,4] / (scale_A1[16]^2),
+                   R[1,1] / (scale_A1[17]^2), R[2,2] / (scale_A1[18]^2),
+                   R[3,3] / (scale_A1[19]^2), R[4,4] / (scale_A1[20]^2))
 
     gamma_chain[i, ] = diag_gamma
 }
@@ -213,7 +214,7 @@ if(simulation) {
     print(paste0(sum(true_par[par_index$omega_tilde] != 0), " out of ", length(par_index$omega_tilde), " medications have nonzero effect"))
 }
 
-load('Data/med_select_FINAL3.rda')
+load('../Data/med_select_FINAL3.rda')
 for(i in 1:nrow(red_par)) {
     if(red_par$vital[i] == "hr") {
         val = as.numeric(unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == red_par$name[i]]))
@@ -248,7 +249,7 @@ for(i in 1:length(chain_list_gamma)) {
 }
 
 for(rr in 1:ncol(gamma_chain)){
-    # lab_ind = lab_ind + 1
+
     lab_ind = rr
     parMean = round( mean(gamma_chain[,rr]), 4)
     parMedian = round( median(gamma_chain[,rr]), 4)
@@ -257,7 +258,7 @@ for(rr in 1:ncol(gamma_chain)){
 
     y_limit = range(gamma_chain[,rr])
 
-    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
+    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(chain_list[[1]])),
           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                       ", ", round(upper, 4), "]"))
 
@@ -300,32 +301,24 @@ for (s in 1:length(a_chain_id)) {
     patient_a = hist_a_chain_list[[s]]
     
     for(k in 1:4) {
-        base_ind = 3*k - 2
-        b_ind = 3*k - 1
-        r_ind = 3*k
-        xlim_calc = c(min(c(patient_a[b_ind,], patient_a[r_ind,])), 
-                      max(c(patient_a[b_ind,], patient_a[r_ind,])))
+        base_ind = 5*k - 4
+        b_ind = 5*k - 3
+        r_ind = 5*k - 2
+        s4_ind = 5*k - 1
+        s5_ind = 5*k
+        
+        temp_df = data.frame("bleed" = patient_a[b_ind,],
+                             "recovery" = patient_a[r_ind,],
+                             "NBE" = patient_a[s4_ind, ],
+                             "recov_NBE" = patient_a[s5_ind, ])
         
         hist(patient_a[base_ind,], main = paste0(a_chain_id[s], ": ", hist_names[2*k-1]), 
              col = "darkolivegreen4", breaks = floor(sqrt(ncol(patient_a))),
              xlab = "baseline")
         
-        hist(patient_a[r_ind,], main = paste0(a_chain_id[s], ": ", hist_names[2*k]), 
-             col = "yellow2", breaks = floor(sqrt(ncol(patient_a))), xlim = xlim_calc, 
-             xlab = paste0("S2 -> (", 
-                           round(mean(patient_a[b_ind,]), 3), ", ", round(sd(patient_a[b_ind,]), 3),
-                           "), S3 -> (", 
-                           round(mean(patient_a[r_ind,]), 3), ", ", round(sd(patient_a[r_ind,]), 3), ")"))
-        
-        hist(patient_a[b_ind,], col = "firebrick1", 
-             breaks = floor(sqrt(ncol(patient_a))),
-             add = T) 
-        hist(patient_a[r_ind,], col = "yellow2", 
-             breaks = floor(sqrt(ncol(patient_a))), 
-             add = T)
-        hist(patient_a[b_ind,], col=rgb(1,0,0,0.5), 
-             breaks = floor(sqrt(ncol(patient_a))), 
-             add=T)   
+        boxplot(temp_df, col = c('firebrick1', 'yellow2', 'green', 'darkgray'),
+                main = hist_names[2*k], outline=FALSE)
+        abline(h = 0, col = 'blue')
     }
 
 }

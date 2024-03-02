@@ -941,10 +941,10 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     
     // The prior PRECISION matrix for vec_alpha_tilde
     // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = { 0.1, 0.3, 0.5, 0.5, 0.5,
-                                      0.05, 0.5, 0.5, 0.5, 0.5,
-                                      0.05, 0.5, 0.5, 0.5, 0.5,
-                                       0.1, 0.3, 0.5, 0.5, 0.5}; // THREE STATE
+    arma::vec inv_Sigma_alpha_diag = { 0.1, 0.3, 0.5, 0.05, 0.05,
+                                      0.05, 0.5, 0.5, 0.05, 0.05,
+                                      0.05, 0.5, 0.5, 0.05, 0.05,
+                                       0.1, 0.3, 0.5, 0.05, 0.05}; // THREE STATE
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     
@@ -1503,17 +1503,6 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
 // [[Rcpp::export]]
 void test_fnc() {
     
-    // arma::field<arma::mat> test(3);
-    // 
-    // arma::mat I(2,2,arma::fill::eye);
-    // test(0) = I;
-    // test(1) = 2*I;
-    // test(2) = 3*I;
-    // 
-    // Rcpp::Rcout << test << std::endl;
-    // 
-    // test.for_each( [](arma::mat& X) {arma::mat new_mat = {{1,2}, {3,4}}; X = new_mat * X; } ); 
-    // 
     int N = 5;
     Rcpp::Rcout << "Case (c) Full" << std::endl;
     for(int w=0; w < N; w++) {

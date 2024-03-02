@@ -45,7 +45,7 @@ if(simulation) {
 } else {
     index_seeds = c(1:3)
     trialNum = 8
-    itNum = 5
+    itNum = 15
     long_chain = T
     
     true_par = NULL
@@ -97,12 +97,12 @@ for(seed in index_seeds){
         par_index = mcmc_out_temp$par_index
 
         if(it == 1) {
-            chain_list[[ind]] = mcmc_out_temp$chain[index_post,]
+            chain_list[[ind]] = mcmc_out_temp$chain
             for(a in 1:length(a_chain_list[[ind]])) {
                 a_chain_list[[ind]][[a]] = mcmc_out_temp$A_chain[[a]]
             }
         } else {
-            chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain[index_post,])
+            chain_list[[ind]] = rbind(chain_list[[ind]], mcmc_out_temp$chain)
             for(a in 1:length(a_chain_list[[ind]])) {
                 a_chain_list[[ind]][[a]] = cbind(a_chain_list[[ind]][[a]], mcmc_out_temp$A_chain[[a]])
             }
@@ -257,7 +257,7 @@ for(rr in 1:ncol(gamma_chain)){
 
     y_limit = range(gamma_chain[,rr])
 
-    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(index_post)),
+    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(chain_list[[1]])),
           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                       ", ", round(upper, 4), "]"))
 

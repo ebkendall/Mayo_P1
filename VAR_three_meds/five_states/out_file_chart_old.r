@@ -3,20 +3,20 @@ library(plotrix)
 
 data_num = 6
 simulation = F
-all_seeds = T
+all_seeds = F
 
 if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
-    trialNum = 8
-    itNum = 10
+    trialNum = 1
+    itNum = 2
 }
 
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 1
+    seed_list = 3
 }
 
 # Load the model output -------------------------------------------------------
@@ -55,14 +55,14 @@ for(seed_num in 1:length(seed_list)) {
 #  ----------------------------------------------------------------------------
 
 if(simulation) {
-    load(paste0('Data/use_data1_', data_num, '.rda'))
+    load(paste0('../Data/use_data1_', data_num, '.rda'))
 } else {
-    load('Data/data_format_new3.rda')
+    load('../Data/data_format_new3.rda')
     use_data = data_format   
 }
 
 EIDs = unique(use_data[,'EID'])
-load('Data/med_select_FINAL3.rda')
+load('../Data/med_select_FINAL3.rda')
 
 # ------------------------------------------------------------------------------
 # Function to change transparency of colors # ----------------------------------
@@ -129,13 +129,19 @@ for(i in EIDs){
         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
         to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
+        to_s4 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==4]
+        to_s5 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==5]
         
         if(b_i[1] == 1) {
             to_s1 = c(to_s1, 1)
         } else if(b_i[1] == 2) {
             to_s2 = c(to_s2, 1)
-        } else {
+        } else if(b_i[1] == 3) {
             to_s3 = c(to_s3, 1)
+        } else if(b_i[1] == 4) {
+            to_s4 = c(to_s4, 1)
+        } else {
+            to_s5 = c(to_s5, 1)
         }
         
         if(length(unique(b_i)) > 1) {
@@ -160,27 +166,47 @@ for(i in EIDs){
                     rect_coords = s3_coords
                 }
             }
+
+            if(length(to_s4) > 0) {
+                s4_coords = data.frame(s = 4, t = to_s4)
+                if(length(to_s1) > 0 || length(to_s2) > 0 || length(to_s3) > 0) {
+                    rect_coords = rbind(rect_coords, s4_coords)
+                } else {
+                    rect_coords = s4_coords
+                }
+            }
+            
+            if(length(to_s5) > 0) {
+                s5_coords = data.frame(s = 5, t = to_s5)
+                if(length(to_s1) > 0 || length(to_s2) > 0 || length(to_s3) > 0 || length(to_s4) > 0) {
+                    rect_coords = rbind(rect_coords, s5_coords)
+                } else {
+                    rect_coords = s5_coords
+                }
+            }
             
             if(!(n_i %in% rect_coords$t)) rect_coords = rbind(rect_coords, c(b_i[n_i], n_i))
             # Add one row for visuals
             rect_coords = rbind(rect_coords, c(b_i[n_i], n_i+1))
             rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)   
         } else {
             rect_coords = data.frame(s = rep(b_i[1], 2), t = c(1,n_i+1))
             rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)  
         }
     } 
     
     pb = barplot(rbind(colMeans(B_chain[, indices_i] == 1),
                        colMeans(B_chain[, indices_i] == 2),
-                       colMeans(B_chain[, indices_i] == 3)), 
-                 col=c( 'dodgerblue', 'firebrick1', 'yellow2'), 
+                       colMeans(B_chain[, indices_i] == 3),
+                       colMeans(B_chain[, indices_i] == 4),
+                       colMeans(B_chain[, indices_i] == 5)), 
+                 col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
                  xlab='time', space=0, col.main='green', border=NA, axes = F, plot = F) 
     
     # Heart Rate and MAP double plot -----------------------------------------
@@ -282,14 +308,16 @@ for(i in EIDs){
     # BAR PLOTS --------------------------------------------------------------
     barplot(rbind(colMeans(B_chain[, indices_i] == 1),
                   colMeans(B_chain[, indices_i] == 2),
-                  colMeans(B_chain[, indices_i] == 3)), 
-            col=c( 'dodgerblue', 'firebrick1', 'yellow2'), 
+                  colMeans(B_chain[, indices_i] == 3),
+                  colMeans(B_chain[, indices_i] == 4),
+                  colMeans(B_chain[, indices_i] == 5)), 
+            col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
             xlab='time', space=0, col.main='green', border=NA,
             xlim=range(pb) + c(-0.5,0.5)) 
     grid( nx=20, NULL, col='white')
     legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'Baseline', 'State 2', 'State 3'), pch=15, pt.cex=1.5, 
-            col=c( 'dodgerblue', 'firebrick1', 'yellow2'))
+            legend=c( 'Baseline', 'State 2', 'State 3', 'State 4', 'State 5'), pch=15, pt.cex=1.5, 
+            col=c( 'dodgerblue', 'firebrick1', 'yellow2','green', 'darkgray'))
     legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
             col=c( 'darkorchid1', 'aquamarine'))				
@@ -342,9 +370,11 @@ for(i in EIDs){
          xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
          xlim = range(pb) + c(-0.5,0.5),
          xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
-    legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
-            col=c('green', 'red'))
+    if(simulation) {
+        legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+                    legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
+                    col=c('green', 'red'))
+    }
     axis( side=1, at=pb, col.axis='green', labels=t_grid)
     axis( side=2, at=0:1, col.axis='green', labels = c("S1/S3", "S2"),
           cex.axis=1)
@@ -366,11 +396,6 @@ for(i in EIDs){
                 }
             }
         }
-        
-        # # Make a new plot to add the background color
-        # plot(NULL, xlim=range(pb) + c(-0.5,0.5), ylim=hr_map_ylim, main=title_name,
-        #      xlab='time', ylab=NA, xaxt='n', col.main='green',
-        #      col.axis='green')
         
         if(simulation) {
             rect(xleft = rect_coords$t[-nrow(rect_coords)], 

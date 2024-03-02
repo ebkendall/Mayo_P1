@@ -17,7 +17,8 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind){
   
-    n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
+    n_cores = 20
+    # n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
     print(paste0("Number of cores: ", n_cores))
 
@@ -56,9 +57,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('../Model_out/mcmc_out_interm_', 1, '_8it', 15, '.rda'))
-        # pcov = mcmc_out_temp$pcov
-        # pscale = mcmc_out_temp$pscale
+        load(paste0('Model_out/mcmc_out_interm_', 3, '_1it', max_ind - 3, '.rda'))
+        pcov = mcmc_out_temp$pcov
+        pscale = mcmc_out_temp$pscale
         
         # Setting initial values for Y
         Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1001, ])

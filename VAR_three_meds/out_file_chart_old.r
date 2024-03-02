@@ -2,19 +2,19 @@ library(matrixStats)
 library(plotrix)
 
 data_num = 6
-simulation = T
-all_seeds = F
+simulation = F
+all_seeds = T
 
 if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
     trialNum = 8
-    itNum = 5
+    itNum = 15
 }
 
 if(all_seeds) {
-    seed_list = 1:3
+    seed_list = 1:2
 } else {
     seed_list = 1
 }

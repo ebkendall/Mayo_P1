@@ -1,21 +1,12 @@
 source('mcmc_routine_arma.r')
 
-args = commandArgs(TRUE)
+ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
-ind = as.numeric(args[1])
+# args = commandArgs(TRUE)
+# ind = as.numeric(args[1])
+
 set.seed(ind)
 print(ind)
-
-# Simulation trials:
-# trial 3: fix everything but VAR parameters
-# trial 4: run with state space fixed
-# trial 5: fix everything but VAR pars and state space
-
-# trial 1: Full sim with updated data (start at correct states, no state update)
-# trial 2: Full sim with updated data (start at correct states)
-
-# trial 7 start from same values, trial 8 & on are continuations of the previous 
-# iteration
 
 simulation = F
 data_format = NULL
@@ -30,11 +21,11 @@ if(simulation) {
     trialNum = 3
 } else {
     steps  = 50000
-    burnin =  5000
+    burnin = 5000
     real_dat_num = 3
     
     load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-    trialNum = 1
+    trialNum = 2
     max_ind = 5
 }
 
@@ -109,25 +100,27 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load(paste0('../Model_out/mcmc_out_interm_', 1, '_8it', 15, '.rda'))
+    prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_1it', max_ind - 3, '.rda')
+    load(prev_file)
     
     load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
     
     par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
     rownames(par_temp) = NULL
-    par[par_index$vec_beta] = par_temp[1:4]
-    par[par_index$vec_A[1:12]] = par_temp[161:172]
-    par[par_index$vec_R] = par_temp[173:188]
-    par[par_index$omega_tilde] = par_temp[199:286]
-    par[par_index$vec_upsilon_omega] = par_temp[287:374]
+    par = par_temp
+    # par[par_index$vec_beta] = par_temp[1:4]
+    # par[par_index$vec_A[1:12]] = par_temp[161:172]
+    # par[par_index$vec_R] = par_temp[173:188]
+    # par[par_index$omega_tilde] = par_temp[199:286]
+    # par[par_index$vec_upsilon_omega] = par_temp[287:374]
     
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     rm(mcmc_out_temp)
 
     print("initial values based on:")
-    print(paste0('Model_out/mcmc_out_interm_', 1, '_8it', 15, '.rda'))
+    print(prev_file)
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -135,18 +128,21 @@ W = list()
 B = list()
 
 for(i in EIDs){
-  if(simulation) {
-      A[[i]] = alpha_i_mat[[which(EIDs == i)]]
-      B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
-      W[[i]] = omega_i_mat[[which(EIDs == i)]]
-  } else {
-      # b_temp = rep(1, sum(Y[,'EID']==as.numeric(i)))
-      b_temp = b_chain[Y[,'EID']==as.numeric(i)]
-    
-      B[[i]] = matrix(b_temp, ncol = 1)
-      A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
-      W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
-  }
+    if(simulation) {
+        A[[i]] = alpha_i_mat[[which(EIDs == i)]]
+        B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
+        W[[i]] = omega_i_mat[[which(EIDs == i)]]
+    } else {
+        if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
+            b_temp = rep(1, sum(Y[,'EID']==as.numeric(i)))
+        } else {
+            b_temp = b_chain[Y[,'EID']==as.numeric(i)]
+        }
+        
+        B[[i]] = matrix(b_temp, ncol = 1)
+        A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
+        W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
+    }
 }
 # -----------------------------------------------------------------------------
 

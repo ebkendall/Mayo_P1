@@ -4,7 +4,7 @@ library(mvtnorm, quietly=T)
 real_dat_num = 3
 load(paste0('Data/data_format_new', real_dat_num, '.rda'))
 
-it_num = 6
+it_num = 7
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 
@@ -92,7 +92,7 @@ z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
 # Loading the parameter values to base this off of
-load('Model_out/mcmc_out_interm_2_6it4.rda')
+load('Model_out/mcmc_out_interm_1_8it10.rda')
 pars_mean = colMeans(mcmc_out_temp$chain[900:1001,])
 
 # Initializing par_index
@@ -111,6 +111,7 @@ save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
 
 # Parameters ------------------------------------------------------------------
 # beta = c(0.6261, -1.3286, 1.6741, -0.1)
+pars_mean[par_index$vec_beta][1] = c(0.25)
 beta = pars_mean[par_index$vec_beta]
 
 # alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
@@ -137,10 +138,13 @@ R = matrix(pars_mean[par_index$vec_R], ncol = 4)
 # transitions: 1->2, 2->3, 3->1, 3->2
 # zeta = matrix(c(      -5, -4.078241, -7.000000, -7.230000,
 #                 3.006518,      -1.2,   -1.6713,  3.544297), ncol = 4, byrow=T)
+pars_mean[par_index$vec_zeta] = c(-7, 3, -3, 1, -4,-1,-5,1)
 zeta = matrix(pars_mean[par_index$vec_zeta], ncol = 4)
+
 
 # init_logit = c(0,-5,-2)
 # init_logit = exp(init_logit)
+pars_mean[par_index$vec_init] = c(-3, -3)
 init_logit = pars_mean[par_index$vec_init]
 init_logit = c(0, init_logit)
 
@@ -349,6 +353,7 @@ for (www in 1:1) {
     
     save( use_data, file=paste0(Dir,'use_data',www,'_', it_num, '.rda'))
     
+    print(table(use_data[,'b_true']))
     cat('\n','Proption of occurances in each state:','\n')
     print(table(use_data[,'b_true'])/dim(use_data)[1])
     cat('\n')
@@ -370,6 +375,23 @@ load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
 EIDs = unique(use_data[,'EID'])
 simulation = T
 
+makeTransparent = function(..., alpha=0.35) {
+    
+    if(alpha<0 | alpha>1) stop("alpha must be between 0 and 1")
+    
+    alpha = floor(255*alpha)  
+    newColor = col2rgb(col=unlist(list(...)), alpha=FALSE)
+    
+    .makeTransparent = function(col, alpha) {
+        rgb(red=col[1], green=col[2], blue=col[3], alpha=alpha, maxColorValue=255)
+    }
+    
+    newColor = apply(newColor, 2, .makeTransparent, alpha=alpha)
+    
+    return(newColor)
+    
+}
+
 # New patients ---------------------------------------------------------------
 pdf(paste0('Plots/initial_charts', it_num, '.pdf'))
 panels = c(4, 1)
@@ -382,87 +404,119 @@ for(i in EIDs){
     rbc_times = which(use_data[indices_i, 'RBC_ordered'] != 0)
     rbc_admin_times = which(diff(use_data[indices_i, 'n_RBC_admin']) > 0) + 1
 
-    if(simulation){
+    if(simulation) {
+        # Put this on the correct scale as the t_grid
         b_i = use_data[ indices_i,'b_true']
         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
         to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
+        
+        if(b_i[1] == 1) {
+            to_s1 = c(to_s1, 1)
+        } else if(b_i[1] == 2) {
+            to_s2 = c(to_s2, 1)
+        } else {
+            to_s3 = c(to_s3, 1)
+        }
+        
+        if(length(unique(b_i)) > 1) {
+            if(length(to_s1) > 0) {
+                rect_coords = data.frame(s = 1, t = to_s1)
+            }
+            
+            if(length(to_s2) > 0) {
+                s2_coords = data.frame(s = 2, t = to_s2)
+                if(length(to_s1) > 0) {
+                    rect_coords = rbind(rect_coords, s2_coords)
+                } else {
+                    rect_coords = s2_coords
+                }
+            }
+            
+            if(length(to_s3) > 0) {
+                s3_coords = data.frame(s = 3, t = to_s3)
+                if(length(to_s1) > 0 || length(to_s2) > 0) {
+                    rect_coords = rbind(rect_coords, s3_coords)
+                } else {
+                    rect_coords = s3_coords
+                }
+            }
+            
+            if(!(n_i %in% rect_coords$t)) rect_coords = rbind(rect_coords, c(b_i[n_i], n_i))
+            # Add one row for visuals
+            rect_coords = rbind(rect_coords, c(b_i[n_i], n_i+1))
+            rect_coords$t = rect_coords$t
+            rect_coords = rect_coords[order(rect_coords$t), ]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = makeTransparent(col_vec, alpha = 0.35)   
+        } else {
+            rect_coords = data.frame(s = rep(b_i[1], 2), t = c(1,n_i+1))
+            rect_coords$t = rect_coords$t
+            rect_coords = rect_coords[order(rect_coords$t), ]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = makeTransparent(col_vec, alpha = 0.35)  
+        }
     }
     # HEART RATE --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'hr']))==0){
-        plot.new()
-    } else{
-        plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule'])),
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
+    plot(use_data[indices_i, 'hr'], main=paste0('heart rate: ', i, ', RBC Rule = ', 
+                                                mean(use_data[indices_i, 'RBC_rule'])),
+         xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+    hr_map_ylim = c(min(use_data[indices_i, 'hr']), max(use_data[indices_i, 'hr']))
+    rect(xleft = rect_coords$t[-nrow(rect_coords)]-0.5, 
+         ybottom = hr_map_ylim[1], 
+         xright = rect_coords$t[-1]-0.5, 
+         ytop = hr_map_ylim[2],
+         col = col_vec[-nrow(rect_coords)],
+         border = NA)
+    grid( nx=20, NULL, col='white')
+    axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+    abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+    abline(v = rbc_admin_times, col = 'grey', lwd = 1)
 
     # MAP --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'map']))==0){
-        plot.new()
-    } else{
-        plot(use_data[indices_i, 'map'], main=paste0('map: ', i),
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
+    plot(use_data[indices_i, 'map'], main=paste0('map: ', i),
+         xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+    hr_map_ylim = c(min(use_data[indices_i, 'map']), max(use_data[indices_i, 'map']))
+    rect(xleft = rect_coords$t[-nrow(rect_coords)]-0.5, 
+         ybottom = hr_map_ylim[1], 
+         xright = rect_coords$t[-1]-0.5, 
+         ytop = hr_map_ylim[2],
+         col = col_vec[-nrow(rect_coords)],
+         border = NA)
+    grid( nx=20, NULL, col='white')
+    axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+    abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+    abline(v = rbc_admin_times, col = 'grey', lwd = 1)
 
     # HEMO --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'hemo']))==0){
-        plot.new()
-    } else{
-        plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i),
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
+    plot(use_data[indices_i, 'hemo'], main=paste0('hemo: ', i),
+         xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+    hr_map_ylim = c(min(use_data[indices_i, 'hemo']), max(use_data[indices_i, 'hemo']))
+    rect(xleft = rect_coords$t[-nrow(rect_coords)]-0.5, 
+         ybottom = hr_map_ylim[1], 
+         xright = rect_coords$t[-1]-0.5, 
+         ytop = hr_map_ylim[2],
+         col = col_vec[-nrow(rect_coords)],
+         border = NA)
+    grid( nx=20, NULL, col='white')
+    axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+    abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+    abline(v = rbc_admin_times, col = 'grey', lwd = 1)
 
     # LACTATE --------------------------------------------------------------
-    if(sum(!is.na(use_data[indices_i, 'lactate']))==0){
-        plot.new()
-    } else{
-        plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i),
-             xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
-        grid( nx=20, NULL, col='white')
-        axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
-        abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
-        abline(v = rbc_admin_times, col = 'grey', lwd = 1)
-    }
-    if(simulation){
-        abline( v=to_s1, col='dodgerblue', lwd=2)
-        abline( v=to_s2, col='firebrick1', lwd=2)
-        abline( v=to_s3, col='yellow2', lwd=2)
-        col_choice = c('dodgerblue', 'firebrick1', 'yellow2')
-        abline( v= 1, col = col_choice[b_i[1]], lwd = 2)
-    }
+    plot(use_data[indices_i, 'lactate'], main=paste0('lactate: ', i),
+         xlab='time', ylab=NA, col.main='green', col.axis='green', pch=20, cex=1)
+    hr_map_ylim = c(min(use_data[indices_i, 'lactate']), max(use_data[indices_i, 'lactate']))
+    rect(xleft = rect_coords$t[-nrow(rect_coords)]-0.5, 
+         ybottom = hr_map_ylim[1], 
+         xright = rect_coords$t[-1]-0.5, 
+         ytop = hr_map_ylim[2],
+         col = col_vec[-nrow(rect_coords)],
+         border = NA)
+    grid( nx=20, NULL, col='white')
+    axis( side=1, at=t_grid, col.axis='green', labels=t_grid / 4)
+    abline(v = rbc_times, col = 'darkorchid2', lwd = 1)
+    abline(v = rbc_admin_times, col = 'grey', lwd = 1)
 
 }
 dev.off()

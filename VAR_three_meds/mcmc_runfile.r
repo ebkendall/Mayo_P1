@@ -17,17 +17,17 @@ print(ind)
 # trial 7 start from same values, trial 8 & on are continuations of the previous 
 # iteration
 
-simulation = F
+simulation = T
 data_format = NULL
 
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 6
+    sim_dat_num = 7
     
     load(paste0('Data/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 2
+    trialNum = 3
 } else {
     steps  = 50000
     burnin =  0
@@ -35,7 +35,7 @@ if(simulation) {
     
     load(paste0('Data/data_format_new', real_dat_num, '.rda'))
     trialNum = 8 
-    max_ind = 10
+    max_ind = 20
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
@@ -105,7 +105,8 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    load(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
+    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda')
+    load(prev_file)
     
     load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
     bleed_indicator = b_ind_fnc(data_format)
@@ -118,7 +119,7 @@ if(simulation) {
     rm(mcmc_out_temp)
     
     print("initial values based on:")
-    print(paste0('Model_out/mcmc_out_interm_', ind, '_8it', max_ind - 5, '.rda'))
+    print(prev_file)
 }
 # -----------------------------------------------------------------------------
 A = list()
