@@ -53,8 +53,8 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 1
-    itNum = 2
+    trialNum = 2
+    itNum = 1
     long_chain = T
     
     true_par = NULL

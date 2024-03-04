@@ -9,8 +9,8 @@ if(simulation) {
     trialNum = 2
     itNum = 5
 } else {
-    trialNum = 1
-    itNum = 2
+    trialNum = 2
+    itNum = 1
 }
 
 if(all_seeds) {
@@ -39,17 +39,33 @@ for(seed_num in 1:length(seed_list)) {
     }
     
     if(seed_num == 1) {
-        B_chain   = mcmc_out_temp$B_chain
-        Hr_chain  = mcmc_out_temp$hr_chain
-        Map_chain = mcmc_out_temp$bp_chain
-        Hc_chain  = mcmc_out_temp$hc_chain
-        La_chain  = mcmc_out_temp$la_chain
+        if(seed_list[seed_num] == 1) {
+            B_chain   = mcmc_out_temp$B_chain[501:1001, ]
+            Hr_chain  = mcmc_out_temp$hr_chain[501:1001, ]
+            Map_chain = mcmc_out_temp$bp_chain[501:1001, ]
+            Hc_chain  = mcmc_out_temp$hc_chain[501:1001, ]
+            La_chain  = mcmc_out_temp$la_chain[501:1001, ]
+        } else {
+            B_chain   = mcmc_out_temp$B_chain
+            Hr_chain  = mcmc_out_temp$hr_chain
+            Map_chain = mcmc_out_temp$bp_chain
+            Hc_chain  = mcmc_out_temp$hc_chain
+            La_chain  = mcmc_out_temp$la_chain
+        }
     } else {
-        B_chain   = rbind(B_chain  , mcmc_out_temp$B_chain)
-        Hr_chain  = rbind(Hr_chain , mcmc_out_temp$hr_chain)
-        Map_chain = rbind(Map_chain, mcmc_out_temp$bp_chain)
-        Hc_chain  = rbind(Hc_chain , mcmc_out_temp$hc_chain)
-        La_chain  = rbind(La_chain , mcmc_out_temp$la_chain)
+        if(seed_list[seed_num] == 1) {
+            B_chain   = rbind(B_chain  , mcmc_out_temp$B_chain[501:1001, ])
+            Hr_chain  = rbind(Hr_chain , mcmc_out_temp$hr_chain[501:1001, ])
+            Map_chain = rbind(Map_chain, mcmc_out_temp$bp_chain[501:1001, ])
+            Hc_chain  = rbind(Hc_chain , mcmc_out_temp$hc_chain[501:1001, ])
+            La_chain  = rbind(La_chain , mcmc_out_temp$la_chain[501:1001, ])
+        } else {
+            B_chain   = rbind(B_chain  , mcmc_out_temp$B_chain)
+            Hr_chain  = rbind(Hr_chain , mcmc_out_temp$hr_chain)
+            Map_chain = rbind(Map_chain, mcmc_out_temp$bp_chain)
+            Hc_chain  = rbind(Hc_chain , mcmc_out_temp$hc_chain)
+            La_chain  = rbind(La_chain , mcmc_out_temp$la_chain)
+        }
     }
 }
 #  ----------------------------------------------------------------------------
