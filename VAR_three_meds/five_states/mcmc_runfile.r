@@ -2,9 +2,6 @@ source('mcmc_routine_arma.r')
 
 ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
-# args = commandArgs(TRUE)
-# ind = as.numeric(args[1])
-
 set.seed(ind)
 print(ind)
 
@@ -25,7 +22,10 @@ if(simulation) {
     real_dat_num = 3
     
     load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-    trialNum = 2
+
+    # trial 2: starting seed was 3
+    # trial 3: starting seed was 1
+    trialNum = 3
     max_ind = 5
 }
 
@@ -100,7 +100,7 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_1it', max_ind - 3, '.rda')
+    prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_1it', max_ind - 3, '.rda')
     load(prev_file)
     
     load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
@@ -109,12 +109,6 @@ if(simulation) {
     par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
     rownames(par_temp) = NULL
     par = par_temp
-    # par[par_index$vec_beta] = par_temp[1:4]
-    # par[par_index$vec_A[1:12]] = par_temp[161:172]
-    # par[par_index$vec_R] = par_temp[173:188]
-    # par[par_index$omega_tilde] = par_temp[199:286]
-    # par[par_index$vec_upsilon_omega] = par_temp[287:374]
-    
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     rm(mcmc_out_temp)
@@ -133,7 +127,9 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
+        b_temp = NULL
         if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
+            print(paste0("Clinic rule -1: ", i))
             b_temp = rep(1, sum(Y[,'EID']==as.numeric(i)))
         } else {
             b_temp = b_chain[Y[,'EID']==as.numeric(i)]
@@ -150,11 +146,7 @@ print("Starting values for the chain")
 print("alpha_tilde")
 print(round(par[par_index$vec_alpha_tilde], 3))
 
-print("diag of Sigma_Upsilon")
-Sigma_t = matrix(par[par_index$vec_sigma_upsilon], ncol = 20)
-print(round(diag(Sigma_t), 3))
-
-print("A1")
+print("A")
 vec_A_t_logit = par[par_index$vec_A]
 vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
 mat_A_t = matrix(vec_A_t, nrow = 4)
@@ -167,12 +159,6 @@ print(R_t)
 print("zeta")
 zed = matrix(par[par_index$vec_zeta], nrow = 2)
 print(zed)
-
-print("omega_tilde")
-print(par[par_index$omega_tilde])
-
-print("log upsilon omega")
-print(par[par_index$vec_upsilon_omega])
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 

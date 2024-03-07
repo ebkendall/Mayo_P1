@@ -18,7 +18,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind){
   
     n_cores = 20
-    # n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
     print(paste0("Number of cores: ", n_cores))
 
@@ -28,6 +27,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # 1 = observed, 0 = missing
     otype = !is.na(Y[, c('hemo','hr','map','lactate')])
     colnames(otype) = c('hemo','hr','map','lactate')
+
+    # Checking the missingness indicator
+    print(otype[Y[,'EID'] == EIDs[1], ])
 
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
@@ -57,7 +59,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('Model_out/mcmc_out_interm_', 3, '_1it', max_ind - 3, '.rda'))
+        load(paste0('Model_out/mcmc_out_interm_', 1, '_1it', max_ind - 3, '.rda'))
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
         
