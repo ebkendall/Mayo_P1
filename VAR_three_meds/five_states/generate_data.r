@@ -2,9 +2,9 @@ library(mvtnorm, quietly=T)
 
 # Load in the existing data and save the covariate combinations
 real_dat_num = 3
-load(paste0('Data/data_format_new', real_dat_num, '.rda'))
+load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
 
-it_num = 7
+it_num = 1
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 
@@ -80,7 +80,7 @@ for(i in 1:length(bleed_pat)) {
 
 data_format = cbind(data_format, bleed_indicator)
 
-load(paste0('Data/Dn_omega', real_dat_num, '.rda'))
+load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -92,119 +92,71 @@ z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
 # Loading the parameter values to base this off of
-load('Model_out/mcmc_out_interm_1_8it10.rda')
-pars_mean = colMeans(mcmc_out_temp$chain[900:1001,])
+load('Model_out/mcmc_out_interm_2_2it2.rda')
+pars_mean = colMeans(mcmc_out_temp$chain[500:1001,])
 
 # Initializing par_index
 par_index = list()
 par_index$vec_beta = 1:4
-par_index$vec_alpha_tilde = 5:16
-par_index$vec_sigma_upsilon = 17:160
-par_index$vec_A = 161:172
-par_index$vec_R = 173:188
-par_index$vec_zeta = 189:196
-par_index$vec_init = 197:198
-par_index$omega_tilde = 199:286
-par_index$vec_upsilon_omega = 287:374
+par_index$vec_alpha_tilde = 5:24
+par_index$vec_sigma_upsilon = 25:424
+par_index$vec_A = 425:444
+par_index$vec_R = 445:460
+par_index$vec_zeta = 461:484
+par_index$vec_init = 485:488
+par_index$omega_tilde = 489:576
+par_index$vec_upsilon_omega = 577:664
 
-save(par_index, file = paste0('Data/true_par_index_', it_num, '.rda'))
+save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 
 # Parameters ------------------------------------------------------------------
-# beta = c(0.6261, -1.3286, 1.6741, -0.1)
-pars_mean[par_index$vec_beta][1] = c(0.25)
 beta = pars_mean[par_index$vec_beta]
 
-# alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940, 5.2113319,
-#                                  -1,  5.04150472, -5.42458547,         1,
-#                                   1, 	      -4, 		    4,        -1), ncol=4, byrow=T)
 alpha_tilde = matrix(pars_mean[par_index$vec_alpha_tilde], ncol = 4)
 
-# sigma_upsilon = Upsilon = diag(c(4, 0.25, 0.25, 36, 1, 1, 36, 1, 1, 4, 0.25, 0.25))
-sigma_upsilon = Upsilon = matrix(pars_mean[par_index$vec_sigma_upsilon], ncol = 12)
+sigma_upsilon = Upsilon = matrix(pars_mean[par_index$vec_sigma_upsilon], ncol = 20)
 
-# A_mat = matrix(c(2, -2, 0,
-#                  2, -2, 0,
-#                  2, -2, 0,
-#                  2, -2, 0), ncol = 3, byrow = T)
-A_mat = matrix(pars_mean[par_index$vec_A], ncol = 3)
+A_mat = matrix(pars_mean[par_index$vec_A], nrow = 4)
 vec_A = c(A_mat)
 correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate
-# R = diag(4)
 R = matrix(pars_mean[par_index$vec_R], ncol = 4)
 
-# transitions: 1->2, 2->3, 3->1, 3->2
-# zeta = matrix(c(      -5, -4.078241, -7.000000, -7.230000,
-#                 3.006518,      -1.2,   -1.6713,  3.544297), ncol = 4, byrow=T)
-pars_mean[par_index$vec_zeta] = c(-7, 3, -3, 1, -4,-1,-5,1)
-zeta = matrix(pars_mean[par_index$vec_zeta], ncol = 4)
+# transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
+pars_mean[par_index$vec_zeta][5:6] = c(-3, 1)
+pars_mean[par_index$vec_zeta][7:8] = c(-2,-0.5)
+pars_mean[par_index$vec_zeta][14] = c(-1)
+pars_mean[par_index$vec_zeta][15:16] = c(-7,1)
+pars_mean[par_index$vec_zeta][23:24] = c(-3,1)
+pars_mean[par_index$vec_zeta][19:20] = c(-3,-1)
+pars_mean[par_index$vec_zeta][17:18] = c(-2,-0.5)
 
+zeta = matrix(pars_mean[par_index$vec_zeta], nrow = 2)
+colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1', 
+                   '(6) 3->2', '(7) 3->4','(8) 4->2', '(9) 4->5', '(10) 5->1', 
+                   '(11) 5->2', '(12) 5->4')
 
-# init_logit = c(0,-5,-2)
-# init_logit = exp(init_logit)
-pars_mean[par_index$vec_init] = c(-3, -3)
 init_logit = pars_mean[par_index$vec_init]
 init_logit = c(0, init_logit)
 
-# omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
-#           -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
-#           -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
-#            1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
-#           -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
-#           -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
-# omega = 6 * omega
 omega = pars_mean[par_index$omega_tilde]
 
-
-# Changing some medication effects
-load(paste0('Data/med_select_FINAL', real_dat_num, '.rda'))
-load(paste0('Data/Dn_omega_names', real_dat_num, '.rda'))
-load(paste0('Data/hr_map_names', real_dat_num, '.rda'))
-
-Dn_omega_sim = vector(mode = 'list', length = N)
-
-hr_max_ind = max(which(hr_map_names == 'hr_disc'))
-map_max_ind = max(which(hr_map_names == 'map_disc'))
-
-hr_med = med_select_FINAL$med_name_admin[med_select_FINAL$hr != 0]
-map_med = med_select_FINAL$med_name_admin[med_select_FINAL$map != 0]
-hr_med_priority = sort(c(table(hr_med)))
-map_med_priority = sort(c(table(map_med)))
-
-hr_med_order = sample(1:hr_max_ind, 24)
-hr_med_0 = names(hr_med_priority)[hr_med_order[1:12]]
-hr_med_1 = names(hr_med_priority)[hr_med_order[13:24]]
-
-map_med_order = sample(1:(map_max_ind - hr_max_ind), 36)
-map_med_0 = names(map_med_priority)[map_med_order[1:18]]
-map_med_1 = names(map_med_priority)[map_med_order[19:36]]
-
-zero_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_0), 
-             hr_max_ind + which(Dn_omega_names[(hr_max_ind+1):map_max_ind] %in% map_med_0))
-one_ind = c(which(Dn_omega_names[1:hr_max_ind] %in% hr_med_1), 
-            hr_max_ind + which(Dn_omega_names[(hr_max_ind+1):map_max_ind] %in% map_med_1))
-
-# omega[zero_ind] = omega[zero_ind] / 6
-# omega[one_ind] = omega[one_ind] / 2
-
-# upsilon_omega = runif(length(omega))
 upsilon_omega = exp(pars_mean[par_index$vec_upsilon_omega])
 
-# true_pars = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
-#               init_logit[2:3], omega, log(upsilon_omega))
 true_pars = pars_mean
-save(true_pars, file = paste0('Data/true_pars_', it_num, '.rda'))
+save(true_pars, file = paste0('Data_sim/true_pars_', it_num, '.rda'))
 # -----------------------------------------------------------------------------
 
 alpha_i_mat = vector(mode = "list", length = N)
 omega_i_mat = vector(mode = "list", length = N)
 bleed_indicator_update = NULL
+Dn_omega_sim = vector(mode = 'list', length = N)
 
 for (www in 1:1) {
     
-    Dir = 'Data/'
+    Dir = 'Data_sim/'
     
     use_data = NULL
     
@@ -241,23 +193,35 @@ for (www in 1:1) {
         P_i = exp(init_logit) / sum(exp(init_logit))
         for(k in 1:n_i){
             if(k==1){
-                b_i = sample(1:3, size=1, prob=P_i)
+                b_i = sample(1:5, size=1, prob=P_i)
             } else{
                 q1   = exp(z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
                 q2   = exp(z_i[k,, drop=F] %*% zeta[,  2, drop=F])
                 q3   = exp(z_i[k,, drop=F] %*% zeta[,  3, drop=F])
                 q4   = exp(z_i[k,, drop=F] %*% zeta[,  4, drop=F])
+                q5   = exp(z_i[k,, drop=F] %*% zeta[,  5, drop=F]) 
+                q6   = exp(z_i[k,, drop=F] %*% zeta[,  6, drop=F])
+                q7   = exp(z_i[k,, drop=F] %*% zeta[,  7, drop=F])
+                q8   = exp(z_i[k,, drop=F] %*% zeta[,  8, drop=F])
+                q9   = exp(z_i[k,, drop=F] %*% zeta[,  9, drop=F]) 
+                q10  = exp(z_i[k,, drop=F] %*% zeta[,  10, drop=F])
+                q11  = exp(z_i[k,, drop=F] %*% zeta[,  11, drop=F])
+                q12  = exp(z_i[k,, drop=F] %*% zeta[,  12, drop=F])
                 
-                # transitions: 1->2, 2->3, 3->1, 3->2
-                Q = matrix(c(  1,  q1,  0,
-                               0,   1, q2,
-                               q3,  q4,  1), ncol=3, byrow=T)
+                Q = matrix(c(   1,   q1,  0,  q2,  0,
+                                0,    1, q3,  q4,  0,
+                               q5,   q6,  1,  q7,  0,
+                                0,   q8,  0,   1, q9,
+                              q10,  q11,  0, q12,  1), ncol=5, byrow=T)
+                
                 P_i = Q / rowSums(Q)
                 # Sample the latent state sequence
-                b_i = c( b_i, sample(1:3, size=1, prob=P_i[tail(b_i,1),]))
+                b_i = c( b_i, sample(1:5, size=1, prob=P_i[tail(b_i,1),]))
             }
             
-            D_i_temp = matrix(c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3)), nrow = 1, ncol = 3)
+            D_i_temp = matrix(c( 1, sum(b_i[1:k]==2), sum(b_i[1:k]==3), 
+                                    sum(b_i[1:k]==4), sum(b_i[1:k]==5)), 
+                              nrow = 1, ncol = 5)
             D_i[[k]] = diag(4) %x% D_i_temp
             
             x_i_temp = matrix(c(x_i[k,]), ncol = 1)
@@ -277,9 +241,9 @@ for (www in 1:1) {
                 } 
             } 
         }
-        # ---------------------------------------------------------------------------
+        # ----------------------------------------------------------------------
         
-        # Generate realizations of hc, hr, and bp -----------------------------------
+        # Generate realizations of hc, hr, bp, and lact ------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
@@ -364,13 +328,13 @@ for (www in 1:1) {
 
 bleed_indicator = bleed_indicator_update
 
-save(alpha_i_mat, file = paste0('Data/alpha_i_mat_', it_num, '.rda'))
-save(omega_i_mat, file = paste0('Data/omega_i_mat_', it_num, '.rda'))
-save(bleed_indicator, file = paste0('Data/bleed_indicator_sim_', it_num, '.rda'))
-save(Dn_omega_sim, file = paste0('Data/Dn_omega_sim_', it_num, '.rda'))
+save(alpha_i_mat, file = paste0(Dir,'alpha_i_mat_', it_num, '.rda'))
+save(omega_i_mat, file = paste0(Dir,'omega_i_mat_', it_num, '.rda'))
+save(bleed_indicator, file = paste0(Dir,'bleed_indicator_sim_', it_num, '.rda'))
+save(Dn_omega_sim, file = paste0(Dir,'Dn_omega_sim_', it_num, '.rda'))
 
 # Visualize the noise --------------------------------------------------------
-load(paste0('Data/use_data', 1, '_', it_num, '.rda'))
+load(paste0(Dir,'use_data', 1, '_', it_num, '.rda'))
 
 EIDs = unique(use_data[,'EID'])
 simulation = T
@@ -410,13 +374,19 @@ for(i in EIDs){
         to_s1 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==1]
         to_s2 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==2]
         to_s3 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==3]
+        to_s4 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==4]
+        to_s5 = (2:n_i)[diff(b_i)!=0 & b_i[-1]==5]
         
         if(b_i[1] == 1) {
             to_s1 = c(to_s1, 1)
         } else if(b_i[1] == 2) {
             to_s2 = c(to_s2, 1)
-        } else {
+        } else if(b_i[1] == 3){
             to_s3 = c(to_s3, 1)
+        } else if(b_i[1] == 4) {
+            to_s4 = c(to_s4, 1)
+        } else {
+            to_s5 = c(to_s5, 1)
         }
         
         if(length(unique(b_i)) > 1) {
@@ -442,18 +412,36 @@ for(i in EIDs){
                 }
             }
             
+            if(length(to_s4) > 0) {
+                s4_coords = data.frame(s = 4, t = to_s4)
+                if(length(to_s1) > 0 || length(to_s2) > 0 || length(to_s3) > 0) {
+                    rect_coords = rbind(rect_coords, s4_coords)
+                } else {
+                    rect_coords = s4_coords
+                }
+            }
+            
+            if(length(to_s5) > 0) {
+                s5_coords = data.frame(s = 5, t = to_s5)
+                if(length(to_s1) > 0 || length(to_s2) > 0 || length(to_s3) > 0 || length(to_s4) > 0) {
+                    rect_coords = rbind(rect_coords, s5_coords)
+                } else {
+                    rect_coords = s5_coords
+                }
+            }
+            
             if(!(n_i %in% rect_coords$t)) rect_coords = rbind(rect_coords, c(b_i[n_i], n_i))
             # Add one row for visuals
             rect_coords = rbind(rect_coords, c(b_i[n_i], n_i+1))
-            rect_coords$t = rect_coords$t
+            rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)   
         } else {
             rect_coords = data.frame(s = rep(b_i[1], 2), t = c(1,n_i+1))
-            rect_coords$t = rect_coords$t
+            rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)  
         }
     }
