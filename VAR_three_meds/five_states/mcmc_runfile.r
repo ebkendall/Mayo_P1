@@ -128,13 +128,7 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
-        b_temp = NULL
-        if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
-            print(paste0("Clinic rule -1: ", i))
-            b_temp = rep(1, sum(Y[,'EID']==as.numeric(i)))
-        } else {
-            b_temp = b_chain[Y[,'EID']==as.numeric(i)]
-        }
+        b_temp = b_chain[Y[,'EID']==as.numeric(i)]
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)

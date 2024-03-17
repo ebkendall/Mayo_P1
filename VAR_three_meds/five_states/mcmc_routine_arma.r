@@ -287,16 +287,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
                 curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
                 
-                proposal[ind_j] = c(rinvwishart(nu = curr_psi_nu[[2]],
-                                                S = curr_psi_nu[[1]]))
+                q_s  = curr_psi_nu[[1]]
+                q_nu = curr_psi_nu[[2]]
+                
+                proposal[ind_j] = c(rinvwishart(nu = q_nu, S = q_s))
                 
                 curr_R = matrix(par[ind_j], nrow = 4)
                 prop_R = matrix(proposal[ind_j], nrow = 4)
                 
-                log_prop = dinvwishart(Sigma = prop_R, nu = curr_psi_nu[[2]],
-                                        S = curr_psi_nu[[1]], log = T)
-                log_prop_prev = dinvwishart(Sigma = curr_R, nu = curr_psi_nu[[2]],
-                                            S = curr_psi_nu[[1]], log = T)
+                log_prop = dinvwishart(Sigma = prop_R, nu = q_nu, S = q_s, log = T)
+                log_prop_prev = dinvwishart(Sigma = curr_R, nu = q_nu, S = q_s, log = T)
                 
                 log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
 
@@ -431,3 +431,15 @@ b_ind_fnc <- function(data_format) {
     return(bleed_indicator)
 }
 
+
+var_R_calc <- function(psi, nu, p) {
+    var_mat = matrix(0, p, p)
+    for(i in 1:p) {
+        for(j in 1:p) {
+            num_ij = (nu - p + 1) * (psi[i,j] * psi[i,j]) + (nu - p - 1) * psi[i,i] * psi[j,j]
+            den_ij = (nu - p) * (nu - p - 1) * (nu - p - 1) * (nu - p - 3)
+            var_mat[i,j] = num_ij / den_ij
+        }
+    }
+    return(var_mat)
+}
