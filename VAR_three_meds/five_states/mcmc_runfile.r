@@ -25,7 +25,8 @@ if(simulation) {
 
     # trial 2: starting seed was 3
     # trial 3: starting seed was 1
-    trialNum = 3
+    # trial 4: continuation of trial 2
+    trialNum = 4
     max_ind = 5
 }
 
@@ -100,7 +101,7 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_1it', max_ind - 3, '.rda')
+    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_2it', 1, '.rda')
     load(prev_file)
     
     load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))

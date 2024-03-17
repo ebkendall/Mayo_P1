@@ -59,55 +59,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('Model_out/mcmc_out_interm_', 1, '_1it', max_ind - 3, '.rda'))
+        load(paste0('Model_out/mcmc_out_interm_', ind, '_2it', 1, '.rda'))
         pcov = mcmc_out_temp$pcov
         pscale = mcmc_out_temp$pscale
         
         # Setting initial values for Y
-        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[1001, ])
-        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[1001, ])
-        Y[, 'map'] = c(mcmc_out_temp$bp_chain[1001, ])
-        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[1001, ])
+        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
+        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
+        Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
+        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
         rm(mcmc_out_temp)
-        # file_name = paste0("Data/Y_init", trialNum, ".rda")
-        # if(file.exists(file_name)) {
-        #     load(paste0("Data/Y_init", trialNum, ".rda"))
-        # } else {
-        #     # Setting initial values for Y
-        #     print("Initializing the missing Y's for imputation")
-        #     for(i in EIDs) {
-        #         heading_names = c('hemo', 'lactate')
-        #         sub_dat = Y[Y[,"EID"] == i, ]
-
-        #         for(k in 1:length(heading_names)) {
-        #             if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
-        #                 sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
-        #             } else {
-        #                 if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
-        #                     sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
-        #                 } else {
-        #                     obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
-        #                     miss_indices = which(is.na(sub_dat[,heading_names[k]]))
-        #                     for(j in miss_indices) {
-        #                         if(j < obs_indices[1]) {
-        #                             sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
-        #                         } else if(j > tail(obs_indices,1)) {
-        #                             sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
-        #                         } else {
-        #                             end_pts = c(max(obs_indices[obs_indices < j]),
-        #                                         min(obs_indices[obs_indices > j]))
-        #                             slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
-        #                             sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
-        #                         }
-        #                     }
-        #                 }
-        #             }
-        #             Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
-        #         }
-        #     }
-        #     save(Y, file = paste0("Data/Y_init", trialNum, ".rda"))
-        #     print("Done initializing")
-        # }
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------
