@@ -17,7 +17,8 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind){
   
-    n_cores = 20
+    # n_cores = 20
+    n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
     print(paste0("Number of cores: ", n_cores))
 
@@ -28,9 +29,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     otype = !is.na(Y[, c('hemo','hr','map','lactate')])
     colnames(otype) = c('hemo','hr','map','lactate')
 
-    # Checking the missingness indicator
-    print(otype[Y[,'EID'] == EIDs[1], ])
-
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
@@ -39,16 +37,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_A[1:4]),
                c(par_index$vec_A[5:12]),
                c(par_index$vec_A[13:20]),
-               c(par_index$vec_upsilon_omega[c(1,2,4,7,8,11,12,13,15,23,24,27,
-                                               30,32)]),
-               c(par_index$vec_upsilon_omega[c(3,5,6,9,10,14,16,17,18,19,20,21,
-                                               22,25,26,28,29,31,33,34,35,36)]),
-               c(par_index$vec_upsilon_omega[c(38,40,42,43,44,45,47,48,50,52,55,
-                                               56,57,58,60,61,62,64,66,67,70,71,
-                                               73,75,76,77,78,79,80,83,84,85,86,
-                                               87,88)]),                                        
-               c(par_index$vec_upsilon_omega[c(37,39,41,46,49,51,53,54,59,63,65,
-                                               68,69,72,74,81,82)]),
+               c(par_index$vec_upsilon_omega[c(1:16)]),
+               c(par_index$vec_upsilon_omega[c(17:35)]),
+               c(par_index$vec_upsilon_omega[c(36:57)]),                                        
+               c(par_index$vec_upsilon_omega[c(58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -59,16 +51,43 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('Model_out/mcmc_out_interm_', ind, '_2it', 1, '.rda'))
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
+        load(paste0('Model_out/mcmc_out_interm_', 1, '_2it', 1, '.rda'))
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
         
         # Setting initial values for Y
-        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
-        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
-        Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
-        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
+        load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+        old_EIDs = unique(data_format[,"EID"])
+        old_time = data_format[,"time"]
+        old_ids = data_format[,"EID"]
+        
+        load('Data_updates/data_format.rda')
+        new_EIDs = unique(data_format[,'EID'])
+        
+        data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+    
+        for(i in EIDs){
+            old_t = old_time[old_ids == as.numeric(i)]
+            curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+            if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
+            } else {
+                b_index = which(floor(old_t) %in% floor(curr_t))
+                b_temp_init = which(old_ids == as.numeric(i))
+                b_temp = b_temp_init[b_index]
+                
+                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
+            }
+        }
+        
         rm(mcmc_out_temp)
+        rm(data_format)
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------

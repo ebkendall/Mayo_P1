@@ -1,32 +1,45 @@
 source('mcmc_routine_arma.r')
 
-ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+# ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+args = commandArgs(TRUE)
+ind = as.numeric(args[1])
 
 set.seed(ind)
 print(ind)
 
-simulation = F
+simulation = T
 data_format = NULL
 
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 7
+    sim_dat_num = 1
     
-    load(paste0('../Data/use_data1_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 3
+    trialNum = 1
+    
+    max_ind = 5
 } else {
     steps  = 50000
     burnin = 5000
     real_dat_num = 3
     
+    # Loading the old data to keep the same IDs -----------------
     load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+    old_EIDs = unique(data_format[,"EID"])
+    old_time = data_format[,"time"]
+    old_ids = data_format[,"EID"]
+    
+    load('Data_updates/data_format.rda')
+    new_EIDs = unique(data_format[,'EID'])
 
+    data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
     # trial 2: starting seed was 3
     # trial 3: starting seed was 1
     # trial 4: continuation of trial 2
-    trialNum = 4
+    # trial 5: new EIDs
+    trialNum = 5
     max_ind = 5
 }
 
@@ -64,14 +77,15 @@ R = diag(4)
 zeta = matrix(c(-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0), nrow = 2,byrow = T)
 
-omega = c( 1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1,  1,  1, -1,  1,
-          -1, -1, -1, -1, -1, -1, -1,  1,  1, -1, -1,  1, -1, -1,  1, 
-          -1,  1, -1, -1, -1, -1,  1, -1,  1, -1,  1, -1, -1, -1, -1,  
-           1, -1, -1,  1, -1,  1, -1,  1,  1, -1, -1, -1, -1,  1, -1, 
-          -1, -1,  1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,  1, -1,
-          -1, -1, -1, -1, -1,  1,  1, -1, -1, -1, -1, -1, -1)
+omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+          -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+          -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+           1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+          -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
 
-omega = 6 * omega
+omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
 init_logit = c(-5,-5,-5,-5)
@@ -92,24 +106,32 @@ par_index$vec_upsilon_omega = 577:664
 # -----------------------------------------------------------------------------
 
 if(simulation) {
-    load(paste0('Data/true_pars_', sim_dat_num, '.rda'))
-    load(paste0('Data/alpha_i_mat_', sim_dat_num, '.rda'))
-    load(paste0('Data/omega_i_mat_', sim_dat_num, '.rda'))
-    load(paste0('Data/Dn_omega_sim_', sim_dat_num, '.rda'))
-    load(paste0('Data/bleed_indicator_sim_', sim_dat_num,'.rda'))
+    load(paste0('Data_sim/true_pars_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/alpha_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/omega_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/Dn_omega_sim_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
     
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_2it', 1, '.rda')
+    prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_2it', 1, '.rda')
     load(prev_file)
     
-    load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
+    load('Data_updates/Dn_omega1.rda')
+    Dn_omega_big = Dn_omega
+    eid_index = which(new_EIDs %in% old_EIDs)
+    Dn_omega = vector(mode = 'list', length = length(eid_index))
+    for(jjj in 1:length(eid_index)) {
+        Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
+    }
+    rm(Dn_omega_big)
+    
     bleed_indicator = b_ind_fnc(data_format)
     
     par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
     rownames(par_temp) = NULL
-    par = par_temp
+    par[1:488] = par_temp[1:488]
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     rm(mcmc_out_temp)
@@ -128,7 +150,16 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
-        b_temp = b_chain[Y[,'EID']==as.numeric(i)]
+        old_t = old_time[old_ids == as.numeric(i)]
+        curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+        if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+            b_temp = b_chain[old_ids==as.numeric(i)]   
+        } else {
+            b_index = which(floor(old_t) %in% floor(curr_t))
+            
+            b_temp_init = b_chain[old_ids==as.numeric(i)]
+            b_temp = b_temp_init[b_index]
+        }
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)

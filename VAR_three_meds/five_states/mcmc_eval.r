@@ -27,7 +27,7 @@ EIDs = unique(use_data[,"EID"])
 # -----------------------------------------------------------------------------
 # Testing different threshold values ------------------------------------------
 # -----------------------------------------------------------------------------
-window_length = 1:20
+window_length = 0:20
 optimal_c_win = vector(mode = "list", length = length(window_length))
 
 # Load the model output -------------------------------------------------------

@@ -4,6 +4,15 @@ library(mvtnorm, quietly=T)
 real_dat_num = 3
 load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
 
+old_EIDs = unique(data_format[,"EID"])
+old_time = data_format[,"time"]
+old_ids = data_format[,"EID"]
+
+load('Data_updates/data_format.rda')
+new_EIDs = unique(data_format[,'EID'])
+
+data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+
 it_num = 1
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
@@ -80,7 +89,15 @@ for(i in 1:length(bleed_pat)) {
 
 data_format = cbind(data_format, bleed_indicator)
 
-load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
+load('Data_updates/Dn_omega1.rda')
+Dn_omega_big = Dn_omega
+eid_index = which(new_EIDs %in% old_EIDs)
+Dn_omega = vector(mode = 'list', length = length(eid_index))
+for(jjj in 1:length(eid_index)) {
+    Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
+}
+rm(Dn_omega_big)
+# load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -92,8 +109,9 @@ z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
 # Loading the parameter values to base this off of
-load('Model_out/mcmc_out_interm_2_2it2.rda')
-pars_mean = colMeans(mcmc_out_temp$chain[500:1001,])
+prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_2it', 1, '.rda')
+load(prev_file)
+pars_mean = colMeans(mcmc_out_temp$chain[800:1001,])
 
 # Initializing par_index
 par_index = list()
@@ -141,7 +159,16 @@ colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1',
 init_logit = pars_mean[par_index$vec_init]
 init_logit = c(0, init_logit)
 
-omega = pars_mean[par_index$omega_tilde]
+omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+          -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+          -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+           1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+          -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+
+omega = 3 * omega
+pars_mean[par_index$omega_tilde] = omega
 
 upsilon_omega = exp(pars_mean[par_index$vec_upsilon_omega])
 
@@ -246,6 +273,9 @@ for (www in 1:1) {
         # Generate realizations of hc, hr, bp, and lact ------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        while(vec_alpha_i[2] > 0 | vec_alpha_i[3] < 0) {
+            vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        }
         vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
 
         alpha_i_mat[[i]] = matrix(vec_alpha_i, ncol = 1)
@@ -305,7 +335,7 @@ for (www in 1:1) {
             print("Bleed rule is changed to 0")
         }
         
-        use_data = rbind( use_data, cbind( i, t_i, Y_i, b_i, 
+        use_data = rbind( use_data, cbind( id_num, t_i, Y_i, b_i, 
                                            z_i[,2],
                                            x_i[,1], 
                                            rules))
