@@ -7,7 +7,7 @@ ind = as.numeric(args[1])
 set.seed(ind)
 print(ind)
 
-simulation = T
+simulation = F
 data_format = NULL
 
 if(simulation) {

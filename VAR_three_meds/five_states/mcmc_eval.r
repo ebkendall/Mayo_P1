@@ -6,8 +6,9 @@ library(splines)
 simulation = T
 
 if(simulation) {
-    trialNum = 2
+    trialNum = 1
     itNum = 5
+    seed_list = 1
 } else {
     trialNum = 8
     itNum = 5
@@ -15,8 +16,8 @@ if(simulation) {
 
 # Load the data ---------------------------------------------------------------
 if(simulation) {
-    data_num = 6
-    load(paste0('Data/use_data1_', data_num, '.rda'))
+    data_num = 1
+    load(paste0('Data_sim/use_data1_', data_num, '.rda'))
 } else {
     load('Data/data_format_new3.rda')
     use_data = data_format 
@@ -34,12 +35,12 @@ optimal_c_win = vector(mode = "list", length = length(window_length))
 B_chain = NULL
 
 Dir = 'Model_out/'
-for(seed_num in 1:3) {
-    print(seed_num)
+for(seed_num in 1:length(seed_list)) {
+    print(seed_list[seed_num])
     if(simulation) {
-        load(paste0(Dir,'mcmc_out_interm_', seed_num,'_', trialNum,'it',itNum,'_sim.rda'))   
+        load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'_sim.rda'))   
     } else {
-        load(paste0(Dir,'mcmc_out_interm_', seed_num,'_', trialNum,'it',itNum,'.rda'))
+        load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'.rda'))
     }
     
     if(seed_num == 1) {
@@ -50,27 +51,28 @@ for(seed_num in 1:3) {
 }
 #  ----------------------------------------------------------------------------
 
-# Revising the true state sequence to distinguish between bleeding and the FIRST
-# instance of bleeding.
-true_state = rep(NA, nrow(use_data))
-for(i in 1:length(EIDs)) {
-    indices_i = (use_data[,'EID']==EIDs[i])
-    sub_true_state = use_data[indices_i,'b_true']
-
-    first_s_2 = T
-    for(j in 1:length(sub_true_state)) {
-        if(sub_true_state[j] == 2) {
-            if(first_s_2) {
-                sub_true_state[j] = -2
-                first_s_2 = F
-            }
-        } else {
-            first_s_2 = T
-        }
-    }
-    
-    true_state[indices_i] = sub_true_state
-}
+# # Revising the true state sequence to distinguish between bleeding and the FIRST
+# # instance of bleeding.
+# true_state = rep(NA, nrow(use_data))
+# for(i in 1:length(EIDs)) {
+#     indices_i = (use_data[,'EID']==EIDs[i])
+#     sub_true_state = use_data[indices_i,'b_true']
+# 
+#     first_s_2 = T
+#     for(j in 1:length(sub_true_state)) {
+#         if(sub_true_state[j] == 2) {
+#             if(first_s_2) {
+#                 sub_true_state[j] = -2
+#                 first_s_2 = F
+#             }
+#         } else {
+#             first_s_2 = T
+#         }
+#     }
+#     
+#     true_state[indices_i] = sub_true_state
+# }
+true_state = use_data[,'b_true']
 
 if(simulation) {
     plot_title = paste0("Plots/ROC_curve_", trialNum, "_it", itNum, "_sim.pdf")
@@ -107,7 +109,7 @@ for(www in 1:length(window_length)) {
     }
     
     # Comparison and plotting the ROC curve
-    state_2_binary = as.numeric(true_state == -2)
+    state_2_binary = as.numeric(true_state == 2)
     state_1_3_binary = as.numeric(true_state %in% c(1,3))
     
     c = seq(0,1,by=0.001)
