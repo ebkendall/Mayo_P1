@@ -4,9 +4,12 @@ burnin = 500
 steps = 1001
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
 
-simulation = F
-load("../Data/Dn_omega_names3.rda")
-load('../Data/hr_map_names3.rda')
+simulation = T
+
+# load("../Data/Dn_omega_names3.rda")
+# load('../Data/hr_map_names3.rda')
+load('Data_updates/Dn_omega_names1.rda')
+load('Data_updates/hr_map_names1.rda')
 
 labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr", 
            "beta (n_RBC_admin): map", "beta (n_RBC_admin): lact",
@@ -31,8 +34,8 @@ labels = c("beta (n_RBC_admin): hemo", "beta (n_RBC_admin): hr",
            "intercept: S4 --> S5", "RBC_order: S4 --> S5",  "intercept: S5 --> S1", "RBC_order: S5 --> S1",
            "intercept: S5 --> S2", "RBC_order: S5 --> S2",  "intercept: S5 --> S4", "RBC_order: S5 --> S4",
            "logit Pr(init S2)", "logit Pr(init S3)","logit Pr(init S4)", "logit Pr(init S5)",
-           paste0("mean (hr): ", Dn_omega_names[1:36]), paste0("mean (map): ", Dn_omega_names[37:88]), 
-           paste0("log Upsilon (hr): ", Dn_omega_names[1:36]), paste0("log Upsilon (map): ", Dn_omega_names[37:88])) 
+           paste0("mean (hr): ", Dn_omega_names[1:35]), paste0("mean (map): ", Dn_omega_names[36:88]), 
+           paste0("log Upsilon (hr): ", Dn_omega_names[1:35]), paste0("log Upsilon (map): ", Dn_omega_names[36:88])) 
 additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stable", "Gamma(4,4) stable",
                       "Gamma(1,1) bleed", "Gamma(2,2) bleed", "Gamma(3,3) bleed", "Gamma(4,4) bleed",
                       "Gamma(1,1) recov", "Gamma(2,2) recov", "Gamma(3,3) recov", "Gamma(4,4) recov",
@@ -44,12 +47,12 @@ dir = 'Model_out/'
 
 if(simulation) {
     index_seeds = c(1:3)
-    trialNum = 2
-    itNum = 5
+    trialNum = 1
+    itNum = 1
     long_chain = F
     
-    data_num = 6
-    load(paste0('../Data/true_pars_', data_num, '.rda'))
+    data_num = 1
+    load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {
     index_seeds = c(1)
@@ -62,7 +65,7 @@ if(simulation) {
 
 data_format = NULL
 if(simulation) {
-  load(paste0('../Data/use_data1_', data_num, '.rda'))
+  load(paste0('Data_sim/use_data1_', data_num, '.rda'))
   data_format = use_data
 } else {
   load('../Data/data_format_new3.rda')
@@ -155,7 +158,6 @@ if(simulation) {
 pdf(pdf_title)
 par(mfrow=c(3, 2))
 lab_ind = 0
-red_par = matrix(0, nrow=1,ncol=2)
 for(s in names(par_index)){
     temp_par = par_index[[s]]
     for(r in temp_par){
@@ -170,11 +172,9 @@ for(s in names(par_index)){
         if(s == names(par_index)[8]) {
             if(0 < lower) {
                 title_color = "red"
-                red_par = rbind(red_par, c(r-198, 1))
             }
             if(0 > upper) {
                 title_color = "red"
-                red_par = rbind(red_par, c(r-198, -1))
             }
         }
         
@@ -199,38 +199,6 @@ for(s in names(par_index)){
         abline( v=lower, col='purple', lwd=2, lty=2)
         abline( v=true_par[r], col='green', lwd=2, lty=2)
     }   
-}
-red_par = red_par[-1, ]
-red_par = cbind(red_par, 0, "hr", 0)
-red_par[as.numeric(red_par[,1]) > 36, 4] = "map"
-red_par[,5] = Dn_omega_names[as.numeric(red_par[,1])]
-red_par = as.data.frame(red_par)
-red_par[,1] = as.numeric(red_par[,1])
-red_par[,2] = as.numeric(red_par[,2])
-red_par[,3] = as.numeric(red_par[,3])
-colnames(red_par) = c('ind', 'fit_up_down', 'true_up_down', 'vital', 'name')
-
-if(simulation) {
-    print(paste0(sum(true_par[par_index$omega_tilde] != 0), " out of ", length(par_index$omega_tilde), " medications have nonzero effect"))
-}
-
-load('../Data/med_select_FINAL3.rda')
-for(i in 1:nrow(red_par)) {
-    if(red_par$vital[i] == "hr") {
-        val = as.numeric(unique(med_select_FINAL$hr[med_select_FINAL$med_name_admin == red_par$name[i]]))
-        red_par$true_up_down[i] = val
-    } else {
-        val = as.numeric(unique(med_select_FINAL$map[med_select_FINAL$med_name_admin == red_par$name[i]]))
-        red_par$true_up_down[i] = val
-    }
-}
-
-red_par_diff = red_par[red_par[,'fit_up_down'] != red_par[,'true_up_down'], ,drop = F]
-if(nrow(red_par_diff) == 0) {
-    print(paste0("All ", nrow(red_par), " match the truth"))
-} else {
-    print(paste0(nrow(red_par_diff), " out of ", nrow(red_par), " differ"))
-    print(red_par_diff)
 }
 
 if(long_chain) {
@@ -264,13 +232,8 @@ for(rr in 1:ncol(gamma_chain)){
 
     for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
 
-    if (simulation) {
-        x_label = paste0('Mean =',toString(parMean),
-                         ' Median =',toString(parMedian),
-                         ' True =', round(true_gamma[rr], 3))
-    } else {
-        x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
-    }
+    x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
+    
     hist( gamma_chain[,rr], breaks=sqrt(nrow(gamma_chain)), ylab=NA, main=NA, freq=FALSE,
           xlab=x_label)
     abline( v=upper, col='red', lwd=2, lty=2)

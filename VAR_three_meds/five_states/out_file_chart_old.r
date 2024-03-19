@@ -1,14 +1,17 @@
 library(matrixStats)
 library(plotrix)
 
-data_num = 6
-simulation = F
+simulation = T
 all_seeds = F
 
 if(simulation) {
-    trialNum = 2
-    itNum = 5
+    data_num = 1
+    
+    trialNum = 1
+    itNum = 1
 } else {
+    data_num = 6
+    
     trialNum = 3
     itNum = 2
 }
@@ -55,14 +58,13 @@ for(seed_num in 1:length(seed_list)) {
 #  ----------------------------------------------------------------------------
 
 if(simulation) {
-    load(paste0('../Data/use_data1_', data_num, '.rda'))
+    load(paste0('Data_sim/use_data1_', data_num, '.rda'))
 } else {
     load('../Data/data_format_new3.rda')
     use_data = data_format   
 }
 
 EIDs = unique(use_data[,'EID'])
-load('../Data/med_select_FINAL3.rda')
 
 # ------------------------------------------------------------------------------
 # Function to change transparency of colors # ----------------------------------
@@ -107,8 +109,6 @@ for(i in EIDs){
     print(which(EIDs == i))
     indices_i = (use_data[,'EID']==i)
     n_i = sum(indices_i)
-    
-    med_i = med_select_FINAL[med_select_FINAL$key == i, ]
     
     t_grid = round(use_data[indices_i, 'time'] / 60, digits = 3)
     t_grid_bar = 1:length(t_grid)
@@ -331,8 +331,8 @@ for(i in EIDs){
     # Cumulative PLOTS ---------------------------------------------------------
     cumulative_post_prob = matrix(nrow = 2, ncol = n_i)
     ind = 1
-    win_length = 1
-    c = 0.18
+    win_length = 0
+    c = 0.257
     
     indices_i_new = which(indices_i == T)
     for(w in 1:length(indices_i_new)) {

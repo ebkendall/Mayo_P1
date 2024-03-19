@@ -7,7 +7,7 @@ simulation = T
 
 if(simulation) {
     trialNum = 1
-    itNum = 5
+    itNum = 1
     seed_list = 1
 } else {
     trialNum = 8
@@ -44,9 +44,17 @@ for(seed_num in 1:length(seed_list)) {
     }
     
     if(seed_num == 1) {
-        B_chain = mcmc_out_temp$B_chain
+        if(itNum == 1) {
+            B_chain = mcmc_out_temp$B_chain[501:1001,]
+        } else{
+            B_chain = mcmc_out_temp$B_chain   
+        }
     } else {
-        B_chain = rbind(B_chain, mcmc_out_temp$B_chain)
+        if(itNum == 1) {
+            B_chain = rbind(B_chain, mcmc_out_temp$B_chain[501:1001,])
+        } else {
+            B_chain = rbind(B_chain, mcmc_out_temp$B_chain)   
+        }
     }
 }
 #  ----------------------------------------------------------------------------
