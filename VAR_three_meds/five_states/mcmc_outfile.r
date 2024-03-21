@@ -4,7 +4,7 @@ burnin = 500
 steps = 1001
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
 
-simulation = T
+simulation = F
 
 # load("../Data/Dn_omega_names3.rda")
 # load('../Data/hr_map_names3.rda')
@@ -55,8 +55,8 @@ if(simulation) {
     load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {
-    index_seeds = c(1)
-    trialNum = 3
+    index_seeds = c(1:3)
+    trialNum = 5
     itNum = 2
     long_chain = T
     

@@ -1,6 +1,5 @@
 source('mcmc_routine_arma.r')
 
-# ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 args = commandArgs(TRUE)
 ind = as.numeric(args[1])
 
@@ -39,9 +38,23 @@ if(simulation) {
     # trial 3: starting seed was 1
     # trial 4: continuation of trial 2
     # trial 5: new EIDs
-    trialNum = 5
+    # trial 5: new EIDs and new initial values
+    trialNum = 6
     max_ind = 5
 }
+
+# # Empirically estimating R
+# var_hr_map = matrix(0, length(new_EIDs), 2)
+# for(e in new_EIDs) {
+#     sub_dat = data_format[data_format[,"EID"] == e, ]
+#     v_e_hr  = var(sub_dat[,"hr"], na.rm = T)
+#     v_e_map = var(sub_dat[,"map"], na.rm = T)
+#     var_hr_map[which(new_EIDs == e), ] = c(v_e_hr, v_e_map)
+# }
+# v_e_hemo = var(data_format[,"hemo"], na.rm = T)
+# v_e_lact = var(data_format[,"lactate"], na.rm = T)
+# emp_R_est = diag(c(v_e_hemo, colMeans(var_hr_map), v_e_lact))
+
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -63,15 +76,15 @@ alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
 					              0,           0,           0,          0), 
 					            ncol=4, byrow=T)
 
-sigma_upsilon = diag(c( 4, 0.25, 0.25, 0.25, 0.25, 
-                       36,    1,    1,    1,    1,
-                       64,    1,    1,    1,    1,
-                        4, 0.25, 0.25, 0.25, 0.25))
+sigma_upsilon = diag(c(   9,  2,  2,  2,  2, 
+                        400, 36, 36, 36, 36, 
+                        100, 36, 36, 36, 36, 
+                          9,  2,  2,  2,  2))
 
 vec_A = rep(0, 20)
 
 # columns: hemo, hr, map, lactate
-R = diag(4)
+R = diag(c(4.58, 98.2, 101.3, 7.6))
 
 # transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
 zeta = matrix(c(-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
@@ -115,7 +128,7 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_2it', 1, '.rda')
+    prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_1it', 2, '.rda')
     load(prev_file)
     
     load('Data_updates/Dn_omega1.rda')
@@ -129,14 +142,14 @@ if(simulation) {
     
     bleed_indicator = b_ind_fnc(data_format)
     
-    par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
-    rownames(par_temp) = NULL
-    par[1:488] = par_temp[1:488]
+    # par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
+    # rownames(par_temp) = NULL
+    # par[1:488] = par_temp[1:488]
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     rm(mcmc_out_temp)
 
-    print("initial values based on:")
+    print("initial state sequence based on:")
     print(prev_file)
 }
 # -----------------------------------------------------------------------------
@@ -160,6 +173,12 @@ for(i in EIDs){
             b_temp_init = b_chain[old_ids==as.numeric(i)]
             b_temp = b_temp_init[b_index]
         }
+        
+        # temporary fix to there existing state 2 in the clinic rule = -1
+        if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
+            print(paste0("Clinic rule -1: ", i))
+            b_temp = rep(1, length(b_temp))
+        } 
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)

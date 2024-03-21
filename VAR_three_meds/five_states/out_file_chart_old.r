@@ -1,7 +1,7 @@
 library(matrixStats)
 library(plotrix)
 
-simulation = T
+simulation = F
 all_seeds = F
 
 if(simulation) {
@@ -10,10 +10,8 @@ if(simulation) {
     trialNum = 1
     itNum = 1
 } else {
-    data_num = 6
-    
-    trialNum = 3
-    itNum = 2
+    trialNum = 5
+    itNum = 1
 }
 
 if(all_seeds) {
@@ -60,7 +58,15 @@ for(seed_num in 1:length(seed_list)) {
 if(simulation) {
     load(paste0('Data_sim/use_data1_', data_num, '.rda'))
 } else {
-    load('../Data/data_format_new3.rda')
+    load(paste0('../Data/data_format_new', 3, '.rda'))
+    old_EIDs = unique(data_format[,"EID"])
+    old_time = data_format[,"time"]
+    old_ids = data_format[,"EID"]
+    
+    load('Data_updates/data_format.rda')
+    new_EIDs = unique(data_format[,'EID'])
+    
+    data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
     use_data = data_format   
 }
 

@@ -407,8 +407,13 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
   
-  arma::mat Psi_R(4,4,arma::fill::eye);
-  int nu_R = 6;
+  int nu_R = 100;
+  
+  // arma::mat Psi_R(4,4,arma::fill::eye);
+  arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+  arma::mat Psi_R = arma::diagmat(scalar_vec_R);
+  Psi_R = (nu_R - 4 - 1) * Psi_R;
+  
   double prior_R_val = diwish(R, nu_R, Psi_R, true);
   
   // Upsilon omega priors -------------------------------------------------------------
@@ -1112,8 +1117,15 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
   arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
   // The prior info for sigma_upsilon ----------------------------------------
-  int nu_Upsilon = 22;
-  arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
+  int nu_Upsilon = 2000;
+  
+  // arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
+  arma::vec scalar_mult2 = {9, 2, 2, 2, 2, 
+                            400, 36, 36, 36, 36, 
+                            100, 36, 36, 36, 36, 
+                            9, 2, 2, 2, 2};
+  scalar_mult2 = (nu_Upsilon - 20 - 1) * scalar_mult2;
+  
   arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
 
   arma::uvec vec_sigma_upsilon_ind = par_index(2);
@@ -1507,80 +1519,88 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
 // [[Rcpp::export]]
 void test_fnc() {
     
-    int N = 5;
-    Rcpp::Rcout << "Case (c) Full" << std::endl;
-    for(int w=0; w < N; w++) {
-      Rcpp::Rcout << "() -> () -> " << w+1 << std::endl;
-      Rcpp::Rcout << Omega_List_GLOBAL(0)(w) << std::endl;
-    }
+    int nu_R = 100;
     
-    Rcpp::Rcout << "Case (b) Full" << std::endl;
-    for(int i = 0; i < N; i++) {
-      for(int j = 0; j < N; j++) {
-        Rcpp::Rcout << i+1 << "-->" << j+1 << std::endl;
-        Rcpp::Rcout << Omega_List_GLOBAL(1)(i, j) << std::endl;
-      }
-    }
+    // arma::mat Psi_R(4,4,arma::fill::eye);
+    arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+    arma::mat Psi_R = arma::diagmat(scalar_vec_R);
+    Psi_R = (nu_R - 4 - 1) * Psi_R;
     
-    Rcpp::Rcout << "Case (a) Full" << std::endl;
-    for(int w=0; w < N; w++) {
-      Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
-      Rcpp::Rcout << Omega_List_GLOBAL(2)(w) << std::endl;
-    }
-
-
-    Rcpp::Rcout << "Case (c) Sub" << std::endl;
-    for (int w = 0; w < N; w++) {
-      Rcpp::Rcout << "() -> () -> " << w + 1 << std::endl;
-      Rcpp::Rcout << Omega_List_GLOBAL_sub(0)(w) << std::endl;
-    }
-
-    Rcpp::Rcout << "Case (b) Sub" << std::endl;
-    for (int i = 0; i < N; i++) {
-      for (int j = 0; j < N; j++) {
-        Rcpp::Rcout << i + 1 << "-->" << j + 1 << std::endl;
-        Rcpp::Rcout << Omega_List_GLOBAL_sub(1)(i, j) << std::endl;
-      }
-    }
-
-    Rcpp::Rcout << "Case (a) Sub" << std::endl;
-    for (int w = 0; w < N; w++) {
-      Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
-      Rcpp::Rcout << Omega_List_GLOBAL_sub(2)(w) << std::endl;
-    }
-    
-    bool valid_prop = false;
-    
-    int clinic_rule = 0;
-    int rbc_rule = 1;
-    arma::vec pr_B = {1,1,1,1,1,1,2,2,2,2,3,3,3,3,3,1,1,1,2,3};
-    arma::vec old_B = pr_B;
-    old_B(4) = 3;
-    arma::vec bleed_indicator = {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0};
-    
-    int pos_bleed = arma::as_scalar(arma::find(bleed_indicator == 1));
-    Rcpp::Rcout << pos_bleed << std::endl;
-    
-    bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
-    Rcpp::Rcout << b_i_rule << std::endl;
-    
-    arma::uvec b_i_time = arma::find(pr_B == 2);
-    Rcpp::Rcout << b_i_time << std::endl;
-    
-    bool b_i_time_rule = arma::any(b_i_time <= pos_bleed);
-    Rcpp::Rcout << b_i_time_rule << std::endl;
-    
-    if(clinic_rule >= 0) {
-        if (clinic_rule == 1) {
-            if(b_i_rule) {valid_prop = true;}
-        } else {
-            if (rbc_rule == 0 || (rbc_rule == 1 && b_i_rule)) {valid_prop = true;}
-        }
-    } else {
-        valid_prop = true; // evaluate likelihood anyways because S1&S3
-    }
-    
-    if(arma::accu(pr_B == old_B) == pr_B.n_elem) {
-        Rcpp::Rcout << "same" << std::endl;
-    } 
+    Rcpp::Rcout << Psi_R << std::endl;
+    // int N = 5;
+    // Rcpp::Rcout << "Case (c) Full" << std::endl;
+    // for(int w=0; w < N; w++) {
+    //   Rcpp::Rcout << "() -> () -> " << w+1 << std::endl;
+    //   Rcpp::Rcout << Omega_List_GLOBAL(0)(w) << std::endl;
+    // }
+    // 
+    // Rcpp::Rcout << "Case (b) Full" << std::endl;
+    // for(int i = 0; i < N; i++) {
+    //   for(int j = 0; j < N; j++) {
+    //     Rcpp::Rcout << i+1 << "-->" << j+1 << std::endl;
+    //     Rcpp::Rcout << Omega_List_GLOBAL(1)(i, j) << std::endl;
+    //   }
+    // }
+    // 
+    // Rcpp::Rcout << "Case (a) Full" << std::endl;
+    // for(int w=0; w < N; w++) {
+    //   Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
+    //   Rcpp::Rcout << Omega_List_GLOBAL(2)(w) << std::endl;
+    // }
+    // 
+    // 
+    // Rcpp::Rcout << "Case (c) Sub" << std::endl;
+    // for (int w = 0; w < N; w++) {
+    //   Rcpp::Rcout << "() -> () -> " << w + 1 << std::endl;
+    //   Rcpp::Rcout << Omega_List_GLOBAL_sub(0)(w) << std::endl;
+    // }
+    // 
+    // Rcpp::Rcout << "Case (b) Sub" << std::endl;
+    // for (int i = 0; i < N; i++) {
+    //   for (int j = 0; j < N; j++) {
+    //     Rcpp::Rcout << i + 1 << "-->" << j + 1 << std::endl;
+    //     Rcpp::Rcout << Omega_List_GLOBAL_sub(1)(i, j) << std::endl;
+    //   }
+    // }
+    // 
+    // Rcpp::Rcout << "Case (a) Sub" << std::endl;
+    // for (int w = 0; w < N; w++) {
+    //   Rcpp::Rcout << w + 1 << " -> () -> ()" << std::endl;
+    //   Rcpp::Rcout << Omega_List_GLOBAL_sub(2)(w) << std::endl;
+    // }
+    // 
+    // bool valid_prop = false;
+    // 
+    // int clinic_rule = 0;
+    // int rbc_rule = 1;
+    // arma::vec pr_B = {1,1,1,1,1,1,2,2,2,2,3,3,3,3,3,1,1,1,2,3};
+    // arma::vec old_B = pr_B;
+    // old_B(4) = 3;
+    // arma::vec bleed_indicator = {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0};
+    // 
+    // int pos_bleed = arma::as_scalar(arma::find(bleed_indicator == 1));
+    // Rcpp::Rcout << pos_bleed << std::endl;
+    // 
+    // bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
+    // Rcpp::Rcout << b_i_rule << std::endl;
+    // 
+    // arma::uvec b_i_time = arma::find(pr_B == 2);
+    // Rcpp::Rcout << b_i_time << std::endl;
+    // 
+    // bool b_i_time_rule = arma::any(b_i_time <= pos_bleed);
+    // Rcpp::Rcout << b_i_time_rule << std::endl;
+    // 
+    // if(clinic_rule >= 0) {
+    //     if (clinic_rule == 1) {
+    //         if(b_i_rule) {valid_prop = true;}
+    //     } else {
+    //         if (rbc_rule == 0 || (rbc_rule == 1 && b_i_rule)) {valid_prop = true;}
+    //     }
+    // } else {
+    //     valid_prop = true; // evaluate likelihood anyways because S1&S3
+    // }
+    // 
+    // if(arma::accu(pr_B == old_B) == pr_B.n_elem) {
+    //     Rcpp::Rcout << "same" << std::endl;
+    // } 
 }

@@ -13,7 +13,7 @@ new_EIDs = unique(data_format[,'EID'])
 
 data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
 
-it_num = 1
+it_num = 2
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 
@@ -143,13 +143,13 @@ A_mat_scale = matrix(correct_scale_A, nrow = 4)
 R = matrix(pars_mean[par_index$vec_R], ncol = 4)
 
 # transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-pars_mean[par_index$vec_zeta][5:6] = c(-3, 1)
-pars_mean[par_index$vec_zeta][7:8] = c(-2,-0.5)
-pars_mean[par_index$vec_zeta][14] = c(-1)
-pars_mean[par_index$vec_zeta][15:16] = c(-7,1)
-pars_mean[par_index$vec_zeta][23:24] = c(-3,1)
-pars_mean[par_index$vec_zeta][19:20] = c(-3,-1)
-pars_mean[par_index$vec_zeta][17:18] = c(-2,-0.5)
+# pars_mean[par_index$vec_zeta][5:6] = c(-3, 1)
+# pars_mean[par_index$vec_zeta][7:8] = c(-2,-0.5)
+# pars_mean[par_index$vec_zeta][14] = c(-1)
+# pars_mean[par_index$vec_zeta][15:16] = c(-7,1)
+# pars_mean[par_index$vec_zeta][23:24] = c(-3,1)
+# pars_mean[par_index$vec_zeta][19:20] = c(-3,-1)
+# pars_mean[par_index$vec_zeta][17:18] = c(-2,-0.5)
 
 zeta = matrix(pars_mean[par_index$vec_zeta], nrow = 2)
 colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1', 
