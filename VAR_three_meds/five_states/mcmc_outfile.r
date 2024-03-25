@@ -56,22 +56,12 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 5
+    trialNum = 6
     itNum = 2
     long_chain = T
     
     true_par = NULL
 }
-
-data_format = NULL
-if(simulation) {
-  load(paste0('Data_sim/use_data1_', data_num, '.rda'))
-  data_format = use_data
-} else {
-  load('../Data/data_format_new3.rda')
-}
-
-n_subjects = length(unique(data_format[,'EID']))
 
 # -----------------------------------------------------------------------------
 # Create mcmc trace plots and histograms

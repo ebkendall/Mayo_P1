@@ -36,16 +36,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_A[1:4]),
                c(par_index$vec_A[5:12]),
                c(par_index$vec_A[13:20]),
-               # c(par_index$vec_upsilon_omega[c(1,2,4,7,8,11,12,13,15,23,24,27,
-               #                                 30,32)]),
-               # c(par_index$vec_upsilon_omega[c(3,5,6,9,10,14,16,17,18,19,20,21,
-               #                                 22,25,26,28,29,31,33,34,35,36)]),
-               # c(par_index$vec_upsilon_omega[c(38,40,42,43,44,45,47,48,50,52,55,
-               #                                 56,57,58,60,61,62,64,66,67,70,71,
-               #                                 73,75,76,77,78,79,80,83,84,85,86,
-               #                                 87,88)]),                                        
-               # c(par_index$vec_upsilon_omega[c(37,39,41,46,49,51,53,54,59,63,65,
-               #                                 68,69,72,74,81,82)]),
                c(par_index$vec_upsilon_omega[c(1:16)]),
                c(par_index$vec_upsilon_omega[c(17:35)]),
                c(par_index$vec_upsilon_omega[c(36:57)]),
@@ -97,10 +87,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         
         rm(mcmc_out_temp)
         rm(data_format)
-        # Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
-        # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
-        # Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
-        # Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------
@@ -321,8 +307,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
                 curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
                 
-                q_s  = curr_psi_nu[[1]]
-                q_nu = curr_psi_nu[[2]]
+                q_s  = curr_psi_nu[[1]] / 10
+                q_nu = curr_psi_nu[[2]] / 10
                 
                 proposal[ind_j] = c(rinvwishart(nu = q_nu, S = q_s))
                 

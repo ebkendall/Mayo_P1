@@ -154,7 +154,7 @@ arma::mat Omega_fun_cpp_new(const int k, const int n_i, const arma::vec &b_i,
   
 }
 
-double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &par, 
+arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &par, 
                    const arma::field<arma::uvec> &par_index, const arma::vec &A, const arma::vec &B, 
                    const arma::mat &Y, const arma::mat &z, const arma::field<arma::mat> &Dn, 
                    const arma::field<arma::mat> &Xn, const arma::field<arma::mat> &Dn_omega, const arma::vec &W) {
@@ -166,6 +166,8 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
   // "i" is the numeric EID number
   // "ii" is the index of the EID
   double in_value = 0;
+  
+  double in_value_init = 0;
   
   arma::vec eids = Y.col(0);
   
@@ -258,9 +260,10 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
                               Xn_full(0) * vec_beta;
         arma::vec log_y_pdf = dmvnorm(y_1.t(), nu_1, Gamma, true);
         
+        in_value_init = in_value_init + log(P_init(b_0 - 1)) + arma::as_scalar(log_y_pdf);
+        
         in_value = in_value + log(P_init(b_0 - 1)) + arma::as_scalar(log_y_pdf);
-    }
-    else{
+    } else{
         // State space component
         double q1_sub = arma::as_scalar(z_i.row(k-1) * zeta.col(0));
         double q1 = exp(q1_sub);
@@ -319,8 +322,10 @@ double log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &
         in_value = in_value + log(P_i( b_k_1 - 1, b_k - 1)) + arma::as_scalar(log_y_k_pdf);
     }
   }
-
-  return in_value;
+  
+  arma::vec in_value_vec = {in_value, in_value_init}; 
+  
+  return in_value_vec;
 }
 
 double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec &par, const arma::field<arma::uvec> &par_index, 
@@ -335,15 +340,22 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
   // "i" is the numeric EID number
   // "ii" is the index of the EID
   arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
+  arma::vec in_vals_init(EIDs.n_elem, arma::fill::zeros);
 
     omp_set_num_threads(n_cores);
     # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
-        in_vals(ii) = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), Dn_omega(ii), W(ii));
+        arma::vec in_val_vec = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), Dn_omega(ii), W(ii));
+        in_vals(ii) = in_val_vec(0);
+        in_vals_init(ii) = in_val_vec(1);
     }
     
     double in_value = arma::accu(in_vals);
+    double in_value_init = arma::accu(in_vals_init);
+    
+    // Rcpp::Rcout << "likelihood from initial time point = " << in_value_init << std::endl;
+    // Rcpp::Rcout << "likelihood from all time points    = " << in_value << std::endl;
     
     return in_value;
 }
@@ -430,6 +442,8 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   
   value = value + prior_A1_val + prior_R_val + prior_zeta_val + prior_init_val + prior_omega_val;
+  
+  // Rcpp::Rcout << "total log posterior = " << value << std::endl;
   return value;
 }
 
@@ -537,9 +551,11 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       
       if(valid_prop) {
           
-        double log_target_prev = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
+        arma::vec log_prev_vec = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
                                              B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,
                                              Dn_omega_temp, W_temp);
+          
+        double log_target_prev = log_prev_vec(0);
     
         arma::vec twos(pr_B.n_elem, arma::fill::zeros);
         arma::vec threes = twos; // THREE STATE
@@ -563,9 +579,10 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
             pr_Dn(jj) = arma::kron(I, bigB.row(jj));
         }
         
-        double log_target = log_f_i_cpp(i,ii,t_pts,par,par_index,A_temp,
-                                        pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
-                                        Dn_omega_temp, W_temp);
+        arma::vec log_target_vec = log_f_i_cpp(i,ii,t_pts,par,par_index,A_temp,
+                                     pr_B,Y_temp,z_temp,pr_Dn,Xn_temp,
+                                     Dn_omega_temp, W_temp);
+        double log_target = log_target_vec(0);
         
         // Note that the proposal probs cancel in the MH ratio
         double diff_check = log_target - log_target_prev;
@@ -791,6 +808,9 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
               count_while_loop_big += 1;
               Rcpp::Rcout << "stuck in alpha, i = " << ii << ", " << count_while_loop_big << std::endl;
               count_while_loop = 0;
+          }
+          if(count_while_loop_big > 1000) {
+              break;
           }
       }
 
@@ -1527,6 +1547,20 @@ void test_fnc() {
     Psi_R = (nu_R - 4 - 1) * Psi_R;
     
     Rcpp::Rcout << Psi_R << std::endl;
+    
+    for(int i = 0; i < 10; i++) {
+        int a = 0;
+        Rcpp::Rcout << i << std::endl;
+        
+        while(a < 5) {
+            a += 1;
+            
+            if(a == 3) {
+                break;
+            }
+        }
+        Rcpp::Rcout << "a " << a << std::endl;
+    }
     // int N = 5;
     // Rcpp::Rcout << "Case (c) Full" << std::endl;
     // for(int w=0; w < N; w++) {

@@ -38,8 +38,9 @@ if(simulation) {
     # trial 3: starting seed was 1
     # trial 4: continuation of trial 2
     # trial 5: new EIDs
-    # trial 5: new EIDs and new initial values
-    trialNum = 6
+    # trial 6: new EIDs and new initial values
+    # trial 7: new EIDs, trial 6 initial values, and R update has greater variance
+    trialNum = 7
     max_ind = 5
 }
 
