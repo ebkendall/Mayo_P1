@@ -56,8 +56,8 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 6
-    itNum = 2
+    trialNum = 8
+    itNum = 5
     long_chain = T
     
     true_par = NULL
@@ -216,7 +216,7 @@ for(rr in 1:ncol(gamma_chain)){
 
     y_limit = range(gamma_chain[,rr])
 
-    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,length(chain_list[[1]])),
+    plot( NULL, ylab=NA, main=additional_labels[lab_ind], xlim=c(1,nrow(chain_list[[1]])),
           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                       ", ", round(upper, 4), "]"))
 

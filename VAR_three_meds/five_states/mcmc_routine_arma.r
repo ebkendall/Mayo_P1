@@ -50,43 +50,48 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         print('Real data analysis')
-        load(paste0('Model_out/mcmc_out_interm_', 3, '_1it', 2, '.rda'))
-        # pcov = mcmc_out_temp$pcov
-        # pscale = mcmc_out_temp$pscale
-        
+        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
+        load(prev_file)
+        pcov = mcmc_out_temp$pcov
+        pscale = mcmc_out_temp$pscale
+
         # Setting initial values for Y
-        load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-        old_EIDs = unique(data_format[,"EID"])
-        old_time = data_format[,"time"]
-        old_ids = data_format[,"EID"]
+        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
+        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
+        Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
+        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
         
-        load('Data_updates/data_format.rda')
-        new_EIDs = unique(data_format[,'EID'])
+        # load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+        # old_EIDs = unique(data_format[,"EID"])
+        # old_time = data_format[,"time"]
+        # old_ids = data_format[,"EID"]
         
-        data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+        # load('Data_updates/data_format.rda')
+        # new_EIDs = unique(data_format[,'EID'])
+        
+        # data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
     
-        for(i in EIDs){
-            old_t = old_time[old_ids == as.numeric(i)]
-            curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-            if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
-            } else {
-                b_index = which(floor(old_t) %in% floor(curr_t))
-                b_temp_init = which(old_ids == as.numeric(i))
-                b_temp = b_temp_init[b_index]
+        # for(i in EIDs){
+        #     old_t = old_time[old_ids == as.numeric(i)]
+        #     curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+        #     if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
+        #     } else {
+        #         b_index = which(floor(old_t) %in% floor(curr_t))
+        #         b_temp_init = which(old_ids == as.numeric(i))
+        #         b_temp = b_temp_init[b_index]
                 
-                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
-            }
-        }
-        
+        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
+        #     }
+        # }
+        # rm(data_format)
         rm(mcmc_out_temp)
-        rm(data_format)
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------
@@ -301,17 +306,17 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 # Updating R ---------------------------------------------------
                 # Changing the proposal distribution and therefore the Metrop Ratio
                 # emp_R_est = diag(4.58, 98.2, 101.3, 7.6)
-                nu_R = 100
+                nu_R = 50
                 psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
                 psi_R = (nu_R - 4 - 1) * psi_R
                 
                 curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
                 
-                q_s  = curr_psi_nu[[1]] / 10
-                q_nu = curr_psi_nu[[2]] / 10
+                q_s  = curr_psi_nu[[1]] / 100
+                q_nu = floor(curr_psi_nu[[2]] / 100)
                 
                 proposal[ind_j] = c(rinvwishart(nu = q_nu, S = q_s))
-                
+
                 curr_R = matrix(par[ind_j], nrow = 4)
                 prop_R = matrix(proposal[ind_j], nrow = 4)
                 

@@ -419,12 +419,11 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
   
-  int nu_R = 100;
-  
-  // arma::mat Psi_R(4,4,arma::fill::eye);
+  int nu_R = 50;
+//   arma::mat Psi_R(4,4,arma::fill::eye);
   arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+  scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
   arma::mat Psi_R = arma::diagmat(scalar_vec_R);
-  Psi_R = (nu_R - 4 - 1) * Psi_R;
   
   double prior_R_val = diwish(R, nu_R, Psi_R, true);
   
@@ -1092,173 +1091,177 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
                                      const arma::field<arma::field<arma::mat>> &Dn_omega, 
                                      const arma::field <arma::vec> &W, arma::field <arma::vec> &B,
                                      int n_cores) {
-  // Conjugate updates for beta and sigma_upsilon
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
-  //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
-  // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
-  // "i" is the numeric EID number
-  // "ii" is the index of the EID
+    // Conjugate updates for beta and sigma_upsilon
+    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta, 
+    //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
+    // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
+    // "i" is the numeric EID number
+    // "ii" is the index of the EID
 
-  // The prior info for vec_beta --------------------------------------------
-  arma::uvec vec_beta_ind = par_index(0);
-  arma::mat vec_beta_0(vec_beta_ind.n_elem, 1, arma::fill::zeros);
+    // The prior info for vec_beta --------------------------------------------
+    arma::uvec vec_beta_ind = par_index(0);
+    arma::mat vec_beta_0(vec_beta_ind.n_elem, 1, arma::fill::zeros);
+    // We know one unit of RBC leads to 1 unit increase in hemo in 1 hour
+    vec_beta_0(0,0) = 0.25;
 
-  arma::vec scalar_mult(vec_beta_ind.n_elem, arma::fill::ones);
-  scalar_mult.fill(0.01);
-  arma::mat inv_Sigma_beta = arma::diagmat(scalar_mult);
+    arma::vec scalar_mult(vec_beta_ind.n_elem, arma::fill::ones);
+    scalar_mult.fill(0.01);
+    // Make the prior tighter for RBC effect on hemoglobin
+    scalar_mult(0) = 4;
+    arma::mat inv_Sigma_beta = arma::diagmat(scalar_mult);
 
-  arma::vec vec_R = par.elem(par_index(4) - 1);
-  arma::mat R = arma::reshape(vec_R, 4, 4);
-  arma::mat invR = arma::inv_sympd(R);
+    arma::vec vec_R = par.elem(par_index(4) - 1);
+    arma::mat R = arma::reshape(vec_R, 4, 4);
+    arma::mat invR = arma::inv_sympd(R);
 
-  arma::vec vec_A_total = par.elem(par_index(3) - 1);
-  arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                            exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                            exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                            exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                            exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                            exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                            exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                            exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                            exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                            exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                            exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
+    arma::vec vec_A_total = par.elem(par_index(3) - 1);
+    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
+                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
+                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
+                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
+                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
+                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
+                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
+                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
+                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
+                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
+                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
+                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
-  arma::vec vec_beta = par.elem(vec_beta_ind - 1);
+    arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
-  // The prior info for sigma_upsilon ----------------------------------------
-  int nu_Upsilon = 2000;
-  
-  // arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
-  arma::vec scalar_mult2 = {9, 2, 2, 2, 2, 
+    // The prior info for sigma_upsilon ----------------------------------------
+    int nu_Upsilon = 2000;
+    
+    // arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
+    arma::vec scalar_mult2 = {9, 2, 2, 2, 2, 
                             400, 36, 36, 36, 36, 
                             100, 36, 36, 36, 36, 
                             9, 2, 2, 2, 2};
-  scalar_mult2 = (nu_Upsilon - 20 - 1) * scalar_mult2;
-  
-  arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
+    scalar_mult2 = (nu_Upsilon - 20 - 1) * scalar_mult2;
+    
+    arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
 
-  arma::uvec vec_sigma_upsilon_ind = par_index(2);
+    arma::uvec vec_sigma_upsilon_ind = par_index(2);
 
-  arma::uvec vec_alpha_tilde_ind = par_index(1);
-  arma::vec vec_alpha_tilde = par.elem(vec_alpha_tilde_ind - 1);
+    arma::uvec vec_alpha_tilde_ind = par_index(1);
+    arma::vec vec_alpha_tilde = par.elem(vec_alpha_tilde_ind - 1);
 
-  arma::vec eids = Y.col(0);
+    arma::vec eids = Y.col(0);
 
-  arma::field<arma::mat> in_V_main(EIDs.n_elem);
-  arma::field<arma::mat> in_inv_W_main(EIDs.n_elem);
-  arma::field<arma::mat> in_Upsilon_cov_main(EIDs.n_elem);
-  // arma::field<arma::mat> in_Upsilon_omega(EIDs.n_elem);
+    arma::field<arma::mat> in_V_main(EIDs.n_elem);
+    arma::field<arma::mat> in_inv_W_main(EIDs.n_elem);
+    arma::field<arma::mat> in_Upsilon_cov_main(EIDs.n_elem);
+    // arma::field<arma::mat> in_Upsilon_omega(EIDs.n_elem);
 
-  omp_set_num_threads(n_cores) ;
-  # pragma omp parallel for
-  for (int ii = 0; ii < EIDs.n_elem; ii++) {
-      int i = EIDs(ii);
-      
-      arma::uvec sub_ind = arma::find(eids == i);
-      int n_i = sub_ind.n_elem;
+    omp_set_num_threads(n_cores) ;
+    # pragma omp parallel for
+    for (int ii = 0; ii < EIDs.n_elem; ii++) {
+        int i = EIDs(ii);
+        
+        arma::uvec sub_ind = arma::find(eids == i);
+        int n_i = sub_ind.n_elem;
 
-      arma::vec b_i = B(ii);
-      arma::vec vec_alpha_i = A(ii);
-      arma::vec vec_omega_i = W(ii);
-      
-      arma::mat Y_temp = Y.rows(sub_ind);
-      arma::mat Y_i = Y_temp.cols(1, 4);
-      Y_i = Y_i.t();
-      
-      arma::field<arma::mat> Dn_alpha_full = Dn(ii);
-      arma::field<arma::mat> Dn_omega_full = Dn_omega(ii);
-      arma::field<arma::mat> Xn_full = Xn(ii);
-      
-      arma::mat interm_W(4,4,arma::fill::zeros);
-      arma::vec interm_V(4,arma::fill::zeros);
-      for(int k=1; k < n_i; k++) {
-          arma::mat X_k = Xn_full(k);
-          arma::mat X_k_1 = Xn_full(k-1);
-          arma::vec vec_A_k = A_all_state.col(b_i(k) - 1);
-          arma::mat A_1_k = arma::diagmat(vec_A_k);
-          arma::mat diff_hold_x = X_k - A_1_k * X_k_1;
-          interm_W = interm_W + diff_hold_x.t() * invR * diff_hold_x;
-          
-          arma::mat D_k = Dn_alpha_full(k);
-          arma::mat D_k_1 = Dn_alpha_full(k-1);
-          arma::mat diff_hold_d = D_k - A_1_k * D_k_1;
-          
-          arma::mat D_k_o = Dn_omega_full(k);
-          arma::mat D_k_o_1 = Dn_omega_full(k-1);
-          arma::mat diff_hold_d_o = D_k_o - A_1_k * D_k_o_1;
-          
-          arma::vec m_k = Y_i.col(k) - A_1_k * Y_i.col(k-1) 
-                            - diff_hold_d * vec_alpha_i - diff_hold_d_o * vec_omega_i;
-          interm_V = interm_V + diff_hold_x.t() * invR * m_k;
-      }
-      
-      
-      arma::vec vec_A = A_all_state.col(b_i(0) - 1);
-      arma::mat Gamma     = {{R(0,0) / (1 - vec_A(0) * vec_A(0)), 
-                              R(0,1) / (1 - vec_A(0) * vec_A(1)), 
-                              R(0,2) / (1 - vec_A(0) * vec_A(2)), 
-                              R(0,3) / (1 - vec_A(0) * vec_A(3))},
-                             {R(1,0) / (1 - vec_A(1) * vec_A(0)), 
-                              R(1,1) / (1 - vec_A(1) * vec_A(1)), 
-                              R(1,2) / (1 - vec_A(1) * vec_A(2)), 
-                              R(1,3) / (1 - vec_A(0) * vec_A(3))},
-                             {R(2,0) / (1 - vec_A(2) * vec_A(0)), 
-                              R(2,1) / (1 - vec_A(2) * vec_A(1)), 
-                              R(2,2) / (1 - vec_A(2) * vec_A(2)), 
-                              R(2,3) / (1 - vec_A(0) * vec_A(3))},
-                             {R(3,0) / (1 - vec_A(3) * vec_A(0)), 
-                              R(3,1) / (1 - vec_A(3) * vec_A(1)), 
-                              R(3,2) / (1 - vec_A(3) * vec_A(2)), 
-                              R(3,3) / (1 - vec_A(0) * vec_A(3))}};
-      
-      arma::mat inv_Gamma = arma::inv_sympd(Gamma);
-      
-      arma::mat W_i_inv = Xn_full(0).t() * inv_Gamma * Xn_full(0) + interm_W;
-      
-      arma::mat V_i = Xn_full(0).t() * inv_Gamma * 
-            (Y_i.col(0) - Dn_alpha_full(0)*vec_alpha_i - Dn_omega_full(0)*vec_omega_i) + interm_V;
-      
-      arma::mat hold2 = vec_alpha_i - vec_alpha_tilde;
-      arma::mat in_Upsilon_cov = hold2 * hold2.t();
-      
-      in_V_main(ii) = V_i;
-      in_inv_W_main(ii) = W_i_inv;
-      in_Upsilon_cov_main(ii) = in_Upsilon_cov;
-  }
+        arma::vec b_i = B(ii);
+        arma::vec vec_alpha_i = A(ii);
+        arma::vec vec_omega_i = W(ii);
+        
+        arma::mat Y_temp = Y.rows(sub_ind);
+        arma::mat Y_i = Y_temp.cols(1, 4);
+        Y_i = Y_i.t();
+        
+        arma::field<arma::mat> Dn_alpha_full = Dn(ii);
+        arma::field<arma::mat> Dn_omega_full = Dn_omega(ii);
+        arma::field<arma::mat> Xn_full = Xn(ii);
+        
+        arma::mat interm_W(4,4,arma::fill::zeros);
+        arma::vec interm_V(4,arma::fill::zeros);
+        for(int k=1; k < n_i; k++) {
+            arma::mat X_k = Xn_full(k);
+            arma::mat X_k_1 = Xn_full(k-1);
+            arma::vec vec_A_k = A_all_state.col(b_i(k) - 1);
+            arma::mat A_1_k = arma::diagmat(vec_A_k);
+            arma::mat diff_hold_x = X_k - A_1_k * X_k_1;
+            interm_W = interm_W + diff_hold_x.t() * invR * diff_hold_x;
+            
+            arma::mat D_k = Dn_alpha_full(k);
+            arma::mat D_k_1 = Dn_alpha_full(k-1);
+            arma::mat diff_hold_d = D_k - A_1_k * D_k_1;
+            
+            arma::mat D_k_o = Dn_omega_full(k);
+            arma::mat D_k_o_1 = Dn_omega_full(k-1);
+            arma::mat diff_hold_d_o = D_k_o - A_1_k * D_k_o_1;
+            
+            arma::vec m_k = Y_i.col(k) - A_1_k * Y_i.col(k-1) 
+                                - diff_hold_d * vec_alpha_i - diff_hold_d_o * vec_omega_i;
+            interm_V = interm_V + diff_hold_x.t() * invR * m_k;
+        }
+        
+        
+        arma::vec vec_A = A_all_state.col(b_i(0) - 1);
+        arma::mat Gamma     = {{R(0,0) / (1 - vec_A(0) * vec_A(0)), 
+                                R(0,1) / (1 - vec_A(0) * vec_A(1)), 
+                                R(0,2) / (1 - vec_A(0) * vec_A(2)), 
+                                R(0,3) / (1 - vec_A(0) * vec_A(3))},
+                                {R(1,0) / (1 - vec_A(1) * vec_A(0)), 
+                                R(1,1) / (1 - vec_A(1) * vec_A(1)), 
+                                R(1,2) / (1 - vec_A(1) * vec_A(2)), 
+                                R(1,3) / (1 - vec_A(0) * vec_A(3))},
+                                {R(2,0) / (1 - vec_A(2) * vec_A(0)), 
+                                R(2,1) / (1 - vec_A(2) * vec_A(1)), 
+                                R(2,2) / (1 - vec_A(2) * vec_A(2)), 
+                                R(2,3) / (1 - vec_A(0) * vec_A(3))},
+                                {R(3,0) / (1 - vec_A(3) * vec_A(0)), 
+                                R(3,1) / (1 - vec_A(3) * vec_A(1)), 
+                                R(3,2) / (1 - vec_A(3) * vec_A(2)), 
+                                R(3,3) / (1 - vec_A(0) * vec_A(3))}};
+        
+        arma::mat inv_Gamma = arma::inv_sympd(Gamma);
+        
+        arma::mat W_i_inv = Xn_full(0).t() * inv_Gamma * Xn_full(0) + interm_W;
+        
+        arma::mat V_i = Xn_full(0).t() * inv_Gamma * 
+                (Y_i.col(0) - Dn_alpha_full(0)*vec_alpha_i - Dn_omega_full(0)*vec_omega_i) + interm_V;
+        
+        arma::mat hold2 = vec_alpha_i - vec_alpha_tilde;
+        arma::mat in_Upsilon_cov = hold2 * hold2.t();
+        
+        in_V_main(ii) = V_i;
+        in_inv_W_main(ii) = W_i_inv;
+        in_Upsilon_cov_main(ii) = in_Upsilon_cov;
+    }
 
-  arma::mat sum_in_V = in_V_main(0);
-  arma::mat sum_in_inv_W = in_inv_W_main(0);
-  arma::mat sum_in_Upsilon_cov = in_Upsilon_cov_main(0);
-  for(int ii = 1; ii < EIDs.n_elem; ii++) {
-      sum_in_V = sum_in_V + in_V_main(ii);
-      sum_in_inv_W = sum_in_inv_W + in_inv_W_main(ii);
-      sum_in_Upsilon_cov = sum_in_Upsilon_cov + in_Upsilon_cov_main(ii);
-  }
+    arma::mat sum_in_V = in_V_main(0);
+    arma::mat sum_in_inv_W = in_inv_W_main(0);
+    arma::mat sum_in_Upsilon_cov = in_Upsilon_cov_main(0);
+    for(int ii = 1; ii < EIDs.n_elem; ii++) {
+        sum_in_V = sum_in_V + in_V_main(ii);
+        sum_in_inv_W = sum_in_inv_W + in_inv_W_main(ii);
+        sum_in_Upsilon_cov = sum_in_Upsilon_cov + in_Upsilon_cov_main(ii);
+    }
 
-  arma::mat V = inv_Sigma_beta * vec_beta_0 + sum_in_V;
+    arma::mat V = inv_Sigma_beta * vec_beta_0 + sum_in_V;
 
-  arma::mat inv_W = inv_Sigma_beta + sum_in_inv_W;
-  arma::mat W_b = arma::inv_sympd(inv_W);
+    arma::mat inv_W = inv_Sigma_beta + sum_in_inv_W;
+    arma::mat W_b = arma::inv_sympd(inv_W);
 
-  arma::mat Upsilon_cov = Psi_Upsilon + sum_in_Upsilon_cov;
+    arma::mat Upsilon_cov = Psi_Upsilon + sum_in_Upsilon_cov;
 
-  int n_sub = EIDs.n_elem;
+    int n_sub = EIDs.n_elem;
 
-  par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
-  par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
+    par.elem(vec_beta_ind - 1) = arma::mvnrnd(W_b * V, W_b);
+    par.elem(vec_sigma_upsilon_ind - 1) = arma::vectorise(riwish(nu_Upsilon + n_sub, Upsilon_cov));
 
-  return par;
+    return par;
 }
 
 // [[Rcpp::export]]
@@ -1465,75 +1468,75 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
                           const arma::vec EIDs, arma::field <arma::vec> B,
                           const arma::field<arma::field<arma::mat>> Dn_omega,
                           const arma::field <arma::vec> W){
-  // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
-  //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
-  arma::vec eids = Y.col(0);
-  arma::vec vec_A_total = par.elem(par_index(3) - 1);
-  arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                            exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                            exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                            exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                            exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                            exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                            exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                            exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                            exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                            exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                            exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
-  arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
+    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
+    //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
+    arma::vec eids = Y.col(0);
+    arma::vec vec_A_total = par.elem(par_index(3) - 1);
+    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
+                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
+                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
+                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
+                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
+                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
+                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
+                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
+                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
+                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
+                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
+                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
+                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
+                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
+                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
+                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
+                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
+                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
+                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
+                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
-  arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
+    arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
 
-  for (int ii = 0; ii < EIDs.n_elem; ii++) {
+    for (int ii = 0; ii < EIDs.n_elem; ii++) {
 
-      int i = EIDs(ii);
-      arma::uvec sub_ind = arma::find(eids == i);
-      arma::mat Y_temp = Y.rows(sub_ind);
-      arma::mat Y_i = Y_temp.cols(1,4);
-      Y_i = Y_i.t();
-      arma::vec vec_Y_i = arma::vectorise(Y_i);
-      
-      arma::vec b_i = B(ii);
-      arma::vec vec_alpha_i = A(ii);
-      arma::vec vec_omega_i = W(ii);
-      arma::vec vec_beta = par.elem(par_index(0) - 1);
-      arma::field<arma::mat> Xn_i = Xn(ii);
-      arma::field<arma::mat> Dn_i = Dn(ii);
-      arma::field<arma::mat> Dn_omega_i = Dn_omega(ii);
-      
-      arma::mat M(4, Y_i.n_cols - 1, arma::fill::zeros);
-      for(int k = 1; k < Y_i.n_cols; k++) {
-          arma::vec nu_k = Dn_i(k) * vec_alpha_i + Dn_omega_i(k) * vec_omega_i + Xn_i(k) * vec_beta;
-          arma::vec nu_k_1 = Dn_i(k-1) * vec_alpha_i + Dn_omega_i(k-1) * vec_omega_i + Xn_i(k-1) * vec_beta;
-          arma::vec vec_A_k = A_all_state.col(b_i(k) - 1);
-          arma::mat A_1_k = arma::diagmat(vec_A_k);
-          
-          arma::vec m_temp = nu_k + A_1_k * (Y_i.col(k-1) - nu_k_1);
-          M.col(k-1) = m_temp;
-      }
-      
-      arma::mat Y_i_1 = Y_i.cols(1, Y_i.n_cols - 1);
-      
-      arma::mat hold = Y_i_1 - M;
-      arma::mat hold2 = hold * hold.t();
+        int i = EIDs(ii);
+        arma::uvec sub_ind = arma::find(eids == i);
+        arma::mat Y_temp = Y.rows(sub_ind);
+        arma::mat Y_i = Y_temp.cols(1,4);
+        Y_i = Y_i.t();
+        arma::vec vec_Y_i = arma::vectorise(Y_i);
+        
+        arma::vec b_i = B(ii);
+        arma::vec vec_alpha_i = A(ii);
+        arma::vec vec_omega_i = W(ii);
+        arma::vec vec_beta = par.elem(par_index(0) - 1);
+        arma::field<arma::mat> Xn_i = Xn(ii);
+        arma::field<arma::mat> Dn_i = Dn(ii);
+        arma::field<arma::mat> Dn_omega_i = Dn_omega(ii);
+        
+        arma::mat M(4, Y_i.n_cols - 1, arma::fill::zeros);
+        for(int k = 1; k < Y_i.n_cols; k++) {
+            arma::vec nu_k = Dn_i(k) * vec_alpha_i + Dn_omega_i(k) * vec_omega_i + Xn_i(k) * vec_beta;
+            arma::vec nu_k_1 = Dn_i(k-1) * vec_alpha_i + Dn_omega_i(k-1) * vec_omega_i + Xn_i(k-1) * vec_beta;
+            arma::vec vec_A_k = A_all_state.col(b_i(k) - 1);
+            arma::mat A_1_k = arma::diagmat(vec_A_k);
+            
+            arma::vec m_temp = nu_k + A_1_k * (Y_i.col(k-1) - nu_k_1);
+            M.col(k-1) = m_temp;
+        }
+        
+        arma::mat Y_i_1 = Y_i.cols(1, Y_i.n_cols - 1);
+        
+        arma::mat hold = Y_i_1 - M;
+        arma::mat hold2 = hold * hold.t();
 
-      psi_prop_R_interm += hold2;
-  }
+        psi_prop_R_interm += hold2;
+    }
 
-  arma::mat psi_prop_R = psi_prop_R_interm + psi_R;
-  int nu_prop_R = Y.n_rows + nu_R - EIDs.n_elem;
+    arma::mat psi_prop_R = psi_prop_R_interm + psi_R;
+    int nu_prop_R = Y.n_rows + nu_R - EIDs.n_elem;
 
-  List nu_psi_R = List::create(psi_prop_R, nu_prop_R);
-  return nu_psi_R;
+    List nu_psi_R = List::create(psi_prop_R, nu_prop_R);
+    return nu_psi_R;
 }
 
 // [[Rcpp::export]]

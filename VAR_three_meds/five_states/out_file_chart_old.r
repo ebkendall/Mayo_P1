@@ -10,14 +10,14 @@ if(simulation) {
     trialNum = 1
     itNum = 1
 } else {
-    trialNum = 6
-    itNum = 2
+    trialNum = 7
+    itNum = 1
 }
 
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 2
+    seed_list = 1
 }
 
 # Load the model output -------------------------------------------------------
@@ -110,7 +110,14 @@ if(all_seeds) {
     }
 }
 pdf(pdf_title)
-par(mfrow=c(5,1), mar=c(2,4,2,4), bg='black', fg='green')
+if(simulation) {
+    panel_dim = c(5,1)
+    inset_dim = c(0,-.28)
+} else {
+    panel_dim = c(4,1)
+    inset_dim = c(0,-.18)
+}
+par(mfrow=panel_dim, mar=c(2,4,2,4), bg='black', fg='green')
 for(i in EIDs){
     print(which(EIDs == i))
     indices_i = (use_data[,'EID']==i)
@@ -217,10 +224,10 @@ for(i in EIDs){
     
     # Heart Rate and MAP double plot -----------------------------------------
     if(mean(use_data[indices_i, 'clinic_rule']) != 0) {
-        title_name = paste0('heart rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']),
+        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']),
                             ', clinic = ', mean(use_data[indices_i, 'clinic_rule']))
     } else {
-        title_name = paste0('heart rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']))
+        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']))
     }
     
     hr_upper = colQuantiles( Hr_chain[, indices_i, drop=F], probs=.975)
@@ -254,7 +261,7 @@ for(i in EIDs){
             xlab='time', ylab=NA, xaxt='n', pch=20, cex=1, sfrac=.0025,
             col = 'orange',
             xlim = range(pb) + c(-0.5,0.5), add = T) 
-    legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'HR', 'MAP'), pch=15, pt.cex=1.5, 
             col=c( 'aquamarine', 'orange'))
     grid( nx=20, NULL, col='white')
@@ -302,7 +309,7 @@ for(i in EIDs){
             xlab='time', ylab=NA, xaxt='n', pch=20, cex=1, sfrac=.0025,
             col = 'orange',
             xlim = range(pb) + c(-0.5,0.5), add = T) 
-    legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'hemo', 'lactate'), pch=15, pt.cex=1.5, 
             col=c( 'aquamarine', 'orange'))
     grid( nx=20, NULL, col='white')
@@ -321,10 +328,10 @@ for(i in EIDs){
             xlab='time', space=0, col.main='green', border=NA,
             xlim=range(pb) + c(-0.5,0.5)) 
     grid( nx=20, NULL, col='white')
-    legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'Baseline', 'State 2', 'State 3', 'State 4', 'State 5'), pch=15, pt.cex=1.5, 
             col=c( 'dodgerblue', 'firebrick1', 'yellow2','green', 'darkgray'))
-    legend( 'topleft', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
+    legend( 'topleft', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
             col=c( 'darkorchid1', 'aquamarine'))				
     axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
@@ -360,9 +367,9 @@ for(i in EIDs){
              col.main='green', border=NA,
              xlim=range(pb) + c(-0.5,0.5))
     grid( nx=20, NULL, col='white')
-    legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'State 2', 'State 1,3'), pch=15, pt.cex=1.5,
-            col=c('darkred', 'black'))
+    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
+            legend=c('', 'State 2'), pch=15, pt.cex=1.5,
+            col=c('black', 'darkred'))
     axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
     axis( side=2, at=0:1, col.axis='green')
     
@@ -371,50 +378,51 @@ for(i in EIDs){
     abline(h = c, col = 'yellow', lwd = 2)
     
     # State verification  ------------------------------------------------------
-    bleed_or_no = as.numeric(cumulative_post_prob[1,] > c)
-    plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of State 2',
-         xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
-         xlim = range(pb) + c(-0.5,0.5),
-         xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
     if(simulation) {
-        legend( 'topright', inset=c(0,-.28), xpd=T, horiz=T, bty='n', x.intersp=.75,
-                    legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
-                    col=c('green', 'red'))
-    }
-    axis( side=1, at=pb, col.axis='green', labels=t_grid)
-    axis( side=2, at=0:1, col.axis='green', labels = c("S1/S3", "S2"),
-          cex.axis=1)
-    
-    if(simulation) {
-        correct_choice = bleed_or_no
-        for(b in 1:length(b_i)) {
-            if(bleed_or_no[b] == 1) {
-                if(b_i[b] == 2) {
-                    correct_choice[b] = 'green'
-                } else {
-                    correct_choice[b] = 'red'
-                }
-            } else {
-                if(b_i[b] == 2) {
-                    correct_choice[b] = 'red'
-                } else {
-                    correct_choice[b] = 'green'
-                }
-            }
+        bleed_or_no = as.numeric(cumulative_post_prob[1,] > c)
+        plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of State 2',
+            xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
+            xlim = range(pb) + c(-0.5,0.5),
+            xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
+        if(simulation) {
+            legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
+                        legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
+                        col=c('green', 'red'))
         }
+        axis( side=1, at=pb, col.axis='green', labels=t_grid)
+        axis( side=2, at=0:1, col.axis='green', labels = c("other", "S2"),
+            cex.axis=1)
         
         if(simulation) {
-            rect(xleft = rect_coords$t[-nrow(rect_coords)], 
-                 ybottom = -0.25, 
-                 xright = rect_coords$t[-1], 
-                 ytop = 1.25,
-                 col = col_vec[-nrow(rect_coords)],
-                 border = NA)
-        } 
-        
-        points(x=pb, y=bleed_or_no, col = correct_choice, pch=19)   
+            correct_choice = bleed_or_no
+            for(b in 1:length(b_i)) {
+                if(bleed_or_no[b] == 1) {
+                    if(b_i[b] == 2) {
+                        correct_choice[b] = 'green'
+                    } else {
+                        correct_choice[b] = 'red'
+                    }
+                } else {
+                    if(b_i[b] == 2) {
+                        correct_choice[b] = 'red'
+                    } else {
+                        correct_choice[b] = 'green'
+                    }
+                }
+            }
+            
+            if(simulation) {
+                rect(xleft = rect_coords$t[-nrow(rect_coords)], 
+                    ybottom = -0.25, 
+                    xright = rect_coords$t[-1], 
+                    ytop = 1.25,
+                    col = col_vec[-nrow(rect_coords)],
+                    border = NA)
+            } 
+            
+            points(x=pb, y=bleed_or_no, col = correct_choice, pch=19)   
+        }
     }
-    
 }
 dev.off()
 
