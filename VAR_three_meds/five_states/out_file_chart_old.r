@@ -11,7 +11,7 @@ if(simulation) {
     itNum = 1
 } else {
     trialNum = 7
-    itNum = 1
+    itNum = 5
 }
 
 if(all_seeds) {

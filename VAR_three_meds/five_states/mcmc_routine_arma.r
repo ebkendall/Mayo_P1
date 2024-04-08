@@ -49,48 +49,58 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        print('Real data analysis')
-        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
-        load(prev_file)
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
-
-        # Setting initial values for Y
-        Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
-        Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
-        Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
-        Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
+        # ----------------------------------------------------------------------
+        # Initial values where we expect to see R update
+        prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
+        # ----------------------------------------------------------------------
         
-        # load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-        # old_EIDs = unique(data_format[,"EID"])
-        # old_time = data_format[,"time"]
-        # old_ids = data_format[,"EID"]
-        
-        # load('Data_updates/data_format.rda')
-        # new_EIDs = unique(data_format[,'EID'])
-        
-        # data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+        # # Initial values where we DO NOT expect to see R update
+        # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
     
-        # for(i in EIDs){
-        #     old_t = old_time[old_ids == as.numeric(i)]
-        #     curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-        #     if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
-        #     } else {
-        #         b_index = which(floor(old_t) %in% floor(curr_t))
-        #         b_temp_init = which(old_ids == as.numeric(i))
-        #         b_temp = b_temp_init[b_index]
-                
-        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
-        #     }
-        # }
-        # rm(data_format)
+        load(prev_file)
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
+        pscale[10] = 10
+        
+
+        # # Setting initial values for Y
+        # Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
+        # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
+        # Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
+        # Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
+        
+        # ----------------------------------------------------------------------
+        load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+        old_EIDs = unique(data_format[,"EID"])
+        old_time = data_format[,"time"]
+        old_ids = data_format[,"EID"]
+
+        load('Data_updates/data_format.rda')
+        new_EIDs = unique(data_format[,'EID'])
+
+        data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+
+        for(i in EIDs){
+            old_t = old_time[old_ids == as.numeric(i)]
+            curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+            if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
+                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
+            } else {
+                b_index = which(floor(old_t) %in% floor(curr_t))
+                b_temp_init = which(old_ids == as.numeric(i))
+                b_temp = b_temp_init[b_index]
+
+                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
+                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
+            }
+        }
+        rm(data_format)
+        # ----------------------------------------------------------------------
         rm(mcmc_out_temp)
     } 
   
@@ -123,16 +133,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         if(!simulation) {
             # Imputing the missing Y values ----------------------------------------
             # print("Update Y"); s_time = Sys.time()
-            Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn, 
+            Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn,
                                 otype, Dn_omega, W, B, n_cores)
-            colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 
+            colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate',
                             'RBC_rule', 'clinic_rule')
             # e_time = Sys.time() - s_time; print(e_time)
         }
 
         # Gibbs updates of the alpha_i -----------------------------------------
         # print("Update alpha_i"); s_time = Sys.time()
-        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, 
+        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
                                 Dn_omega, W, B, n_cores)
         names(A) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
@@ -140,17 +150,17 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         for(aaa in 1:length(a_chain_id)) {
             A_chain[[aaa]][,chain_ind] = A[[a_chain_id[aaa]]]
         }
-        
+
         # Gibbs updates of the omega_i -----------------------------------------
         # print("Update omega_i"); s_time = Sys.time()
-        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn, 
+        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
                                 Dn_omega, A, B, n_cores)
         names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Metropolis-within-Gibbs update of the state space --------------------
         # print("Update b_i"); s_time = Sys.time()
-        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn, 
+        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
                               Xn, Dn_omega, W, bleed_indicator, n_cores)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
@@ -158,7 +168,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
-        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y, 
+        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
                                          Dn, Xn, Dn_omega, W, B, n_cores)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update alpha tilde"); s_time = Sys.time()
@@ -195,14 +205,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
             print(zed)
             
-            print("omega_tilde")
-            print(chain[chain_ind, par_index$omega_tilde])
-            
-            print("log upsilon omega")
-            print(chain[chain_ind, par_index$vec_upsilon_omega])
-            
             print("acceptance")
             print(accept / (ttt %% 480))
+            
+            print("pscale")
+            print(pscale)
         }
         # ---------------------------------------------------------------------
         
@@ -305,15 +312,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             } else {
                 # Updating R ---------------------------------------------------
                 # Changing the proposal distribution and therefore the Metrop Ratio
-                # emp_R_est = diag(4.58, 98.2, 101.3, 7.6)
-                nu_R = 50
+                nu_R = 500
                 psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
                 psi_R = (nu_R - 4 - 1) * psi_R
                 
                 curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
                 
-                q_s  = curr_psi_nu[[1]] / 100
-                q_nu = floor(curr_psi_nu[[2]] / 100)
+                q_s  = curr_psi_nu[[1]] / pscale[j]
+                q_nu = floor(curr_psi_nu[[2]] / pscale[j])
                 
                 proposal[ind_j] = c(rinvwishart(nu = q_nu, S = q_s))
 
@@ -342,6 +348,32 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                     log_target_prev = log_target
                     par[ind_j] = proposal[ind_j]
                     accept[j] = accept[j] +1
+                }
+                
+                # Proposal tuning scheme ---------------------------------------
+                if(ttt < burnin){
+                    if(ttt == 100)  pscale[j] = 1
+                    
+                    # Tune the proposal covariance for each transition to achieve
+                    # reasonable acceptance ratios.
+                    if(ttt %% 30 == 0){
+                        if(ttt %% 480 == 0){
+                            accept[j] = 0
+                            
+                        } else if( accept[j] / (ttt %% 480) < .2 ){
+                            pscale[j] = 2*pscale[j]
+                            
+                        } else if( accept[j] / (ttt %% 480) > .6 ){
+                            pscale[j] = 0.5*pscale[j]
+                            
+                            # Prevent the scale from being < 1
+                            if(pscale[j] < 1) pscale[j] = 1
+                        }
+                    }
+                }
+                # --------------------------------------------------------------
+                if (ttt %% 100 == 0){
+                    print(paste0('likelihood: ', log_target_prev))
                 }
             }
         }

@@ -42,7 +42,7 @@ if(simulation) {
     # trial 7 (it 1 - 5): new EIDs, trial 6 initial values, and R update has greater variance
     # trial 8: new EIDs, old initial values and old priors
     # trial 9: new EIDs, continuation of trial 7, more diffuse R prior, tighter prior on beta
-    trialNum = 9
+    trialNum = 10
     max_ind = 5
 }
 
@@ -118,7 +118,14 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
 } else {
-    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
+    # ----------------------------------------------------------------------
+    # Initial values where we expect to see R update
+    prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
+    # ----------------------------------------------------------------------
+    
+    # # Initial values where we DO NOT expect to see R update
+    # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
+    
     load(prev_file)
     
     load('Data_updates/Dn_omega1.rda')
@@ -132,9 +139,14 @@ if(simulation) {
     
     bleed_indicator = b_ind_fnc(data_format)
     
-    par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
+    par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain), ])
     rownames(par_temp) = NULL
     par = par_temp
+    
+    # ----------------------------------------------------------------------
+    par[par_index$vec_sigma_upsilon] = c(sigma_upsilon)
+    par[par_index$omega_tilde] = omega
+    # ----------------------------------------------------------------------
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     rm(mcmc_out_temp)
@@ -153,8 +165,26 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
+        # ----------------------------------------------------------------------
+        old_t = old_time[old_ids == as.numeric(i)]
+        curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+        if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+            b_temp = b_chain[old_ids==as.numeric(i)]
+        } else {
+            b_index = which(floor(old_t) %in% floor(curr_t))
+
+            b_temp_init = b_chain[old_ids==as.numeric(i)]
+            b_temp = b_temp_init[b_index]
+        }
+
+        # temporary fix to there existing state 2 in the clinic rule = -1
+        if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
+            print(paste0("Clinic rule -1: ", i))
+            b_temp = rep(1, length(b_temp))
+        }
+        # ----------------------------------------------------------------------
         
-        b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
+        # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)

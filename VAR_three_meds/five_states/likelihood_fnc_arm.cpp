@@ -419,7 +419,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
   
-  int nu_R = 50;
+  int nu_R = 500;
 //   arma::mat Psi_R(4,4,arma::fill::eye);
   arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
   scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
