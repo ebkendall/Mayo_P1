@@ -4,6 +4,7 @@ library(LaplacesDemon, quietly=T)
 library(Rcpp, quietly=T)
 library(RcppArmadillo, quietly = T)
 library(RcppDist, quietly = T)
+library(expm, quietly = T)
 sourceCpp("likelihood_fnc_arm.cpp")
 
 # Needed for OpenMP C++ parallel
@@ -60,7 +61,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         load(prev_file)
         # pcov = mcmc_out_temp$pcov
         # pscale = mcmc_out_temp$pscale
-        pscale[10] = 10
         
 
         # # Setting initial values for Y
@@ -311,23 +311,35 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
             } else {
                 # Updating R ---------------------------------------------------
-                # Changing the proposal distribution and therefore the Metrop Ratio
-                nu_R = 500
+                
+                # Prior for R ---------------------------
+                nu_R = 10
                 psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
                 psi_R = (nu_R - 4 - 1) * psi_R
                 
-                curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                # Obtaining the parameters for inv-wishart proposal distn
+                # curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                # 
+                # q_s  = curr_psi_nu[[1]] / pscale[j]
+                # q_nu = floor(curr_psi_nu[[2]] / pscale[j])
                 
-                q_s  = curr_psi_nu[[1]] / pscale[j]
-                q_nu = floor(curr_psi_nu[[2]] / pscale[j])
-                
-                proposal[ind_j] = c(rinvwishart(nu = q_nu, S = q_s))
-
+                # q(R* | R(t)) -----------------------------
                 curr_R = matrix(par[ind_j], nrow = 4)
-                prop_R = matrix(proposal[ind_j], nrow = 4)
+                psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                q_s_star_t = psi_nu_star_t[[1]] / pscale[j]
+                q_nu_star_t = floor(psi_nu_star_t[[2]] / pscale[j])
                 
-                log_prop = dinvwishart(Sigma = prop_R, nu = q_nu, S = q_s, log = T)
-                log_prop_prev = dinvwishart(Sigma = curr_R, nu = q_nu, S = q_s, log = T)
+                # Proposal R -----------------------------
+                proposal[ind_j] = c(rinvwishart(nu = q_nu_star_t, S = q_s_star_t))
+                
+                # q(R(t) | R*) -----------------------------
+                prop_R = matrix(proposal[ind_j], nrow = 4)
+                psi_nu_t_star = proposal_R_cpp_new(nu_R, psi_R, prop_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                q_s_t_star = psi_nu_t_star[[1]] / pscale[j]
+                q_nu_t_star = floor(psi_nu_t_star[[2]] / pscale[j])
+                
+                log_prop      = dinvwishart(Sigma = prop_R, nu = q_nu_star_t, S = q_s_star_t, log = T)
+                log_prop_prev = dinvwishart(Sigma = curr_R, nu = q_nu_t_star, S = q_s_t_star, log = T)
                 
                 log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
 
