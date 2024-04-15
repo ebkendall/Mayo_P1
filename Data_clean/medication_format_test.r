@@ -174,9 +174,9 @@ prev_meds_to_check = c(" ALBUMIN", " AMIODARONE ", " CALCIUM CHLORIDE",
 print(paste0("The previous med_check list contains ", sum(meds_to_check %in% prev_meds_to_check), 
       " of the total ", length(meds_to_check), " current meds to check"))
 
-med_d = med_select_id_sub[med_select_id_sub$med_name_simple == prev_meds_to_check[11], ,drop = F]
-unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
-unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
+# med_d = med_select_id_sub[med_select_id_sub$med_name_simple == prev_meds_to_check[11], ,drop = F]
+# unique(med_d$Med_Name_Desc[med_d$continuous_med == 1])
+# unique(med_d$Med_Name_Desc[med_d$continuous_med == 0])
 
 med_name_simple_new = paste0(med_select_id_sub$med_name_simple, continuous_med)
 
@@ -235,6 +235,9 @@ med_select_FINAL$Dose[med_select_FINAL$med_name_admin == " ADENOSINE 0" &
                           is.na(med_select_FINAL$Dose)] = 0
 # 2. " ALBUMIN1" ---------------------------------------------------------------
 # mL -> g (divide by 10)
+na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " ALBUMIN1")
+med_select_FINAL = med_select_FINAL[-na_dose, ]
+
 alb_ind = which(med_select_FINAL$med_name_admin == " ALBUMIN1" & 
                     med_select_FINAL$Dose_Units == "mL")
 med_select_FINAL[alb_ind, "Dose"] = med_select_FINAL[alb_ind, "Dose"] / 10
@@ -632,7 +635,7 @@ for(d in 1:length(dose_nums)) {
 }
 med_select_FINAL$Dose[na_dose] = dose_nums
 
-new_bag_nor = which(med_select_FINAL$med_name_admin == " NOREPINEPHRINE1" & med_select_FINAL$Dose > 16)
+new_bag_nor = which(med_select_FINAL$med_name_admin == " NOREPINEPHRINE1" & med_select_FINAL$Dose >= 16)
 med_select_FINAL = med_select_FINAL[-new_bag_nor, ]
 
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " NOREPINEPHRINE1"] = 1
@@ -704,15 +707,8 @@ med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SODIUM BICARBONAT
 med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " SOTALOL 0", ]
 
 # 66. " SPIRONOLACTONE 0"   ----------------------------------------------------
-na_dose = which(is.na(med_select_FINAL$Dose) & med_select_FINAL$med_name_admin == " SPIRONOLACTONE 0")
-na_med = med_select_FINAL[na_dose, ]
-dose_nums = rep(0, length(na_dose))
-for(d in 1:length(dose_nums)) {
-    dose_nums[d] = as.numeric(strsplit(med_select_FINAL$Strength[na_dose[d]], '[ ]+')[[1]][1])
-}
-med_select_FINAL$Dose[na_dose] = dose_nums
-
-med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " SPIRONOLACTONE 0"] = 1
+# Has no effect on HR or MAP
+med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " SPIRONOLACTONE 0", ]
 
 # 67. " VALSARTAN 0"     -------------------------------------------------------
 med_select_FINAL = med_select_FINAL[med_select_FINAL$med_name_admin != " VALSARTAN 0", ]
@@ -736,7 +732,7 @@ med_select_FINAL = med_select_FINAL[-na_dose, ]
 med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " VERAPAMIL 0"] = 1
 
 # # ==============================================================================
-# m_id = 70
+# m_id = 66
 # print(med_names_alphabet[m_id])
 # specific_med = med_select_FINAL[med_select_FINAL$med_name_admin == med_names_alphabet[m_id], ]
 # apply(specific_med[,c("Dose", "Dose_Units", "Strength")], 2, table)
@@ -747,24 +743,31 @@ med_select_FINAL$Strength[med_select_FINAL$med_name_admin == " VERAPAMIL 0"] = 1
 # ******************************************************************************
 # ******************************************************************************
 # ******************************************************************************
+print("Unique Strength values: ")
+print(unique(med_select_FINAL$Strength))
 
+print("Unique medications: ")
+print(unique(med_select_FINAL$med_name_admin))
+print(length(unique(med_select_FINAL$med_name_admin)))
 
-Strength_num = as.numeric(med_select_FINAL$Strength)
-med_select_FINAL = cbind(med_select_FINAL, Strength_num)
-med_select_FINAL$Dose[is.na(med_select_FINAL$Dose)] = 0
-med_select_FINAL$Strength_num[is.na(med_select_FINAL$Strength_num)] = 0
+print(paste0("Number of NA doses: ", sum(is.na(med_select_FINAL$Dose))))
+print(paste0("Number of NA Strength: ", sum(is.na(med_select_FINAL$Strength))))
 
 save(med_select_FINAL, file = paste0("Data_updates/med_select_FINAL", data_num, ".rda"))
 
 # SCALING DOSE! ************************************************************
+med_select_FINAL$Dose = as.numeric(med_select_FINAL$Dose)
+med_select_FINAL$Strength = as.numeric(med_select_FINAL$Strength)
+
 med_dose_unique = unique(med_select_FINAL$med_name_admin)
-med_dose_scale_factor = matrix(nrow=length(med_dose_unique), ncol = 2)
-med_dose_scale_factor[,1] = med_dose_unique
-colnames(med_dose_scale_factor) = c('name', 'mean')
+med_dose_scale_factor = data.frame(name = med_dose_unique,
+                                   mean = rep(NA, length(med_dose_unique)),
+                                   sd   = rep(NA, length(med_dose_unique)))
 for(i in 1:length(med_dose_unique)){
     med_i = which(med_select_FINAL$med_name_admin == med_dose_unique[i])
     mean_i = mean(med_select_FINAL$Dose[med_i])
-    med_dose_scale_factor[i, 2] = mean_i
+    sd_i = sd(med_select_FINAL$Dose[med_i])
+    med_dose_scale_factor[i, 2:3] = c(mean_i, sd_i)
     med_select_FINAL$Dose[med_i] = med_select_FINAL$Dose[med_i] / mean_i
 }
 save(med_dose_scale_factor, file = paste0('Data_updates/med_dose_scale_factor', data_num, '.rda'))
@@ -853,17 +856,17 @@ for(j in 1:length(EIDs)) {
                     if(hr_cont_meds$status_med[jj] == "Stop") {
                         hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = 0
                     } else if(hr_cont_meds$status_med[jj] == "Start") {
-                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength[jj]
                         hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
                     } else if(hr_cont_meds$status_med[jj] == "Continue") {
-                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength[jj]
                         hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
                         # This means we do not see the start of this medication
                         if(hr_cont_meds$instance_num[jj] == 1) {
                             hr_cont_design[[j]][1:k,hr_cont_meds$med_name_admin[jj]] = dosage
                         }
                     } else {
-                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength_num[jj]
+                        dosage = hr_cont_meds$Dose[jj] * hr_cont_meds$Strength[jj]
                         hr_cont_design[[j]][k:nrow(sub_data),hr_cont_meds$med_name_admin[jj]] = dosage
                         # This means we do not see the start of this medication
                         # (ASSUME the dose is the same beforehand)
@@ -883,17 +886,17 @@ for(j in 1:length(EIDs)) {
                     if(map_cont_meds$status_med[jj] == "Stop") {
                         map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = 0
                     } else if(map_cont_meds$status_med[jj] == "Start") {
-                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength[jj]
                         map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
                     } else if(map_cont_meds$status_med[jj] == "Continue") {
-                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength[jj]
                         map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
                         # This means we do not see the start of this medication
                         if(map_cont_meds$instance_num[jj] == 1) {
                             map_cont_design[[j]][1:k,map_cont_meds$med_name_admin[jj]] = dosage
                         }
                     } else {
-                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength_num[jj]
+                        dosage = map_cont_meds$Dose[jj] * map_cont_meds$Strength[jj]
                         map_cont_design[[j]][k:nrow(sub_data),map_cont_meds$med_name_admin[jj]] = dosage
                         # This means we do not see the start of this medication
                         # (ASSUME the dose is the same beforehand)
@@ -913,7 +916,7 @@ for(j in 1:length(EIDs)) {
                     if(hr_disc_meds$status_med[jj] == "Stop") {
                         hr_disc_design[[j]][k:nrow(sub_data),hr_disc_meds$med_name_admin[jj]] = 0
                     } else if(hr_disc_meds$status_med[jj] == "Start") {
-                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
                         
@@ -927,7 +930,7 @@ for(j in 1:length(EIDs)) {
                         hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
                             hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
                     } else if(hr_disc_meds$status_med[jj] == "Continue") {
-                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
                         time_ind = which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time)
@@ -940,7 +943,7 @@ for(j in 1:length(EIDs)) {
                         hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] = 
                             hr_disc_design[[j]][k:max_ind,hr_disc_meds$med_name_admin[jj]] + dosage
                     } else {
-                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength_num[jj]
+                        dosage = hr_disc_meds$Dose[jj] * hr_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == hr_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == hr_disc_meds$med_name_simple[jj]]
                         time_ind = which(sub_data[,"time"] <= hr_disc_meds$administered_dtm[jj] + total_time)
@@ -965,7 +968,7 @@ for(j in 1:length(EIDs)) {
                     if(map_disc_meds$status_med[jj] == "Stop") {
                         map_disc_design[[j]][k:nrow(sub_data),map_disc_meds$med_name_admin[jj]] = 0
                     } else if(map_disc_meds$status_med[jj] == "Start") {
-                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
                         time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
@@ -978,7 +981,7 @@ for(j in 1:length(EIDs)) {
                         map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
                             map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
                     } else if(map_disc_meds$status_med[jj] == "Continue") {
-                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
                         time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
@@ -991,7 +994,7 @@ for(j in 1:length(EIDs)) {
                         map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] = 
                             map_disc_design[[j]][k:max_ind,map_disc_meds$med_name_admin[jj]] + dosage
                     } else {
-                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength_num[jj]
+                        dosage = map_disc_meds$Dose[jj] * map_disc_meds$Strength[jj]
                         total_time = med_key$onset[med_key$id == map_disc_meds$med_name_simple[jj]] + 
                             med_key$offset[med_key$id == map_disc_meds$med_name_simple[jj]]
                         time_ind = which(sub_data[,"time"] <= map_disc_meds$administered_dtm[jj] + total_time)
@@ -1108,5 +1111,13 @@ for(i in 1:length(map_disc_names)) {
 }
 
 mean_dn_omega = as.numeric(c(upp_down_omega[,2]))
-# mean_dn_omega = 4 * mean_dn_omega
 print(c(mean_dn_omega))
+
+
+# c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1, 
+#   -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1, 
+#   -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1, 
+#   -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+#    1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, 
+#   -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1, 
+#   -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
