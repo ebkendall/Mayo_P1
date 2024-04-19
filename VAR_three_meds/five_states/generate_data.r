@@ -13,7 +13,7 @@ new_EIDs = unique(data_format[,'EID'])
 
 data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
 
-it_num = 2
+it_num = 3
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 
@@ -108,11 +108,6 @@ p = ncol(x)
 z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
-# Loading the parameter values to base this off of
-prev_file = paste0('Model_out/mcmc_out_interm_', 1, '_2it', 1, '.rda')
-load(prev_file)
-pars_mean = colMeans(mcmc_out_temp$chain[800:1001,])
-
 # Initializing par_index
 par_index = list()
 par_index$vec_beta = 1:4
@@ -126,6 +121,43 @@ par_index$omega_tilde = 489:576
 par_index$vec_upsilon_omega = 577:664
 
 save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
+
+# Loading the parameter values to base this off of
+# prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_10it', 1, '.rda')
+prev_file = "Model_out/mcmc_out_interm_3_1it2.rda"
+load(prev_file)
+pars_mean = colMeans(mcmc_out_temp$chain[800:1001,])
+
+pars_mean[par_index$vec_beta] = c(0.25, -1, 2, -0.25)
+pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -1,        0.1, 0, 0,
+                                        88.69780576,  5.04150472,         -4, 0, 0,
+                                        79.74903940, -5.04150472,          4, 0, 0,
+                                          5.2113319,   0.5360813, -0.6866748, 0, 0)
+pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(9, 2, 2, 2, 2, 
+                                                400, 9, 9, 9, 9, 
+                                                100, 9, 9, 9, 9, 
+                                                  9, 2, 2, 2, 2)))
+
+# ------- NOT CHANGING -------
+# par_index$vec_A, par_index$vec_R, par_index$vec_upsilon_omega
+
+#    transitions:                         1->2,         1->4,         2->3,         2->4, 
+#                                         3->1,         3->2,         3->4,         4->2, 
+#                                         4->5,         5->1,         5->2,         5->4
+pars_mean[par_index$vec_zeta] = c(-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
+                                  -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
+                                  -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
+
+pars_mean[par_index$vec_init] = c(-1, -1, 0.5, -1)
+
+pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+                                      -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+                                      -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+                                      -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+                                       1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+                                      -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+                                      -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+
 
 # Parameters ------------------------------------------------------------------
 beta = pars_mean[par_index$vec_beta]
@@ -159,16 +191,17 @@ colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1',
 init_logit = pars_mean[par_index$vec_init]
 init_logit = c(0, init_logit)
 
-omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
-          -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
-          -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
-          -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
-           1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
-          -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
-          -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
-
-omega = 3 * omega
-pars_mean[par_index$omega_tilde] = omega
+# omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+#           -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+#           -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+#           -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+#            1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+#           -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+#           -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+# 
+# omega = 3 * omega
+# pars_mean[par_index$omega_tilde] = omega
+omega = pars_mean[par_index$omega_tilde]
 
 upsilon_omega = exp(pars_mean[par_index$vec_upsilon_omega])
 

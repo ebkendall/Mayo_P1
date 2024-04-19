@@ -55,9 +55,9 @@ if(simulation) {
     load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {
-    index_seeds = c(1:3)
-    trialNum = 9
-    itNum = 5
+    index_seeds = c(1,3)
+    trialNum = 12
+    itNum = 2
     long_chain = T
     
     true_par = NULL
@@ -94,8 +94,11 @@ for(seed in index_seeds){
 
         load(file_name)
         print(paste0(ind, ": ", file_name))
+        print("accept")
         print(mcmc_out_temp$accept)
-        
+        print("pscale")
+        print(mcmc_out_temp$pscale)
+
         par_index = mcmc_out_temp$par_index
 
         if(it == 1) {

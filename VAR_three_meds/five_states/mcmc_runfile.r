@@ -34,6 +34,8 @@ if(simulation) {
     new_EIDs = unique(data_format[,'EID'])
 
     data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+    # ID 642
+    
     # trial 2: starting seed was 3
     # trial 3: starting seed was 1
     # trial 4: continuation of trial 2
@@ -42,7 +44,10 @@ if(simulation) {
     # trial 7 (it 1 - 5): new EIDs, trial 6 initial values, and R update has greater variance
     # trial 8: new EIDs, old initial values and old priors
     # trial 9: new EIDs, continuation of trial 7, more diffuse R prior, tighter prior on beta
-    trialNum = 10
+    # trial 10: strong prior on R
+    # trial 11: diffuse prior on R, new R proposal scheme
+    # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
+    trialNum = 12
     max_ind = 5
 }
 
@@ -56,20 +61,18 @@ z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
 m = ncol(z)
 
 # Parameters ------------------------------------------------------------------
-beta = rep(0, 4)
+beta = c(0.25, -1, 2, -0.25)
 
 # columns: hemo, hr, map, lactate
-alpha_tilde = matrix( c( 9.57729783, 88.69780576, 79.74903940,  5.2113319,
-                                 -1,  9.04150472, -7.42458547,  0.5360813,
-					            0.1,          -4,           4, -0.6866748,
-					              0,           0,           0,          0,
-					              0,           0,           0,          0), 
-					            ncol=4, byrow=T)
+alpha_tilde = c(9.57729783,          -1,        0.1, 0, 0,
+                88.69780576,  5.04150472,         -4, 0, 0,
+                79.74903940, -5.04150472,          4, 0, 0,
+                5.2113319,   0.5360813, -0.6866748, 0, 0)
 
-sigma_upsilon = diag(c(   9,  2,  2,  2,  2, 
-                        400, 36, 36, 36, 36, 
-                        100, 36, 36, 36, 36, 
-                          9,  2,  2,  2,  2))
+sigma_upsilon = c(diag(c(9, 2, 2, 2, 2, 
+                         400, 9, 9, 9, 9, 
+                         100, 9, 9, 9, 9, 
+                         9, 2, 2, 2, 2)))
 
 vec_A = rep(0, 20)
 
@@ -77,8 +80,9 @@ vec_A = rep(0, 20)
 R = diag(c(4.58, 98.2, 101.3, 7.6))
 
 # transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-zeta = matrix(c(-4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4,
-                 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0), nrow = 2,byrow = T)
+zeta = c(-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
+         -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
+         -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
 
 omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
           -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
@@ -91,7 +95,7 @@ omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
 omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
-init_logit = c(-5,-5,-5,-5)
+init_logit = c(-1, -1, 0.5, -1)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -119,14 +123,9 @@ if(simulation) {
     Dn_omega = Dn_omega_sim
 } else {
     # ----------------------------------------------------------------------
-    # Initial values where we expect to see R update
     prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
-    # ----------------------------------------------------------------------
-    
-    # # Initial values where we DO NOT expect to see R update
-    # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
-    
     load(prev_file)
+    # ----------------------------------------------------------------------
     
     load('Data_updates/Dn_omega1.rda')
     Dn_omega_big = Dn_omega
@@ -141,15 +140,16 @@ if(simulation) {
     
     par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain), ])
     rownames(par_temp) = NULL
-    par = par_temp
+    par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, par_index$vec_R)] 
+    
+    rm(mcmc_out_temp)
     
     # ----------------------------------------------------------------------
-    par[par_index$vec_sigma_upsilon] = c(sigma_upsilon)
-    par[par_index$omega_tilde] = omega
+    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
+    load(prev_file)
     # ----------------------------------------------------------------------
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
-    rm(mcmc_out_temp)
 
     print("initial state sequence based on:")
     print(prev_file)
@@ -165,26 +165,26 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
-        # ----------------------------------------------------------------------
-        old_t = old_time[old_ids == as.numeric(i)]
-        curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-        if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-            b_temp = b_chain[old_ids==as.numeric(i)]
-        } else {
-            b_index = which(floor(old_t) %in% floor(curr_t))
+        # # ----------------------------------------------------------------------
+        # old_t = old_time[old_ids == as.numeric(i)]
+        # curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+        # if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+        #     b_temp = b_chain[old_ids==as.numeric(i)]
+        # } else {
+        #     b_index = which(floor(old_t) %in% floor(curr_t))
 
-            b_temp_init = b_chain[old_ids==as.numeric(i)]
-            b_temp = b_temp_init[b_index]
-        }
+        #     b_temp_init = b_chain[old_ids==as.numeric(i)]
+        #     b_temp = b_temp_init[b_index]
+        # }
 
-        # temporary fix to there existing state 2 in the clinic rule = -1
-        if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
-            print(paste0("Clinic rule -1: ", i))
-            b_temp = rep(1, length(b_temp))
-        }
-        # ----------------------------------------------------------------------
+        # # temporary fix to there existing state 2 in the clinic rule = -1
+        # if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
+        #     print(paste0("Clinic rule -1: ", i))
+        #     b_temp = rep(1, length(b_temp))
+        # }
+        # # ----------------------------------------------------------------------
         
-        # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
+        b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
@@ -215,3 +215,21 @@ s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind)
 e_time = Sys.time() - s_time; print(e_time)
+
+
+# Summary statistics for the transition rate parameter estimates
+# transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
+# load('Data_updates/data_format.rda')
+# EID_big = unique(data_format[,"EID"])
+# est_bleeds = unique(data_format[data_format[,"RBC_rule"] != 0 | data_format[,"clinic_rule"] == 1, "EID"])
+# 
+# los_patients = matrix(0, ncol = 2, nrow = length(EID_big))
+# colnames(los_patients) = c('EID', 'los')
+# for(i in 1:length(EID_big)){
+#     los_patients[i,1] = EID_big[i]
+#     los_patients[i,2] = sum(data_format[,"EID"] == EID_big[i])
+# }
+# # Mean and median length of stay (los)
+# mean(los_patients[,2])
+# median(los_patients[,2])
+

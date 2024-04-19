@@ -51,56 +51,59 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     if(!simulation) {
         # ----------------------------------------------------------------------
-        # Initial values where we expect to see R update
-        prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
+        # prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
+        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
         # ----------------------------------------------------------------------
         
-        # # Initial values where we DO NOT expect to see R update
-        # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-2, 'it', max_ind, '.rda')
-    
         load(prev_file)
-        # pcov = mcmc_out_temp$pcov
-        # pscale = mcmc_out_temp$pscale
+        pcov = mcmc_out_temp$pcov
+        pscale = mcmc_out_temp$pscale
         
-
-        # # Setting initial values for Y
-        # Y[, 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
-        # Y[, 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
-        # Y[, 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
-        # Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
+        # Setting initial values for Y
+        Y[, 'hemo']    = c(colMeans(mcmc_out_temp$hc_chain[1:nrow(mcmc_out_temp$hc_chain), ]))
+        Y[, 'hr']      = c(colMeans(mcmc_out_temp$hr_chain[1:nrow(mcmc_out_temp$hr_chain), ]))
+        Y[, 'map']     = c(colMeans(mcmc_out_temp$bp_chain[1:nrow(mcmc_out_temp$bp_chain), ]))
+        Y[, 'lactate'] = c(colMeans(mcmc_out_temp$la_chain[1:nrow(mcmc_out_temp$la_chain), ]))
         
-        # ----------------------------------------------------------------------
-        load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-        old_EIDs = unique(data_format[,"EID"])
-        old_time = data_format[,"time"]
-        old_ids = data_format[,"EID"]
+        # Ensure we don't have any negative values
+        Y[Y[,'hemo']    < 0,'hemo']    = 0.001
+        Y[Y[,'hr']      < 0,'hr']      = 0.001
+        Y[Y[,'map']     < 0,'map']     = 0.001
+        Y[Y[,'lactate'] < 0,'lactate'] = 0.001
 
-        load('Data_updates/data_format.rda')
-        new_EIDs = unique(data_format[,'EID'])
+        # # ----------------------------------------------------------------------
+        # load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+        # old_EIDs = unique(data_format[,"EID"])
+        # old_time = data_format[,"time"]
+        # old_ids = data_format[,"EID"]
 
-        data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+        # load('Data_updates/data_format.rda')
+        # new_EIDs = unique(data_format[,'EID'])
 
-        for(i in EIDs){
-            old_t = old_time[old_ids == as.numeric(i)]
-            curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-            if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
-                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
-            } else {
-                b_index = which(floor(old_t) %in% floor(curr_t))
-                b_temp_init = which(old_ids == as.numeric(i))
-                b_temp = b_temp_init[b_index]
+        # data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
 
-                Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
-                Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
-            }
-        }
-        rm(data_format)
-        # ----------------------------------------------------------------------
+        # for(i in EIDs){
+        #     old_t = old_time[old_ids == as.numeric(i)]
+        #     curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
+        #     if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
+        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
+        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
+        #     } else {
+        #         b_index = which(floor(old_t) %in% floor(curr_t))
+        #         b_temp_init = which(old_ids == as.numeric(i))
+        #         b_temp = b_temp_init[b_index]
+
+        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
+        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
+        #     }
+        # }
+        # rm(data_format)
+        # # ----------------------------------------------------------------------
+
         rm(mcmc_out_temp)
     } 
   
@@ -363,26 +366,26 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 }
                 
                 # Proposal tuning scheme ---------------------------------------
-                if(ttt < burnin){
-                    if(ttt == 100)  pscale[j] = 1
+                # if(ttt < burnin){
+                #     if(ttt == 100)  pscale[j] = 1
                     
-                    # Tune the proposal covariance for each transition to achieve
-                    # reasonable acceptance ratios.
-                    if(ttt %% 30 == 0){
-                        if(ttt %% 480 == 0){
-                            accept[j] = 0
+                #     # Tune the proposal covariance for each transition to achieve
+                #     # reasonable acceptance ratios.
+                #     if(ttt %% 30 == 0){
+                #         if(ttt %% 480 == 0){
+                #             accept[j] = 0
                             
-                        } else if( accept[j] / (ttt %% 480) < .2 ){
-                            pscale[j] = 2*pscale[j]
+                #         } else if( accept[j] / (ttt %% 480) < .2 ){
+                #             pscale[j] = 2*pscale[j]
                             
-                        } else if( accept[j] / (ttt %% 480) > .6 ){
-                            pscale[j] = 0.5*pscale[j]
+                #         } else if( accept[j] / (ttt %% 480) > .6 ){
+                #             pscale[j] = 0.5*pscale[j]
                             
-                            # Prevent the scale from being < 1
-                            if(pscale[j] < 1) pscale[j] = 1
-                        }
-                    }
-                }
+                #             # Prevent the scale from being < 1
+                #             if(pscale[j] < 1) pscale[j] = 1
+                #         }
+                #     }
+                # }
                 # --------------------------------------------------------------
                 if (ttt %% 100 == 0){
                     print(paste0('likelihood: ', log_target_prev))
