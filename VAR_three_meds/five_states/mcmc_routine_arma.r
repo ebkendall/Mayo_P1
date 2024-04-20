@@ -50,61 +50,68 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        # ----------------------------------------------------------------------
-        # prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
-        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
-        # ----------------------------------------------------------------------
+        file_name = paste0("Data_updates/Y_init", trialNum, ".rda")
+        if(file.exists(file_name)) {
+            load(paste0("Data_updates/Y_init", trialNum, ".rda"))
+        } else {
+            # Setting initial values for Y
+            print("Initializing the missing Y's for imputation")
+            for(i in EIDs) {
+                print(which(EIDs == i))
+                heading_names = c('hemo', 'hr', 'map', 'lactate')
+                sub_dat = Y[Y[,"EID"] == i, ]
         
-        load(prev_file)
-        pcov = mcmc_out_temp$pcov
-        pscale = mcmc_out_temp$pscale
+                for(k in 1:length(heading_names)) {
+                    if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
+                        sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
+                    } else {
+                        if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
+                            sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                        } else {
+                            obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
+                            miss_indices = which(is.na(sub_dat[,heading_names[k]]))
+                            for(j in miss_indices) {
+                                if(j < obs_indices[1]) {
+                                    sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
+                                } else if(j > tail(obs_indices,1)) {
+                                    sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
+                                } else {
+                                    end_pts = c(max(obs_indices[obs_indices < j]),
+                                                min(obs_indices[obs_indices > j]))
+                                    slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
+                                    sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                                }
+                            }
+                        }
+                    }
+                    Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
+                }
+            }
+            save(Y, file = paste0("Data_updates/Y_init", trialNum, ".rda"))
+            print("Done initializing")
+        }
         
-        # Setting initial values for Y
-        Y[, 'hemo']    = c(colMeans(mcmc_out_temp$hc_chain[1:nrow(mcmc_out_temp$hc_chain), ]))
-        Y[, 'hr']      = c(colMeans(mcmc_out_temp$hr_chain[1:nrow(mcmc_out_temp$hr_chain), ]))
-        Y[, 'map']     = c(colMeans(mcmc_out_temp$bp_chain[1:nrow(mcmc_out_temp$bp_chain), ]))
-        Y[, 'lactate'] = c(colMeans(mcmc_out_temp$la_chain[1:nrow(mcmc_out_temp$la_chain), ]))
-        
+        # # ----------------------------------------------------------------------
+        # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
+        # load(prev_file)
+        # # ----------------------------------------------------------------------
+        # 
+        # pcov = mcmc_out_temp$pcov
+        # pscale = mcmc_out_temp$pscale
+        # 
+        # # Setting initial values for Y
+        # Y[, 'hemo']    = c(colMeans(mcmc_out_temp$hc_chain[1:nrow(mcmc_out_temp$hc_chain), ]))
+        # Y[, 'hr']      = c(colMeans(mcmc_out_temp$hr_chain[1:nrow(mcmc_out_temp$hr_chain), ]))
+        # Y[, 'map']     = c(colMeans(mcmc_out_temp$bp_chain[1:nrow(mcmc_out_temp$bp_chain), ]))
+        # Y[, 'lactate'] = c(colMeans(mcmc_out_temp$la_chain[1:nrow(mcmc_out_temp$la_chain), ]))
+
         # Ensure we don't have any negative values
         Y[Y[,'hemo']    < 0,'hemo']    = 0.001
         Y[Y[,'hr']      < 0,'hr']      = 0.001
         Y[Y[,'map']     < 0,'map']     = 0.001
         Y[Y[,'lactate'] < 0,'lactate'] = 0.001
 
-        # # ----------------------------------------------------------------------
-        # load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-        # old_EIDs = unique(data_format[,"EID"])
-        # old_time = data_format[,"time"]
-        # old_ids = data_format[,"EID"]
-
-        # load('Data_updates/data_format.rda')
-        # new_EIDs = unique(data_format[,'EID'])
-
-        # data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
-
-        # for(i in EIDs){
-        #     old_t = old_time[old_ids == as.numeric(i)]
-        #     curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-        #     if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), old_ids == as.numeric(i)])
-        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), old_ids == as.numeric(i)])
-        #     } else {
-        #         b_index = which(floor(old_t) %in% floor(curr_t))
-        #         b_temp_init = which(old_ids == as.numeric(i))
-        #         b_temp = b_temp_init[b_index]
-
-        #         Y[Y[,'EID'] == as.numeric(i), 'hemo'] = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'hr'] = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'map'] = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), b_temp])
-        #         Y[Y[,'EID'] == as.numeric(i), 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), b_temp])
-        #     }
-        # }
-        # rm(data_format)
-        # # ----------------------------------------------------------------------
-
-        rm(mcmc_out_temp)
+        # rm(mcmc_out_temp)
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------
@@ -320,12 +327,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
                 psi_R = (nu_R - 4 - 1) * psi_R
                 
-                # Obtaining the parameters for inv-wishart proposal distn
-                # curr_psi_nu = proposal_R_cpp(nu_R, psi_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
-                # 
-                # q_s  = curr_psi_nu[[1]] / pscale[j]
-                # q_nu = floor(curr_psi_nu[[2]] / pscale[j])
-                
                 # q(R* | R(t)) -----------------------------
                 curr_R = matrix(par[ind_j], nrow = 4)
                 psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
@@ -365,29 +366,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                     accept[j] = accept[j] +1
                 }
                 
-                # Proposal tuning scheme ---------------------------------------
-                # if(ttt < burnin){
-                #     if(ttt == 100)  pscale[j] = 1
-                    
-                #     # Tune the proposal covariance for each transition to achieve
-                #     # reasonable acceptance ratios.
-                #     if(ttt %% 30 == 0){
-                #         if(ttt %% 480 == 0){
-                #             accept[j] = 0
-                            
-                #         } else if( accept[j] / (ttt %% 480) < .2 ){
-                #             pscale[j] = 2*pscale[j]
-                            
-                #         } else if( accept[j] / (ttt %% 480) > .6 ){
-                #             pscale[j] = 0.5*pscale[j]
-                            
-                #             # Prevent the scale from being < 1
-                #             if(pscale[j] < 1) pscale[j] = 1
-                #         }
-                #     }
-                # }
-                # --------------------------------------------------------------
-                if (ttt %% 100 == 0){
+                if (ttt == 1 | ttt %% 100 == 0){
                     print(paste0('likelihood: ', log_target_prev))
                 }
             }
@@ -476,7 +455,7 @@ b_ind_fnc <- function(data_format) {
                     first_time = admin_times[a_t[1]]
                     order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
                     if(sum(order_times <= first_time) == 0) {
-                        print(paste0(i, ", ", sub_dat[1,"EID"]))
+                        # print(paste0(i, ", ", sub_dat[1,"EID"]))
                         first_order_time = first_time
                     } else {
                         first_order_time = max(order_times[order_times <= first_time])   
@@ -486,7 +465,7 @@ b_ind_fnc <- function(data_format) {
                     first_time = admin_times[a_t[1]]  
                     order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
                     if(sum(order_times <= first_time) == 0) {
-                        print(paste0(i, ", ", sub_dat[1,"EID"]))
+                        # print(paste0(i, ", ", sub_dat[1,"EID"]))
                         first_order_time = first_time
                     } else {
                         first_order_time = max(order_times[order_times <= first_time])   

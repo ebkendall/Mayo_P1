@@ -140,19 +140,14 @@ if(simulation) {
     
     par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain), ])
     rownames(par_temp) = NULL
-    par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, par_index$vec_R)] 
-    
-    rm(mcmc_out_temp)
-    
-    # ----------------------------------------------------------------------
-    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
-    load(prev_file)
-    # ----------------------------------------------------------------------
+    par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, par_index$vec_R)]
     
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
 
     print("initial state sequence based on:")
     print(prev_file)
+    
+    rm(mcmc_out_temp)
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -172,11 +167,11 @@ for(i in EIDs){
         #     b_temp = b_chain[old_ids==as.numeric(i)]
         # } else {
         #     b_index = which(floor(old_t) %in% floor(curr_t))
-
+        # 
         #     b_temp_init = b_chain[old_ids==as.numeric(i)]
         #     b_temp = b_temp_init[b_index]
         # }
-
+        # 
         # # temporary fix to there existing state 2 in the clinic rule = -1
         # if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
         #     print(paste0("Clinic rule -1: ", i))
@@ -184,7 +179,8 @@ for(i in EIDs){
         # }
         # # ----------------------------------------------------------------------
         
-        b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
+        # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
+        b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
