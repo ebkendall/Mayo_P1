@@ -16,7 +16,7 @@ Sys.setenv("PKG_LIBS" = "-fopenmp")
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
-                         trialNum, Dn_omega, simulation, bleed_indicator, max_ind){
+                         trialNum, Dn_omega, simulation, bleed_indicator, max_ind, df_num){
   
     n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
@@ -33,14 +33,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
     mpi = list(c(par_index$vec_init),
-               c(par_index$vec_zeta),
-               c(par_index$vec_A[1:4]),
-               c(par_index$vec_A[5:12]),
+               c(par_index$vec_zeta[1:4]),
+               c(par_index$vec_zeta[5:8]),
+               c(par_index$vec_zeta[9:14]),
+               c(par_index$vec_zeta[15:24]),
+               c(par_index$vec_A[1:12]),
                c(par_index$vec_A[13:20]),
-               c(par_index$vec_upsilon_omega[c(1:16)]),
-               c(par_index$vec_upsilon_omega[c(17:35)]),
-               c(par_index$vec_upsilon_omega[c(36:57)]),
-               c(par_index$vec_upsilon_omega[c(58:88)]),
+               c(par_index$vec_upsilon_omega[c(1:16), c(36:57)]),
+               c(par_index$vec_upsilon_omega[c(17:35), c(58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -50,9 +50,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        file_name = paste0("Data_updates/Y_init", trialNum, ".rda")
+        file_name = paste0("Data_updates/Y_init", trialNum, "_df", df_num, ".rda")
         if(file.exists(file_name)) {
-            load(paste0("Data_updates/Y_init", trialNum, ".rda"))
+            load(file_name)
         } else {
             # Setting initial values for Y
             print("Initializing the missing Y's for imputation")
@@ -87,7 +87,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                     Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
                 }
             }
-            save(Y, file = paste0("Data_updates/Y_init", trialNum, ".rda"))
+            save(Y, file = file_name)
             print("Done initializing")
         }
         
@@ -96,21 +96,21 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # load(prev_file)
         # # ----------------------------------------------------------------------
         # 
-        # pcov = mcmc_out_temp$pcov
-        # pscale = mcmc_out_temp$pscale
+        # # pcov = mcmc_out_temp$pcov
+        # # pscale = mcmc_out_temp$pscale
         # 
         # # Setting initial values for Y
         # Y[, 'hemo']    = c(colMeans(mcmc_out_temp$hc_chain[1:nrow(mcmc_out_temp$hc_chain), ]))
         # Y[, 'hr']      = c(colMeans(mcmc_out_temp$hr_chain[1:nrow(mcmc_out_temp$hr_chain), ]))
         # Y[, 'map']     = c(colMeans(mcmc_out_temp$bp_chain[1:nrow(mcmc_out_temp$bp_chain), ]))
         # Y[, 'lactate'] = c(colMeans(mcmc_out_temp$la_chain[1:nrow(mcmc_out_temp$la_chain), ]))
-
-        # Ensure we don't have any negative values
-        Y[Y[,'hemo']    < 0,'hemo']    = 0.001
-        Y[Y[,'hr']      < 0,'hr']      = 0.001
-        Y[Y[,'map']     < 0,'map']     = 0.001
-        Y[Y[,'lactate'] < 0,'lactate'] = 0.001
-
+        # 
+        # # Ensure we don't have any negative values
+        # Y[Y[,'hemo']    < 0,'hemo']    = 0.001
+        # Y[Y[,'hr']      < 0,'hr']      = 0.001
+        # Y[Y[,'map']     < 0,'map']     = 0.001
+        # Y[Y[,'lactate'] < 0,'lactate'] = 0.001
+        # 
         # rm(mcmc_out_temp)
     } 
   
@@ -396,7 +396,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                                                   trialNum, 'it', ttt/10000 + (max_ind - 5), '_sim.rda'))
             } else {
                 save(mcmc_out_temp, file = paste0('Model_out/mcmc_out_interm_',ind,'_', 
-                                                  trialNum, 'it', ttt/10000 + (max_ind - 5), '.rda'))
+                                                  trialNum, 'it', ttt/10000 + (max_ind - 5), 
+                                                  '_df', df_num, '.rda'))
             }
             # Reset the chains
             chain = matrix( NA, chain_length_MASTER, length(par)) 

@@ -11,13 +11,13 @@ if(simulation) {
     itNum = 1
 } else {
     trialNum = 12
-    itNum = 5
+    itNum = 1
 }
 
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 1
+    seed_list = 3
 }
 
 # Load the model output -------------------------------------------------------

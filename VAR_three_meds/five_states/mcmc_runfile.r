@@ -1,9 +1,16 @@
 source('mcmc_routine_arma.r')
 
 args = commandArgs(TRUE)
-ind = as.numeric(args[1])
+seed_num = as.numeric(args[1])
 
-set.seed(ind)
+df_num_list = rep(1:10, each = 3)
+df_num = df_num_list[ind]
+
+set.seed(seed_num)
+
+ind_list = rep(1:3, 10)
+
+ind = ind_list[seed_num]
 print(ind)
 
 simulation = F
@@ -22,32 +29,12 @@ if(simulation) {
 } else {
     steps  = 50000
     burnin = 5000
-    real_dat_num = 3
     
-    # Loading the old data to keep the same IDs -----------------
-    load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
-    old_EIDs = unique(data_format[,"EID"])
-    old_time = data_format[,"time"]
-    old_ids = data_format[,"EID"]
+    load(paste0('Data_updates/data_format_', df_num, '.rda'))
     
-    load('Data_updates/data_format.rda')
-    new_EIDs = unique(data_format[,'EID'])
-
-    data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
-    # ID 642
-    
-    # trial 2: starting seed was 3
-    # trial 3: starting seed was 1
-    # trial 4: continuation of trial 2
-    # trial 5: new EIDs
-    # trial 6: new EIDs and new initial values
-    # trial 7 (it 1 - 5): new EIDs, trial 6 initial values, and R update has greater variance
-    # trial 8: new EIDs, old initial values and old priors
-    # trial 9: new EIDs, continuation of trial 7, more diffuse R prior, tighter prior on beta
-    # trial 10: strong prior on R
-    # trial 11: diffuse prior on R, new R proposal scheme
     # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
-    trialNum = 12
+    # trial 13: rule change for b_i sampler, running for multiple data sets
+    trialNum = 13
     max_ind = 5
 }
 
@@ -95,7 +82,7 @@ omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
 omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
-init_logit = c(-1, -1, 0.5, -1)
+init_logit = c(0, 0, 0, 0)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -128,8 +115,9 @@ if(simulation) {
     # ----------------------------------------------------------------------
     
     load('Data_updates/Dn_omega1.rda')
+    load('Data_updates/all_EIDs.rda')
     Dn_omega_big = Dn_omega
-    eid_index = which(new_EIDs %in% old_EIDs)
+    eid_index = which(all_EIDs %in% EIDs)
     Dn_omega = vector(mode = 'list', length = length(eid_index))
     for(jjj in 1:length(eid_index)) {
         Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
@@ -160,24 +148,6 @@ for(i in EIDs){
         B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
     } else {
-        # # ----------------------------------------------------------------------
-        # old_t = old_time[old_ids == as.numeric(i)]
-        # curr_t = data_format[data_format[,"EID"] == as.numeric(i), "time"]
-        # if(sum(floor(old_t) %in% floor(curr_t)) == length(old_t)) {
-        #     b_temp = b_chain[old_ids==as.numeric(i)]
-        # } else {
-        #     b_index = which(floor(old_t) %in% floor(curr_t))
-        # 
-        #     b_temp_init = b_chain[old_ids==as.numeric(i)]
-        #     b_temp = b_temp_init[b_index]
-        # }
-        # 
-        # # temporary fix to there existing state 2 in the clinic rule = -1
-        # if(unique(Y[Y[,'EID']==as.numeric(i), 'clinic_rule']) < 0) {
-        #     print(paste0("Clinic rule -1: ", i))
-        #     b_temp = rep(1, length(b_temp))
-        # }
-        # # ----------------------------------------------------------------------
         
         # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
         b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
@@ -209,7 +179,8 @@ print(zed)
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
-                         trialNum, Dn_omega, simulation, bleed_indicator, max_ind)
+                         trialNum, Dn_omega, simulation, bleed_indicator, 
+                         max_ind, df_num)
 e_time = Sys.time() - s_time; print(e_time)
 
 

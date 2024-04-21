@@ -1,8 +1,8 @@
 #include <RcppDist.h>
 // [[Rcpp::depends(RcppArmadillo, RcppDist)]]
 
-#include <omp.h>
-// [[Rcpp::plugins(openmp)]]
+// #include <omp.h>
+// // [[Rcpp::plugins(openmp)]]
 
 using namespace Rcpp;
 
@@ -342,8 +342,8 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
   arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
   arma::vec in_vals_init(EIDs.n_elem, arma::fill::zeros);
 
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         arma::vec in_val_vec = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), Dn_omega(ii), W(ii));
@@ -403,7 +403,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // Initial Probabilities priors ----------------------------------------------
   arma::uvec vec_init_ind = par_index(6);
   arma::vec vec_init_content = par.elem(vec_init_ind - 1);
-  arma::vec vec_init_mean = {-1, -1, 0.5, -1}; // THREE STATE
+  arma::vec vec_init_mean = {0, 0, 0, 0}; // THREE STATE
   arma::vec scalar_2(vec_init_content.n_elem, arma::fill::ones); // THREE STATE
   scalar_2 = 10 * scalar_2;
   arma::mat init_sd = arma::diagmat(scalar_2);
@@ -478,8 +478,8 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
   arma::field<arma::vec> B_return(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -503,7 +503,6 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
     arma::mat Y_temp = Y.rows(sub_ind);
     arma::mat z_temp = z.rows(sub_ind);
     
-    // keep the last state at state 1 so we only iterate to n_i-2 (CHANGED*****)
     for (int k = 0; k < n_i - 1; k++) {
       
       arma::vec t_pts;
@@ -534,6 +533,15 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       if(clinic_rule >= 0) {
         bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
         if (clinic_rule == 1 && b_i_rule) {
+            if(rbc_rule == 1) {
+                int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
+                arma::uvec b_i_time = arma::find(pr_B == 2);
+                if(arma::any(b_i_time <= pos_bleed)) {
+                    valid_prop = true;
+                }
+            } else {
+                valid_prop = true;
+            }
           valid_prop = true;
         } else {
             if(rbc_rule == 1 && b_i_rule) {
@@ -623,8 +631,8 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> &B,
   arma::field<arma::field<arma::mat>> Dn(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Xn(EIDs.n_elem);
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -723,8 +731,8 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
                             exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
       int i = EIDs(ii);
 
@@ -881,8 +889,8 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec &EIDs, const arma::v
                               exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         
@@ -1169,8 +1177,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     arma::field<arma::mat> in_Upsilon_cov_main(EIDs.n_elem);
     // arma::field<arma::mat> in_Upsilon_omega(EIDs.n_elem);
 
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         
@@ -1318,8 +1326,8 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                                 exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
-      omp_set_num_threads(n_cores);
-      # pragma omp parallel for
+      // omp_set_num_threads(n_cores);
+      // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {	
         
         int i = EIDs(ii);

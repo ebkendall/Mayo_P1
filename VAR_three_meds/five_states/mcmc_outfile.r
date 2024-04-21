@@ -55,9 +55,9 @@ if(simulation) {
     load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {
-    index_seeds = c(1,3)
+    index_seeds = c(1:3)
     trialNum = 12
-    itNum = 2
+    itNum = 1
     long_chain = T
     
     true_par = NULL
