@@ -8,8 +8,8 @@ library(expm, quietly = T)
 sourceCpp("likelihood_fnc_arm.cpp")
 
 # Needed for OpenMP C++ parallel
-Sys.setenv("PKG_CXXFLAGS" = "-fopenmp")
-Sys.setenv("PKG_LIBS" = "-fopenmp")
+# Sys.setenv("PKG_CXXFLAGS" = "-fopenmp")
+# Sys.setenv("PKG_LIBS" = "-fopenmp")
 
 
 # -----------------------------------------------------------------------------
@@ -39,8 +39,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_zeta[15:24]),
                c(par_index$vec_A[1:12]),
                c(par_index$vec_A[13:20]),
-               c(par_index$vec_upsilon_omega[c(1:16), c(36:57)]),
-               c(par_index$vec_upsilon_omega[c(17:35), c(58:88)]),
+               c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
+               c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)

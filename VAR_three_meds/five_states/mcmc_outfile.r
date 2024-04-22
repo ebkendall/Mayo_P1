@@ -57,7 +57,7 @@ if(simulation) {
 } else {
     index_seeds = c(1:3)
     trialNum = 12
-    itNum = 1
+    itNum = 2
     long_chain = T
     
     true_par = NULL

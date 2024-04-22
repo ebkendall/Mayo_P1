@@ -4,7 +4,7 @@ args = commandArgs(TRUE)
 seed_num = as.numeric(args[1])
 
 df_num_list = rep(1:10, each = 3)
-df_num = df_num_list[ind]
+df_num = df_num_list[seed_num]
 
 set.seed(seed_num)
 
@@ -30,12 +30,15 @@ if(simulation) {
     steps  = 50000
     burnin = 5000
     
-    load(paste0('Data_updates/data_format_', df_num, '.rda'))
+    data_name = paste0('Data_updates/data_format_', df_num, '.rda')
+    load(data_name)
     
     # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
     # trial 13: rule change for b_i sampler, running for multiple data sets
     trialNum = 13
     max_ind = 5
+
+    print(data_name)
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
