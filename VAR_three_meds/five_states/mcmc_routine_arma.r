@@ -32,6 +32,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
+    # mpi = list(c(par_index$vec_init),
+    #            c(par_index$vec_zeta),
+    #            c(par_index$vec_A[1:4]),
+    #            c(par_index$vec_A[5:12]),
+    #            c(par_index$vec_A[13:20]),
+    #            c(par_index$vec_upsilon_omega[c(1:16)]),
+    #            c(par_index$vec_upsilon_omega[c(17:35)]),
+    #            c(par_index$vec_upsilon_omega[c(36:57)]),
+    #            c(par_index$vec_upsilon_omega[c(58:88)]),
+    #            c(par_index$vec_R))
     mpi = list(c(par_index$vec_init),
                c(par_index$vec_zeta[1:4]),
                c(par_index$vec_zeta[5:8]),

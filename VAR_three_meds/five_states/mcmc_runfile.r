@@ -59,10 +59,10 @@ alpha_tilde = c(9.57729783,          -1,        0.1, 0, 0,
                 79.74903940, -5.04150472,          4, 0, 0,
                 5.2113319,   0.5360813, -0.6866748, 0, 0)
 
-sigma_upsilon = c(diag(c(9, 2, 2, 2, 2, 
-                         400, 9, 9, 9, 9, 
-                         100, 9, 9, 9, 9, 
-                         9, 2, 2, 2, 2)))
+sigma_upsilon = c(diag(c(  9,  2,  2,  2,  2, 
+                         400, 16, 16, 16, 16, 
+                         400, 16, 16, 16, 16, 
+                           9,  2,  2,  2,  2)))
 
 vec_A = rep(0, 20)
 
@@ -154,6 +154,9 @@ for(i in EIDs){
         
         # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
         b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
+        
+        # Better initialization for the RBC and Clinic rule patients
+        
         
         B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)

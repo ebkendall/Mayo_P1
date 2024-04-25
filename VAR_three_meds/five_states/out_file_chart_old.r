@@ -3,6 +3,7 @@ library(plotrix)
 
 simulation = F
 all_seeds = F
+long_chain = T
 
 if(simulation) {
     data_num = 1
@@ -11,13 +12,13 @@ if(simulation) {
     itNum = 1
 } else {
     trialNum = 12
-    itNum = 1
+    itNum = 4
 }
 
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 3
+    seed_list = 2
 }
 
 # Load the model output -------------------------------------------------------
@@ -31,26 +32,36 @@ Dir = 'Model_out/'
 
 for(seed_num in 1:length(seed_list)) {
     print(seed_num)
-    if(simulation) {
-        load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'_sim.rda'))   
-        print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'_sim.rda'))
+
+    if(long_chain) {
+        it_seq = 1:itNum
     } else {
-        load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'.rda'))
-        print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',itNum,'.rda'))
+        it_seq = itNum
     }
-    
-    if(itNum == 1) {
-        B_chain   = mcmc_out_temp$B_chain[501:1001, ]
-        Hr_chain  = mcmc_out_temp$hr_chain[501:1001, ]
-        Map_chain = mcmc_out_temp$bp_chain[501:1001, ]
-        Hc_chain  = mcmc_out_temp$hc_chain[501:1001, ]
-        La_chain  = mcmc_out_temp$la_chain[501:1001, ]
-    } else {
-        B_chain   = mcmc_out_temp$B_chain
-        Hr_chain  = mcmc_out_temp$hr_chain
-        Map_chain = mcmc_out_temp$bp_chain
-        Hc_chain  = mcmc_out_temp$hc_chain
-        La_chain  = mcmc_out_temp$la_chain
+
+    for(it in it_seq) {
+        if(simulation) {
+            load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'_sim.rda'))   
+            print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'_sim.rda'))
+        } else {
+            load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'.rda'))
+            print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'.rda'))
+        }
+        
+        if(it == 1) {
+            B_chain   = mcmc_out_temp$B_chain[501:1001, ]
+            Hr_chain  = mcmc_out_temp$hr_chain[501:1001, ]
+            Map_chain = mcmc_out_temp$bp_chain[501:1001, ]
+            Hc_chain  = mcmc_out_temp$hc_chain[501:1001, ]
+            La_chain  = mcmc_out_temp$la_chain[501:1001, ]
+        } else {
+            B_chain   = rbind(B_chain, mcmc_out_temp$B_chain)
+            Hr_chain  = mcmc_out_temp$hr_chain
+            Map_chain = mcmc_out_temp$bp_chain
+            Hc_chain  = mcmc_out_temp$hc_chain
+            La_chain  = mcmc_out_temp$la_chain
+        }
+        rm(mcmc_out_temp)
     }
 }
 #  ----------------------------------------------------------------------------
@@ -104,9 +115,17 @@ if(all_seeds) {
     }   
 } else {
     if(simulation) {
-        pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_sim.pdf')
+        if(long_chain) {
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_sim_long.pdf')
+        } else {
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_sim.pdf')
+        }
     } else {
-        pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '.pdf')
+        if(long_chain) {
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_long.pdf')
+        } else {
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '.pdf')
+        }
     }
 }
 pdf(pdf_title)
@@ -426,3 +445,15 @@ for(i in EIDs){
 }
 dev.off()
 
+
+# Exploring specific patients
+i = 633100
+indices_i = (use_data[,'EID']==i)
+b_chain_i = B_chain[,indices_i]
+
+for(j in 1:nrow(b_chain_i)) {
+    if(sum(b_chain_i[j,] == 1) != ncol(b_chain_i)){
+        print(j)
+        break
+    }
+}

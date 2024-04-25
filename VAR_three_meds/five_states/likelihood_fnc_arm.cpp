@@ -527,34 +527,40 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       
       pr_B.rows(k, k+1) = Omega_set.row(sampled_index-1).t();
       
-      // Adding clinical review
+      // State sampling using RBC and Clinic information -----------------------
       bool valid_prop = false;
+      bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
       
-      if(clinic_rule >= 0) {
-        bool b_i_rule = arma::any(arma::vectorise(pr_B)==2);
-        if (clinic_rule == 1 && b_i_rule) {
-            if(rbc_rule == 1) {
-                int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
-                arma::uvec b_i_time = arma::find(pr_B == 2);
-                if(arma::any(b_i_time <= pos_bleed)) {
-                    valid_prop = true;
-                }
-            } else {
-                valid_prop = true;
-            }
-          valid_prop = true;
-        } else {
-            if(rbc_rule == 1 && b_i_rule) {
-                int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
-                arma::uvec b_i_time = arma::find(pr_B == 2);
-                if(arma::any(b_i_time <= pos_bleed)) {
-                    valid_prop = true;
-                }
-            }
-            if (rbc_rule == 0) {valid_prop = true;}
-        }
+      if(clinic_rule == 1) {
+          if(rbc_rule == 1) {
+              // clinic=1, rbc=1 -> NEED S2, *yes* restriction on time of S2
+              int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
+              arma::uvec b_i_time = arma::find(pr_B == 2);
+              if(arma::any(b_i_time <= pos_bleed)) {
+                  valid_prop = true;
+              }
+          } else {
+              // clinic=1, rbc=0 -> NEED S2, *no* restriction on time of S2
+              if(b_i_rule) {
+                  valid_prop = true;
+              }
+          }
+      } else if(clinic_rule == 0) {
+          if(rbc_rule == 1) {
+              // clinic=0, rbc=1 -> NEED S2, *yes* restriction on time of S2
+              int pos_bleed = arma::as_scalar(arma::find(bleed_ind_i == 1));
+              arma::uvec b_i_time = arma::find(pr_B == 2);
+              if(arma::any(b_i_time <= pos_bleed)) {
+                  valid_prop = true;
+              }
+          } else {
+              // clinic=0, rbc=0 -> No restrictions, consider all state seq.
+              valid_prop = true;
+          }
       } else {
-        valid_prop = true; // evaluate likelihood anyways because S1&S3
+          // clinic=-1, rbc=1 -> evaluate likelihood anyways because S1,S4,S5
+          // clinic=-1, rbc=0 -> evaluate likelihood anyways because S1,S4,S5
+          valid_prop = true; 
       }
       
       // If the proposed state sequence is the same, then we do not need to 
@@ -562,6 +568,7 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       if(arma::accu(pr_B == B_temp) == pr_B.n_elem) {
           valid_prop = false;
       }
+      // -----------------------------------------------------------------------
       
       if(valid_prop) {
           
@@ -1154,13 +1161,13 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     arma::vec vec_beta = par.elem(vec_beta_ind - 1);
 
     // The prior info for sigma_upsilon ----------------------------------------
-    int nu_Upsilon = 2000;
+    int nu_Upsilon = 100;
     
     // arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
-    arma::vec scalar_mult2 = {  9, 2, 2, 2, 2, 
-                              400, 9, 9, 9, 9, 
-                              100, 9, 9, 9, 9, 
-                                9, 2, 2, 2, 2};
+    arma::vec scalar_mult2 = {  9,  2,  2,  2,  2, 
+                              400, 16, 16, 16, 16, 
+                              400, 16, 16, 16, 16, 
+                                9,  2,  2,  2,  2};
     scalar_mult2 = (nu_Upsilon - 20 - 1) * scalar_mult2;
     
     arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
