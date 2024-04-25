@@ -246,6 +246,15 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # Metropolis-within-Gibbs updates -------------------------------------
         for(j in 1:n_group) {
             ind_j = mpi[[j]]
+            
+            # Fix the zeta parameters the first half of burnin to help 
+            # the state space move
+            if(ttt <= burnin/2){
+                if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
+                    next
+                }
+            }
+            
             proposal = par
             
             if(sum(ind_j %in% par_index$vec_R) == 0) {

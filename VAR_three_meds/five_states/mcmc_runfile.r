@@ -35,6 +35,7 @@ if(simulation) {
     
     # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
     # trial 13: rule change for b_i sampler, running for multiple data sets
+    # trial 14: same as trial 13, just fix the zeta pars for first half of burnin
     trialNum = 13
     max_ind = 5
 
@@ -148,20 +149,46 @@ B = list()
 for(i in EIDs){
     if(simulation) {
         A[[i]] = alpha_i_mat[[which(EIDs == i)]]
-        B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
         W[[i]] = omega_i_mat[[which(EIDs == i)]]
+        # B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
     } else {
-        
-        # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
-        b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
-        
-        # Better initialization for the RBC and Clinic rule patients
-        
-        
-        B[[i]] = matrix(b_temp, ncol = 1)
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
         W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
     }
+    
+    # b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]
+    b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
+    
+    # Better initialization for the RBC and Clinic rule patients
+    clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
+    if(length(clinic_rule)>1) print(paste0("error ", i))
+    rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
+    if(length(rbc_rule)>1) print(paste0("error ", i))
+    
+    if(clinic_rule == 1) {
+        if(rbc_rule == 1) {
+            bi_i = bleed_indicator[data_format[,"EID"] == i]
+            bi_i_loc = min(which(bi_i == 1))
+            if(bi_i_loc != 1) {
+                b_temp[bi_i_loc - 1] = 2   
+            }
+            b_temp[bi_i_loc] = 2
+            b_temp[bi_i_loc + 1] = 3
+        } 
+    } else if(clinic_rule == 0) {
+        if(rbc_rule == 1) {
+            bi_i = bleed_indicator[data_format[,"EID"] == i]
+            bi_i_loc = min(which(bi_i == 1))
+            if(bi_i_loc != 1) {
+                b_temp[bi_i_loc - 1] = 2   
+            }
+            b_temp[bi_i_loc] = 2
+            b_temp[bi_i_loc + 1] = 3
+        } 
+    }
+    
+    
+    B[[i]] = matrix(b_temp, ncol = 1)
 }
 # -----------------------------------------------------------------------------
 

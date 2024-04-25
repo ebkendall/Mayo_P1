@@ -59,7 +59,6 @@ for(i in 1:length(bleed_pat)) {
                 first_time = admin_times[a_t[1]]
                 order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
                 if(sum(order_times <= first_time) == 0) {
-                    print(paste0(i, ", ", sub_dat[1,"EID"]))
                     first_order_time = first_time
                 } else {
                     first_order_time = max(order_times[order_times <= first_time])   
@@ -69,7 +68,6 @@ for(i in 1:length(bleed_pat)) {
                 first_time = admin_times[a_t[1]]  
                 order_times = sub_dat[sub_dat[,"RBC_ordered"] != 0, "time"]
                 if(sum(order_times <= first_time) == 0) {
-                    print(paste0(i, ", ", sub_dat[1,"EID"]))
                     first_order_time = first_time
                 } else {
                     first_order_time = max(order_times[order_times <= first_time])   
@@ -133,10 +131,10 @@ pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -1,        0.1, 0,
                                         88.69780576,  5.04150472,         -4, 0, 0,
                                         79.74903940, -5.04150472,          4, 0, 0,
                                           5.2113319,   0.5360813, -0.6866748, 0, 0)
-pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(9, 2, 2, 2, 2, 
-                                                400, 9, 9, 9, 9, 
-                                                100, 9, 9, 9, 9, 
-                                                  9, 2, 2, 2, 2)))
+pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9,  2,  2,  2,  2, 
+                                                  400, 16, 16, 16, 16, 
+                                                  400, 16, 16, 16, 16, 
+                                                    9,  2,  2,  2,  2)))
 
 # ------- NOT CHANGING -------
 # par_index$vec_A, par_index$vec_R, par_index$vec_upsilon_omega
