@@ -56,9 +56,10 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 12
-    itNum = 4
+    trialNum = 13
+    itNum = 1
     long_chain = T
+    df_num = 1
     
     true_par = NULL
 }
@@ -88,8 +89,13 @@ for(seed in index_seeds){
             file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
                                 trialNum,'it', it, '_sim.rda') 
         } else {
-            file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
+            if(trialNum < 13) {
+                file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
                                 trialNum,'it', it, '.rda')
+            } else {
+                file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
+                                trialNum,'it', it, '_df', df_num, '.rda')
+            }
         }
 
         load(file_name)
@@ -146,7 +152,12 @@ pdf_title = NULL
 if(simulation) {
     pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '_sim.pdf')
 } else {
-    pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '.pdf')
+    if(trialNum < 13) {
+        pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '.pdf')
+    } else {
+        pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, 
+                           '_df', df_num, '.pdf')
+    }
 }
 pdf(pdf_title)
 par(mfrow=c(3, 2))

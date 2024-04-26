@@ -11,14 +11,15 @@ if(simulation) {
     trialNum = 1
     itNum = 1
 } else {
-    trialNum = 12
-    itNum = 4
+    trialNum = 13
+    itNum = 1
+    df_num = 1
 }
 
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 2
+    seed_list = 3
 }
 
 # Load the model output -------------------------------------------------------
@@ -41,12 +42,19 @@ for(seed_num in 1:length(seed_list)) {
 
     for(it in it_seq) {
         if(simulation) {
-            load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'_sim.rda'))   
-            print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'_sim.rda'))
+            file_name = paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', 
+                               trialNum,'it',it,'_sim.rda')
         } else {
-            load(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'.rda'))
-            print(paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],'_', trialNum,'it',it,'.rda'))
+            if(trialNum < 13) {
+                file_name = paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],
+                                   '_', trialNum,'it',it,'.rda')
+            } else {
+                file_name = paste0(Dir,'mcmc_out_interm_', seed_list[seed_num],
+                                   '_', trialNum,'it',it, '_df', df_num, '.rda')
+            }
         }
+        load(file_name)
+        print(file_name)
         
         if(it == 1) {
             B_chain   = mcmc_out_temp$B_chain[501:1001, ]
@@ -69,15 +77,20 @@ for(seed_num in 1:length(seed_list)) {
 if(simulation) {
     load(paste0('Data_sim/use_data1_', data_num, '.rda'))
 } else {
-    load(paste0('../Data/data_format_new', 3, '.rda'))
-    old_EIDs = unique(data_format[,"EID"])
-    old_time = data_format[,"time"]
-    old_ids = data_format[,"EID"]
-    
-    load('Data_updates/data_format.rda')
-    new_EIDs = unique(data_format[,'EID'])
-    
-    data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+    if(trialNum < 13) {
+        load(paste0('../Data/data_format_new', 3, '.rda'))
+        old_EIDs = unique(data_format[,"EID"])
+        old_time = data_format[,"time"]
+        old_ids = data_format[,"EID"]
+        
+        load('Data_updates/data_format.rda')
+        new_EIDs = unique(data_format[,'EID'])
+        
+        data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
+    } else {
+        data_name = paste0('Data_updates/data_format_', df_num, '.rda')
+        load(data_name)
+    }
     use_data = data_format   
 }
 
@@ -116,15 +129,29 @@ if(all_seeds) {
 } else {
     if(simulation) {
         if(long_chain) {
-            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_sim_long.pdf')
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                '_seed',seed_list, '_sim_long.pdf')
         } else {
-            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_sim.pdf')
+            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                '_seed',seed_list, '_sim.pdf')
         }
     } else {
         if(long_chain) {
-            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '_long.pdf')
+            if(trialNum < 13) {
+                pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                    '_seed',seed_list, '_long.pdf')
+            } else {
+                pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                    '_seed',seed_list, '_df', df_num, '_long.pdf')
+            }
         } else {
-            pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, '_seed',seed_list, '.pdf')
+            if(trialNum < 13) {
+                pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                    '_seed',seed_list, '.pdf')
+            } else {
+                pdf_title = paste0('Plots/model_eval_', trialNum, '_it', itNum, 
+                                    '_seed',seed_list, '_df', df_num, '.pdf')
+            }
         }
     }
 }
@@ -210,7 +237,8 @@ for(i in EIDs){
             
             if(length(to_s5) > 0) {
                 s5_coords = data.frame(s = 5, t = to_s5)
-                if(length(to_s1) > 0 || length(to_s2) > 0 || length(to_s3) > 0 || length(to_s4) > 0) {
+                if(length(to_s1) > 0 || length(to_s2) > 0 || 
+                        length(to_s3) > 0 || length(to_s4) > 0) {
                     rect_coords = rbind(rect_coords, s5_coords)
                 } else {
                     rect_coords = s5_coords
@@ -222,13 +250,15 @@ for(i in EIDs){
             rect_coords = rbind(rect_coords, c(b_i[n_i], n_i+1))
             rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 
+                        'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)   
         } else {
             rect_coords = data.frame(s = rep(b_i[1], 2), t = c(1,n_i+1))
             rect_coords$t = rect_coords$t - 1
             rect_coords = rect_coords[order(rect_coords$t), ]
-            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray')[rect_coords$s]
+            col_vec = c('dodgerblue', 'firebrick1', 'yellow2', 
+                        'green', 'darkgray')[rect_coords$s]
             col_vec = makeTransparent(col_vec, alpha = 0.35)  
         }
     } 
@@ -243,10 +273,12 @@ for(i in EIDs){
     
     # Heart Rate and MAP double plot -----------------------------------------
     if(mean(use_data[indices_i, 'clinic_rule']) != 0) {
-        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']),
+        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', 
+                            mean(use_data[indices_i, 'RBC_rule']),
                             ', clinic = ', mean(use_data[indices_i, 'clinic_rule']))
     } else {
-        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']))
+        title_name = paste0('Heart Rate & MAP: ', i, ', RBC Rule = ', 
+                            mean(use_data[indices_i, 'RBC_rule']))
     }
     
     hr_upper = colQuantiles( Hr_chain[, indices_i, drop=F], probs=.975)
@@ -292,10 +324,12 @@ for(i in EIDs){
     
     # Hemoglobin and Lactate double plot -------------------------------------
     if(mean(use_data[indices_i, 'clinic_rule']) != 0) {
-        title_name = paste0('Hemoglobin & Lactate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']),
+        title_name = paste0('Hemoglobin & Lactate: ', i, ', RBC Rule = ', 
+                            mean(use_data[indices_i, 'RBC_rule']),
                             ', clinic = ', mean(use_data[indices_i, 'clinic_rule']))
     } else {
-        title_name = paste0('Hemoglobin & Lactate: ', i, ', RBC Rule = ', mean(use_data[indices_i, 'RBC_rule']))
+        title_name = paste0('Hemoglobin & Lactate: ', i, ', RBC Rule = ',
+                             mean(use_data[indices_i, 'RBC_rule']))
     }
     
     hc_upper = colQuantiles( Hc_chain[, indices_i, drop=F], probs=.975)
@@ -348,7 +382,8 @@ for(i in EIDs){
             xlim=range(pb) + c(-0.5,0.5)) 
     grid( nx=20, NULL, col='white')
     legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'Baseline', 'State 2', 'State 3', 'State 4', 'State 5'), pch=15, pt.cex=1.5, 
+            legend=c( 'Baseline', 'State 2', 'State 3', 'State 4', 'State 5'), 
+            pch=15, pt.cex=1.5, 
             col=c( 'dodgerblue', 'firebrick1', 'yellow2','green', 'darkgray'))
     legend( 'topleft', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
             legend=c( 'RBC order', 'RBC admin'), pch=15, pt.cex=1.5, 
