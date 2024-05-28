@@ -32,26 +32,29 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-    # mpi = list(c(par_index$vec_init),
-    #            c(par_index$vec_zeta),
-    #            c(par_index$vec_A[1:4]),
-    #            c(par_index$vec_A[5:12]),
-    #            c(par_index$vec_A[13:20]),
-    #            c(par_index$vec_upsilon_omega[c(1:16)]),
-    #            c(par_index$vec_upsilon_omega[c(17:35)]),
-    #            c(par_index$vec_upsilon_omega[c(36:57)]),
-    #            c(par_index$vec_upsilon_omega[c(58:88)]),
-    #            c(par_index$vec_R))
     mpi = list(c(par_index$vec_init),
                c(par_index$vec_zeta[1:4]),
                c(par_index$vec_zeta[5:8]),
                c(par_index$vec_zeta[9:14]),
                c(par_index$vec_zeta[15:24]),
-               c(par_index$vec_A[1:12]),
+               c(par_index$vec_A[1:4]),
+               c(par_index$vec_A[5:12]),
                c(par_index$vec_A[13:20]),
                c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
                c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
+            #    c(par_index$vec_upsilon_omega[c(36:57)]),
+            #    c(par_index$vec_upsilon_omega[c(58:88)]),
                c(par_index$vec_R))
+    # mpi = list(c(par_index$vec_init),
+    #            c(par_index$vec_zeta[1:4]),
+    #            c(par_index$vec_zeta[5:8]),
+    #            c(par_index$vec_zeta[9:14]),
+    #            c(par_index$vec_zeta[15:24]),
+    #            c(par_index$vec_A[1:12]),
+    #            c(par_index$vec_A[13:20]),
+    #            c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
+    #            c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
+    #            c(par_index$vec_R))
 
     n_group = length(mpi)
 
@@ -60,68 +63,71 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        file_name = paste0("Data_updates/Y_init", trialNum, "_df", df_num, ".rda")
-        if(file.exists(file_name)) {
-            load(file_name)
-        } else {
-            # Setting initial values for Y
-            print("Initializing the missing Y's for imputation")
-            for(i in EIDs) {
-                print(which(EIDs == i))
-                heading_names = c('hemo', 'hr', 'map', 'lactate')
-                sub_dat = Y[Y[,"EID"] == i, ]
-        
-                for(k in 1:length(heading_names)) {
-                    if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
-                        sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
-                    } else {
-                        if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
-                            sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+        if(max_ind <= 5) {
+            file_name = paste0("Data_updates/Y_init", trialNum, "_df", df_num, ".rda")
+            if(file.exists(file_name)) {
+                load(file_name)
+            } else {
+                # Setting initial values for Y
+                print("Initializing the missing Y's for imputation")
+                for(i in EIDs) {
+                    print(which(EIDs == i))
+                    heading_names = c('hemo', 'hr', 'map', 'lactate')
+                    sub_dat = Y[Y[,"EID"] == i, ]
+            
+                    for(k in 1:length(heading_names)) {
+                        if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
+                            sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
                         } else {
-                            obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
-                            miss_indices = which(is.na(sub_dat[,heading_names[k]]))
-                            for(j in miss_indices) {
-                                if(j < obs_indices[1]) {
-                                    sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
-                                } else if(j > tail(obs_indices,1)) {
-                                    sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
-                                } else {
-                                    end_pts = c(max(obs_indices[obs_indices < j]),
-                                                min(obs_indices[obs_indices > j]))
-                                    slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
-                                    sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                            if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
+                                sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                            } else {
+                                obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
+                                miss_indices = which(is.na(sub_dat[,heading_names[k]]))
+                                for(j in miss_indices) {
+                                    if(j < obs_indices[1]) {
+                                        sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
+                                    } else if(j > tail(obs_indices,1)) {
+                                        sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
+                                    } else {
+                                        end_pts = c(max(obs_indices[obs_indices < j]),
+                                                    min(obs_indices[obs_indices > j]))
+                                        slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
+                                        sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                                    }
                                 }
                             }
                         }
+                        Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
                     }
-                    Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
                 }
+                save(Y, file = file_name)
+                print("Done initializing")
             }
-            save(Y, file = file_name)
-            print("Done initializing")
+        } else {
+            print("continue from last iteration")
+            # ----------------------------------------------------------------------
+            prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '.rda')
+            load(prev_file)
+            # ----------------------------------------------------------------------
+            
+            pcov = mcmc_out_temp$pcov
+            pscale = mcmc_out_temp$pscale
+            
+            # Setting initial values for Y
+            Y[, 'hemo']    = c(mcmc_out_temp$hc_chain[nrow(mcmc_out_temp$hc_chain), ])
+            Y[, 'hr']      = c(mcmc_out_temp$hr_chain[nrow(mcmc_out_temp$hr_chain), ])
+            Y[, 'map']     = c(mcmc_out_temp$bp_chain[nrow(mcmc_out_temp$bp_chain), ])
+            Y[, 'lactate'] = c(mcmc_out_temp$la_chain[nrow(mcmc_out_temp$la_chain), ])
+            
+            # Ensure we don't have any negative values
+            Y[Y[,'hemo']    < 0,'hemo']    = 0.001
+            Y[Y[,'hr']      < 0,'hr']      = 0.001
+            Y[Y[,'map']     < 0,'map']     = 0.001
+            Y[Y[,'lactate'] < 0,'lactate'] = 0.001
+            
+            rm(mcmc_out_temp)
         }
-        
-        # # ----------------------------------------------------------------------
-        # prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum-1, 'it', max_ind, '.rda')
-        # load(prev_file)
-        # # ----------------------------------------------------------------------
-        # 
-        # # pcov = mcmc_out_temp$pcov
-        # # pscale = mcmc_out_temp$pscale
-        # 
-        # # Setting initial values for Y
-        # Y[, 'hemo']    = c(colMeans(mcmc_out_temp$hc_chain[1:nrow(mcmc_out_temp$hc_chain), ]))
-        # Y[, 'hr']      = c(colMeans(mcmc_out_temp$hr_chain[1:nrow(mcmc_out_temp$hr_chain), ]))
-        # Y[, 'map']     = c(colMeans(mcmc_out_temp$bp_chain[1:nrow(mcmc_out_temp$bp_chain), ]))
-        # Y[, 'lactate'] = c(colMeans(mcmc_out_temp$la_chain[1:nrow(mcmc_out_temp$la_chain), ]))
-        # 
-        # # Ensure we don't have any negative values
-        # Y[Y[,'hemo']    < 0,'hemo']    = 0.001
-        # Y[Y[,'hr']      < 0,'hr']      = 0.001
-        # Y[Y[,'map']     < 0,'map']     = 0.001
-        # Y[Y[,'lactate'] < 0,'lactate'] = 0.001
-        # 
-        # rm(mcmc_out_temp)
     } 
   
     # Begin the MCMC algorithm -------------------------------------------------

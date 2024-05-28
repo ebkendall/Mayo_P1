@@ -56,8 +56,8 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 13
-    itNum = 1
+    trialNum = 15
+    itNum = 5
     long_chain = T
     df_num = 1
     
