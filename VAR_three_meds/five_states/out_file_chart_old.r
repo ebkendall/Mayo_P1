@@ -12,7 +12,7 @@ if(simulation) {
     itNum = 1
 } else {
     trialNum = 15
-    itNum = 2
+    itNum = 5
     df_num = 1
 }
 

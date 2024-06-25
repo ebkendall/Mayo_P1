@@ -37,7 +37,7 @@ if(simulation) {
     # trial 13: rule change for b_i sampler, running for multiple data sets
     # trial 14: same as trial 13, just fix the zeta pars for first half of burnin
     trialNum = 15
-    max_ind = 10
+    max_ind = 15
 
     print(data_name)
 }
@@ -115,7 +115,7 @@ if(simulation) {
 } else {
     # ----------------------------------------------------------------------
     # prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
-    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '.rda')
+    prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '_df', df_num, '.rda')
     load(prev_file)
     # ----------------------------------------------------------------------
     

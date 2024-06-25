@@ -57,7 +57,7 @@ if(simulation) {
 } else {
     index_seeds = c(1:3)
     trialNum = 15
-    itNum = 5
+    itNum = 10
     long_chain = T
     df_num = 1
     

@@ -107,7 +107,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         } else {
             print("continue from last iteration")
             # ----------------------------------------------------------------------
-            prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '.rda')
+            prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '_df', df_num, '.rda')
             load(prev_file)
             # ----------------------------------------------------------------------
             
@@ -186,10 +186,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Metropolis-within-Gibbs update of the state space --------------------
         # print("Update b_i"); s_time = Sys.time()
-        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-                              Xn, Dn_omega, W, bleed_indicator, n_cores)
+        # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+        #                       Xn, Dn_omega, W, bleed_indicator, n_cores)
+        B_Dn = update_b_i_impute_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+                               Xn, Dn_omega, W, bleed_indicator, n_cores, otype)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
+        Y = B_Dn[[3]]
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
@@ -400,13 +403,12 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Restart the acceptance ratio at burnin
         if(ttt == burnin) accept = rep( 0, n_group)
-        if(ttt > burnin){
-            B_chain[ chain_ind,] = do.call( 'c', B)
-            hc_chain[ chain_ind,] = Y[,'hemo']
-            hr_chain[ chain_ind,] = Y[,'hr']
-            bp_chain[ chain_ind,] = Y[,'map']
-            la_chain[ chain_ind,] = Y[,'lactate']
-        }
+        
+        B_chain[ chain_ind,] = do.call( 'c', B)
+        hc_chain[ chain_ind,] = Y[,'hemo']
+        hr_chain[ chain_ind,] = Y[,'hr']
+        bp_chain[ chain_ind,] = Y[,'map']
+        la_chain[ chain_ind,] = Y[,'lactate']
         # ----------------------------------------------------------------------
 
         if(ttt%%1==0)  cat('--->',ttt,'\n')
