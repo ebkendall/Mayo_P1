@@ -42,19 +42,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_A[13:20]),
                c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
                c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
-            #    c(par_index$vec_upsilon_omega[c(36:57)]),
-            #    c(par_index$vec_upsilon_omega[c(58:88)]),
                c(par_index$vec_R))
-    # mpi = list(c(par_index$vec_init),
-    #            c(par_index$vec_zeta[1:4]),
-    #            c(par_index$vec_zeta[5:8]),
-    #            c(par_index$vec_zeta[9:14]),
-    #            c(par_index$vec_zeta[15:24]),
-    #            c(par_index$vec_A[1:12]),
-    #            c(par_index$vec_A[13:20]),
-    #            c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
-    #            c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
-    #            c(par_index$vec_R))
 
     n_group = length(mpi)
 
@@ -63,7 +51,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     pscale = rep( 1, n_group)
 
     if(!simulation) {
-        if(max_ind <= 5) {
+        if(max_ind == 5) {
             file_name = paste0("Data_updates/Y_init", trialNum, "_df", df_num, ".rda")
             if(file.exists(file_name)) {
                 load(file_name)
@@ -101,6 +89,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                         Y[Y[,"EID"] == i, heading_names[k]] = sub_dat[,heading_names[k]]
                     }
                 }
+                
+                # Ensure we don't have any negative values
+                Y[Y[,'hemo']    < 0,'hemo']    = 0.001
+                Y[Y[,'hr']      < 0,'hr']      = 0.001
+                Y[Y[,'map']     < 0,'map']     = 0.001
+                Y[Y[,'lactate'] < 0,'lactate'] = 0.001
+                
                 save(Y, file = file_name)
                 print("Done initializing")
             }
@@ -192,7 +187,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                                Xn, Dn_omega, W, bleed_indicator, n_cores, otype)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
-        Y = B_Dn[[3]]
+        Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
@@ -209,38 +204,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Save the parameter updates made in the Gibbs steps before Metropolis steps
         chain[chain_ind,] = par
-
-        # Printing updates ----------------------------------------------------
-        if (ttt %% 100 == 0){
-            print("alpha_tilde")
-            print(round(chain[chain_ind, par_index$vec_alpha_tilde], 3))
-            
-            print("diag of Sigma_Upsilon")
-            Sigma_t = matrix(chain[chain_ind,par_index$vec_sigma_upsilon], ncol = 20)
-            print(round(diag(Sigma_t), 3))
-            
-            print("A1")
-            vec_A_t_logit = chain[chain_ind, par_index$vec_A]
-            vec_A_t = exp(vec_A_t_logit) / (1 + exp(vec_A_t_logit))
-            mat_A_t = matrix(vec_A_t, nrow = 4)
-            print(mat_A_t)
-            print(matrix(vec_A_t_logit, nrow = 4))
-            
-            print("R")
-            R_t = matrix(chain[chain_ind, par_index$vec_R], ncol = 4)
-            print(R_t)
-            
-            print("zeta")
-            zed = matrix(chain[chain_ind, par_index$vec_zeta], nrow = 2)
-            print(zed)
-            
-            print("acceptance")
-            print(accept / (ttt %% 480))
-            
-            print("pscale")
-            print(pscale)
-        }
-        # ---------------------------------------------------------------------
         
         log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B, 
                                         Y, z, Dn, Xn, Dn_omega, W, n_cores)
