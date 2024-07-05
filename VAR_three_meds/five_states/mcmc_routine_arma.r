@@ -181,14 +181,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Metropolis-within-Gibbs update of the state space --------------------
         # print("Update b_i"); s_time = Sys.time()
-        # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-        #                       Xn, Dn_omega, W, bleed_indicator, n_cores)
-        B_Dn = update_b_i_impute_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-                               Xn, Dn_omega, W, bleed_indicator, n_cores, otype)
-        B = B_Dn[[1]]; names(B) = EIDs
-        Dn = B_Dn[[2]]; names(Dn) = EIDs
-        Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
+        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+                              Xn, Dn_omega, W, bleed_indicator, n_cores)
         # e_time = Sys.time() - s_time; print(e_time)
+        
+        # # Simultaneous update of state space, B, and imputation of data, Y -----
+        # B_Dn = update_b_i_impute_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+        #                        Xn, Dn_omega, W, bleed_indicator, n_cores, otype)
+        # B = B_Dn[[1]]; names(B) = EIDs
+        # Dn = B_Dn[[2]]; names(Dn) = EIDs
+        # Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
 
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
@@ -219,13 +221,13 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         for(j in 1:n_group) {
             ind_j = mpi[[j]]
             
-            # Fix the zeta parameters the first half of burnin to help 
-            # the state space move
-            if(ttt <= burnin/2){
-                if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
-                    next
-                }
-            }
+            # # Fix the zeta parameters the first half of burnin to help 
+            # # the state space move
+            # if(ttt <= burnin/2){
+            #     if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
+            #         next
+            #     }
+            # }
             
             proposal = par
             
@@ -320,7 +322,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
                 # q(R* | R(t)) -----------------------------
                 curr_R = matrix(par[ind_j], nrow = 4)
-                psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn, 
+                                                   A, par, par_index, as.numeric(EIDs), 
+                                                   B, Dn_omega, W)
                 q_s_star_t = psi_nu_star_t[[1]] / pscale[j]
                 q_nu_star_t = floor(psi_nu_star_t[[2]] / pscale[j])
                 
@@ -329,14 +333,21 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 
                 # q(R(t) | R*) -----------------------------
                 prop_R = matrix(proposal[ind_j], nrow = 4)
-                psi_nu_t_star = proposal_R_cpp_new(nu_R, psi_R, prop_R, Y, Dn, Xn, A, par, par_index, as.numeric(EIDs), B, Dn_omega, W)
+                psi_nu_t_star = proposal_R_cpp_new(nu_R, psi_R, prop_R, Y, Dn, Xn, 
+                                                   A, par, par_index, as.numeric(EIDs), 
+                                                   B, Dn_omega, W)
                 q_s_t_star = psi_nu_t_star[[1]] / pscale[j]
                 q_nu_t_star = floor(psi_nu_t_star[[2]] / pscale[j])
                 
-                log_prop      = dinvwishart(Sigma = prop_R, nu = q_nu_star_t, S = q_s_star_t, log = T)
-                log_prop_prev = dinvwishart(Sigma = curr_R, nu = q_nu_t_star, S = q_s_t_star, log = T)
+                log_prop      = dinvwishart(Sigma = prop_R, 
+                                            nu = q_nu_star_t, 
+                                            S = q_s_star_t, log = T)
+                log_prop_prev = dinvwishart(Sigma = curr_R, 
+                                            nu = q_nu_t_star, 
+                                            S = q_s_t_star, log = T)
                 
-                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index, 
+                                           A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
 
                 if(!is.finite(log_target + log_prop_prev - log_target_prev - log_prop) | is.nan(log_target + log_prop_prev - log_target_prev - log_prop)) {
                     # Ensuring that we do not have problems from C++

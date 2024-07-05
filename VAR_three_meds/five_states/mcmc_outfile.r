@@ -1,8 +1,5 @@
 # Size of posterior sample from mcmc chains
-n_post = 501
-burnin = 500
 steps = 1001
-index_post = (steps - burnin - n_post + 1):(steps - burnin)
 
 simulation = F
 
@@ -56,8 +53,8 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 15
-    itNum = 10
+    trialNum = 16
+    itNum = 2
     long_chain = T
     df_num = 1
     

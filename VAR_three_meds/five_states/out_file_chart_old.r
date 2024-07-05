@@ -11,8 +11,8 @@ if(simulation) {
     trialNum = 1
     itNum = 1
 } else {
-    trialNum = 15
-    itNum = 5
+    trialNum = 16
+    itNum = 1
     df_num = 1
 }
 
@@ -57,11 +57,11 @@ for(seed_num in 1:length(seed_list)) {
         print(file_name)
         
         if(it == 1) {
-            B_chain   = mcmc_out_temp$B_chain[501:1001, ]
-            Hr_chain  = mcmc_out_temp$hr_chain[501:1001, ]
-            Map_chain = mcmc_out_temp$bp_chain[501:1001, ]
-            Hc_chain  = mcmc_out_temp$hc_chain[501:1001, ]
-            La_chain  = mcmc_out_temp$la_chain[501:1001, ]
+            B_chain   = mcmc_out_temp$B_chain[251:500, ]
+            Hr_chain  = mcmc_out_temp$hr_chain[251:500, ]
+            Map_chain = mcmc_out_temp$bp_chain[251:500, ]
+            Hc_chain  = mcmc_out_temp$hc_chain[251:500, ]
+            La_chain  = mcmc_out_temp$la_chain[251:500, ]
         } else {
             B_chain   = rbind(B_chain, mcmc_out_temp$B_chain)
             Hr_chain  = mcmc_out_temp$hr_chain

@@ -13,7 +13,8 @@ ind_list = rep(1:3, 10)
 ind = ind_list[seed_num]
 print(ind)
 
-simulation = F
+simulation = T
+
 data_format = NULL
 
 if(simulation) {
@@ -43,7 +44,8 @@ if(simulation) {
     print(data_name)
 }
 
-Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
+Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 
+                    'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
 
 x = data_format[,c('n_RBC_admin'), drop=F]
@@ -118,7 +120,8 @@ if(simulation) {
     if(max_ind == 5) {
         prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
     } else {
-        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 'it', max_ind-5, '_df', df_num, '.rda')
+        prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 
+                           'it', max_ind-5, '_df', df_num, '.rda')
     }
     
     load(prev_file)
@@ -137,9 +140,10 @@ if(simulation) {
     bleed_indicator = b_ind_fnc(data_format)
     
     if(max_ind == 5) {
-        par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain), ])
+        par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
         rownames(par_temp) = NULL
-        par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, par_index$vec_R)]
+        par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, 
+                                                              par_index$vec_R)]
     } else {
         par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
         rownames(par_temp) = NULL
