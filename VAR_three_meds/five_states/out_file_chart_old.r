@@ -1,15 +1,15 @@
 library(matrixStats)
 library(plotrix)
 
-simulation = F
+simulation = T
 all_seeds = F
-long_chain = F 
+long_chain = T
 
 if(simulation) {
     data_num = 1
     
     trialNum = 1
-    itNum = 1
+    itNum = 2
 } else {
     trialNum = 16
     itNum = 1
@@ -19,7 +19,7 @@ if(simulation) {
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 3
+    seed_list = 1
 }
 
 # Load the model output -------------------------------------------------------

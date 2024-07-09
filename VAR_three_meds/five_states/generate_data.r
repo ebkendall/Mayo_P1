@@ -1,21 +1,14 @@
 library(mvtnorm, quietly=T)
 
 # Load in the existing data and save the covariate combinations
-real_dat_num = 3
-load(paste0('../Data/data_format_new', real_dat_num, '.rda'))
+df_num = 1
+data_name = paste0('Data_updates/data_format_', df_num, '.rda')
+load(data_name)
 
-old_EIDs = unique(data_format[,"EID"])
-old_time = data_format[,"time"]
-old_ids = data_format[,"EID"]
-
-load('Data_updates/data_format.rda')
-new_EIDs = unique(data_format[,'EID'])
-
-data_format = data_format[data_format[,"EID"] %in% old_EIDs, ]
-
-it_num = 3
+it_num = 1
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
+EIDs = unique(data_format[,"EID"])
 
 # Making an indicator variable about the first RBC to indicate bleed event
 bleed_pat = unique(data_format[data_format[,"RBC_rule"] != 0, "EID"])
@@ -88,14 +81,15 @@ for(i in 1:length(bleed_pat)) {
 data_format = cbind(data_format, bleed_indicator)
 
 load('Data_updates/Dn_omega1.rda')
+load('Data_updates/all_EIDs.rda')
 Dn_omega_big = Dn_omega
-eid_index = which(new_EIDs %in% old_EIDs)
+eid_index = which(all_EIDs %in% EIDs)
 Dn_omega = vector(mode = 'list', length = length(eid_index))
 for(jjj in 1:length(eid_index)) {
     Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
 }
 rm(Dn_omega_big)
-# load(paste0('../Data/Dn_omega', real_dat_num, '.rda'))
+
 
 Y = data_format[, c('EID','time','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')] 
 EIDs = as.character(unique(data_format[,'EID']))
@@ -124,13 +118,17 @@ save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 # prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_10it', 1, '.rda')
 prev_file = "Model_out/mcmc_out_interm_3_1it2.rda"
 load(prev_file)
-pars_mean = colMeans(mcmc_out_temp$chain[800:1001,])
+
+# par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, 
+#                                                       par_index$vec_R)]
+pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
+rownames(pars_mean) = NULL
 
 pars_mean[par_index$vec_beta] = c(0.25, -1, 2, -0.25)
-pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -1,        0.1, 0, 0,
-                                        88.69780576,  5.04150472,         -4, 0, 0,
-                                        79.74903940, -5.04150472,          4, 0, 0,
-                                          5.2113319,   0.5360813, -0.6866748, 0, 0)
+pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -1,        0.1, -0.2, -0.2,
+                                        88.69780576,  5.04150472,         -4, -1.5,  1.5,
+                                        79.74903940, -5.04150472,          4,  1.5, -1.5,
+                                          5.2113319,   0.5360813, -0.6866748,  0.2,  0.2)
 pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9,  2,  2,  2,  2, 
                                                   400, 16, 16, 16, 16, 
                                                   400, 16, 16, 16, 16, 
@@ -197,7 +195,6 @@ init_logit = c(0, init_logit)
 #           -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
 #           -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
 # 
-# omega = 3 * omega
 # pars_mean[par_index$omega_tilde] = omega
 omega = pars_mean[par_index$omega_tilde]
 

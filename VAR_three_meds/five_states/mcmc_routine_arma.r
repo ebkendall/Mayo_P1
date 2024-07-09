@@ -11,18 +11,19 @@ sourceCpp("likelihood_fnc_arm.cpp")
 # Sys.setenv("PKG_CXXFLAGS" = "-fopenmp")
 # Sys.setenv("PKG_LIBS" = "-fopenmp")
 
-
 # -----------------------------------------------------------------------------
 # The mcmc algorithm
 # -----------------------------------------------------------------------------
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind, df_num){
-  
+    
     n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
 
     print(paste0("Number of cores: ", n_cores))
 
     EIDs = as.character(unique(Y[,'EID']))
+    
+    t_pt_length = 4
 
     # Index of observed versus missing data
     # 1 = observed, 0 = missing
@@ -179,11 +180,21 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
+        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        
         # Metropolis-within-Gibbs update of the state space --------------------
         # print("Update b_i"); s_time = Sys.time()
-        B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-                              Xn, Dn_omega, W, bleed_indicator, n_cores)
-        # e_time = Sys.time() - s_time; print(e_time)
+        B_Dn = update_b_i_cpp_multi(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+                              Xn, Dn_omega, W, bleed_indicator, n_cores, t_pt_length)
+        B = B_Dn[[1]]; names(B) = EIDs
+        Dn = B_Dn[[2]]; names(Dn) = EIDs
+        
+        # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
+        #                       Xn, Dn_omega, W, bleed_indicator, n_cores)
+        # B = B_Dn[[1]]; names(B) = EIDs
+        # Dn = B_Dn[[2]]; names(Dn) = EIDs
         
         # # Simultaneous update of state space, B, and imputation of data, Y -----
         # B_Dn = update_b_i_impute_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
@@ -191,7 +202,11 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # B = B_Dn[[1]]; names(B) = EIDs
         # Dn = B_Dn[[2]]; names(Dn) = EIDs
         # Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
-
+        # e_time = Sys.time() - s_time; print(e_time)
+        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
         par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
@@ -496,3 +511,4 @@ var_R_calc <- function(psi, nu, p) {
     }
     return(var_mat)
 }
+
