@@ -5,7 +5,7 @@ df_num = 1
 data_name = paste0('Data_updates/data_format_', df_num, '.rda')
 load(data_name)
 
-it_num = 1
+it_num = 2
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 EIDs = unique(data_format[,"EID"])
@@ -125,14 +125,14 @@ pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
 rownames(pars_mean) = NULL
 
 pars_mean[par_index$vec_beta] = c(0.25, -1, 2, -0.25)
-pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -1,        0.1, -0.2, -0.2,
-                                        88.69780576,  5.04150472,         -4, -1.5,  1.5,
-                                        79.74903940, -5.04150472,          4,  1.5, -1.5,
-                                          5.2113319,   0.5360813, -0.6866748,  0.2,  0.2)
-pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9,  2,  2,  2,  2, 
-                                                  400, 16, 16, 16, 16, 
-                                                  400, 16, 16, 16, 16, 
-                                                    9,  2,  2,  2,  2)))
+pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -3,          3, -0.2, -0.2,
+                                        88.69780576,  10.04150472,        -8, -0.5, -0.5,
+                                        79.74903940, -10.04150472,         8,  0.5, -0.5,
+                                          5.2113319,   3.5360813, -3.6866748,  0.2,  0.2)
+pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9, 2, 2, 16, 16, 
+                                                  100, 9, 9, 25, 25, 
+                                                  100, 9, 9, 25, 25, 
+                                                    9, 2, 2, 16, 16)))
 
 # ------- NOT CHANGING -------
 # par_index$vec_A, par_index$vec_R, par_index$vec_upsilon_omega
@@ -140,9 +140,9 @@ pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9,  2,  2,  2,  2,
 #    transitions:                         1->2,         1->4,         2->3,         2->4, 
 #                                         3->1,         3->2,         3->4,         4->2, 
 #                                         4->5,         5->1,         5->2,         5->4
-pars_mean[par_index$vec_zeta] = c(-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
-                                  -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
-                                  -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
+pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
+                                  -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
+                                  -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
 
 pars_mean[par_index$vec_init] = c(-1, -1, 0.5, -1)
 

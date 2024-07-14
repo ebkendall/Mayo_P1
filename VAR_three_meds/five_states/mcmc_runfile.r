@@ -20,11 +20,11 @@ data_format = NULL
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 1
+    sim_dat_num = 2
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 2
+    trialNum = 3
     
     max_ind = 5
 } else {
@@ -106,16 +106,18 @@ par_index$omega_tilde = 489:576
 par_index$vec_upsilon_omega = 577:664
 # -----------------------------------------------------------------------------
 
-# if(simulation) {
-#     load(paste0('Data_sim/true_pars_', sim_dat_num, '.rda'))
-#     load(paste0('Data_sim/alpha_i_mat_', sim_dat_num, '.rda'))
-#     load(paste0('Data_sim/omega_i_mat_', sim_dat_num, '.rda'))
-#     load(paste0('Data_sim/Dn_omega_sim_', sim_dat_num, '.rda'))
-#     load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
-# 
-#     par = true_pars
-#     Dn_omega = Dn_omega_sim
-# } else {
+if(simulation) {
+    load(paste0('Data_sim/true_pars_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/alpha_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/omega_i_mat_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/Dn_omega_sim_', sim_dat_num, '.rda'))
+    load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
+
+    par = true_pars
+    Dn_omega = Dn_omega_sim
+    
+    b_chain = data_format[, "b_true"]
+} else {
     # ----------------------------------------------------------------------
     if(max_ind == 5) {
         prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
@@ -137,11 +139,7 @@ par_index$vec_upsilon_omega = 577:664
     }
     rm(Dn_omega_big)
     
-    if(!simulation) {
-        bleed_indicator = b_ind_fnc(data_format)   
-    } else {
-        load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
-    }
+    load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
     
     if(max_ind == 5) {
         par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
@@ -157,21 +155,20 @@ par_index$vec_upsilon_omega = 577:664
     b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
     
     rm(mcmc_out_temp)
-# }
+}
 # -----------------------------------------------------------------------------
 A = list()
 W = list()
 B = list()
 
 for(i in EIDs){
-    # if(simulation) {
-    #     A[[i]] = alpha_i_mat[[which(EIDs == i)]]
-    #     W[[i]] = omega_i_mat[[which(EIDs == i)]]
-    #     # B[[i]] = data_format[data_format[,'EID']==as.numeric(i), "b_true", drop=F]
-    # } else {
+    if(simulation) {
+        A[[i]] = alpha_i_mat[[which(EIDs == i)]]
+        W[[i]] = omega_i_mat[[which(EIDs == i)]]
+    } else {
         A[[i]] = matrix(par[par_index$vec_alpha_tilde], ncol =1)
         W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
-    # }
+    }
     
     if(max_ind == 5) {
         
