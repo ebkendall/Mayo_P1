@@ -23,7 +23,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     EIDs = as.character(unique(Y[,'EID']))
     
-    t_pt_length = 4
+    t_pt_length = 2
 
     # Index of observed versus missing data
     # 1 = observed, 0 = missing
@@ -164,9 +164,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the alpha_i -----------------------------------------
         # print("Update alpha_i"); s_time = Sys.time()
-        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
-                                Dn_omega, W, B, n_cores)
-        names(A) = EIDs
+        # A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
+        #                         Dn_omega, W, B, n_cores)
+        # names(A) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         for(aaa in 1:length(a_chain_id)) {
@@ -175,9 +175,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the omega_i -----------------------------------------
         # print("Update omega_i"); s_time = Sys.time()
-        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
-                                Dn_omega, A, B, n_cores)
-        names(W) = EIDs
+        # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
+        #                         Dn_omega, A, B, n_cores)
+        # names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         # ----------------------------------------------------------------------

@@ -44,8 +44,8 @@ dir = 'Model_out/'
 
 if(simulation) {
     index_seeds = c(1:3)
-    trialNum = 2
-    itNum = 1
+    trialNum = 3
+    itNum = 5
     long_chain = T
     
     data_num = 1

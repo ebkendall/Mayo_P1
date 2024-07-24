@@ -361,8 +361,8 @@ arma::field<arma::field<arma::mat>> get_Omega_list(const arma::imat &adj_mat, in
     return Omega_List;
 }
 
-const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_multi = get_Omega_list(adj_mat, 4);
-const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_sub_multi = get_Omega_list(adj_mat_sub, 4);
+const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_multi = get_Omega_list(adj_mat, 2);
+const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_sub_multi = get_Omega_list(adj_mat_sub, 2);
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -814,6 +814,11 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
       int sampled_index = arma::randi(arma::distr_param(1, Omega_set.n_rows));
       
       pr_B.rows(k, k+1) = Omega_set.row(sampled_index-1).t();
+      
+      // if(i == 72450) {
+      //     // pr_B = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3};
+      //     // pr_B = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,3,3,3};
+      // }
       
       // State sampling using RBC and Clinic information -----------------------
       bool valid_prop = false;

@@ -6,10 +6,10 @@ all_seeds = F
 long_chain = T
 
 if(simulation) {
-    data_num = 1
+    data_num = 2
     
-    trialNum = 2
-    itNum = 1
+    trialNum = 5
+    itNum = 3
 } else {
     trialNum = 16
     itNum = 1
@@ -76,6 +76,9 @@ for(seed_num in 1:length(seed_list)) {
 
 if(simulation) {
     load(paste0('Data_sim/use_data1_', data_num, '.rda'))
+    load(paste0('Data_sim/Dn_omega_sim_', data_num, '.rda'))
+    Dn_omega = Dn_omega_sim
+    EIDs = unique(use_data[,'EID'])
 } else {
     if(trialNum < 13) {
         load(paste0('../Data/data_format_new', 3, '.rda'))
@@ -91,10 +94,21 @@ if(simulation) {
         data_name = paste0('Data_updates/data_format_', df_num, '.rda')
         load(data_name)
     }
-    use_data = data_format   
+    use_data = data_format 
+    EIDs = unique(use_data[,'EID'])
+    
+    load('Data_updates/Dn_omega1.rda')
+    load('Data_updates/all_EIDs.rda')
+    Dn_omega_big = Dn_omega
+    eid_index = which(all_EIDs %in% EIDs)
+    Dn_omega = vector(mode = 'list', length = length(eid_index))
+    for(jjj in 1:length(eid_index)) {
+        Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
+    }
+    rm(Dn_omega_big)
 }
 
-EIDs = unique(use_data[,'EID'])
+load('Data_updates/hr_map_names1.rda')
 
 # ------------------------------------------------------------------------------
 # Function to change transparency of colors # ----------------------------------
@@ -156,13 +170,13 @@ if(all_seeds) {
     }
 }
 pdf(pdf_title)
-if(simulation) {
-    panel_dim = c(5,1)
-    inset_dim = c(0,-.28)
-} else {
+# if(simulation) {
+#     panel_dim = c(5,1)
+#     inset_dim = c(0,-.28)
+# } else {
     panel_dim = c(4,1)
     inset_dim = c(0,-.18)
-}
+# }
 par(mfrow=panel_dim, mar=c(2,4,2,4), bg='black', fg='green')
 for(i in EIDs){
     print(which(EIDs == i))
@@ -371,6 +385,69 @@ for(i in EIDs){
     abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
     abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     
+    # Medication admin plot ----------------------------------------------------
+    med_i = Dn_omega[[which(EIDs == i)]]
+    med_i_mat = stacked_chains = do.call( rbind, med_i)
+    
+    hr_med_i_mat = med_i_mat[seq(2, nrow(med_i_mat), by = 4), ]
+    map_med_i_mat = med_i_mat[seq(3, nrow(med_i_mat), by = 4), ]
+    hr_med_i_mat = hr_med_i_mat[, hr_map_names %in% c('hr_cont', 'hr_disc')]
+    map_med_i_mat = map_med_i_mat[, hr_map_names %in% c('map_cont', 'map_disc')]
+    
+    upp_down = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+                 -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+                 -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+                 -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+                 1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+                 -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+                 -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+    
+    hr_upp_down = upp_down[hr_map_names %in% c('hr_cont', 'hr_disc')]
+    map_upp_down = upp_down[hr_map_names %in% c('map_cont', 'map_disc')]
+    
+    hr_upp_i   = hr_med_i_mat[,hr_upp_down == 1]
+    hr_down_i  = hr_med_i_mat[,hr_upp_down == -1]
+    map_upp_i  = map_med_i_mat[,map_upp_down == 1]
+    map_down_i = map_med_i_mat[,map_upp_down == -1]
+    
+    total_hr_up  = rowSums(hr_upp_i)
+    total_hr_dn  = rowSums(hr_down_i)
+    total_map_up = rowSums(map_upp_i)
+    total_map_dn = rowSums(map_down_i)
+    
+    hr_map_ylim = c(min(total_hr_up, total_hr_dn, total_map_up, total_map_dn), 
+                    max(total_hr_up, total_hr_dn, total_map_up, total_map_dn))
+    if(hr_map_ylim[1] == hr_map_ylim[2]) hr_map_ylim = c(0,1)
+    
+    plot(NULL, xlim=range(pb) + c(-0.5,0.5), ylim=hr_map_ylim, main='Med. admin',
+         xlab='time', ylab=NA, xaxt='n', col.main='green',
+         col.axis='green')
+    
+    if(simulation) {
+        rect(xleft = rect_coords$t[-nrow(rect_coords)], 
+             ybottom = hr_map_ylim[1], 
+             xright = rect_coords$t[-1], 
+             ytop = hr_map_ylim[2],
+             col = col_vec[-nrow(rect_coords)],
+             border = NA)
+    } 
+    
+    lines(x = pb, y = total_hr_up, xlab='time', ylab=NA, col.main='green',
+          col.axis='green', lwd=4, lty = 1, col = 'aquamarine4') 
+    lines(x = pb, y = total_map_up, xlab='time', ylab=NA,
+          lwd=3, lty = 2, col = 'darkolivegreen2') 
+    lines(x = pb, y = total_hr_dn, xlab='time', ylab=NA,
+          lwd=2, lty = 2, col = 'orange')
+    lines(x = pb, y = total_map_dn, xlab='time', ylab=NA,
+          lwd=2, lty = 4, col = 'palevioletred')
+    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
+            legend=c( 'HR(up)', 'MAP(up)', 'HR(dn)', 'MAP(dn)'), pch=15, pt.cex=1.5, 
+            col=c( 'aquamarine4', 'darkolivegreen2', 'orange', 'palevioletred'))
+    axis( side=1, at=pb, col.axis='green', labels=t_grid)
+    
+    abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
+    
     # BAR PLOTS --------------------------------------------------------------
     barplot(rbind(colMeans(B_chain[, indices_i] == 1),
                   colMeans(B_chain[, indices_i] == 2),
@@ -396,87 +473,88 @@ for(i in EIDs){
     abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
     
     # Cumulative PLOTS ---------------------------------------------------------
-    cumulative_post_prob = matrix(nrow = 2, ncol = n_i)
-    ind = 1
-    win_length = 0
-    c = 0.257
+    # cumulative_post_prob = matrix(nrow = 2, ncol = n_i)
+    # ind = 1
+    # win_length = 0
+    # c = 0.257
+    # 
+    # indices_i_new = which(indices_i == T)
+    # for(w in 1:length(indices_i_new)) {
+    #     start_index = indices_i_new[1]
+    #     end_index = indices_i_new[w]
+    #     if(w - win_length > 0) start_index = indices_i_new[w - win_length]
+    # 
+    #     y_or_n_2 = apply(B_chain[, start_index:end_index, drop=F],
+    #                      1, function(x) (2 %in% x))
+    #     prob_2 = mean(y_or_n_2)
+    # 
+    #     cumulative_post_prob[, ind] = c(prob_2, 1-prob_2)
+    #     ind = ind + 1
+    # }
+    # barplot( cumulative_post_prob,
+    #          col=c('darkred', 'black'),
+    #          main=paste0('cumulative prob.'), xlab='time', space=0, 
+    #          col.main='green', border=NA,
+    #          xlim=range(pb) + c(-0.5,0.5))
+    # grid( nx=20, NULL, col='white')
+    # legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
+    #         legend=c('', 'State 2'), pch=15, pt.cex=1.5,
+    #         col=c('black', 'darkred'))
+    # axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
+    # axis( side=2, at=0:1, col.axis='green')
+    # 
+    # abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
+    # abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
+    # abline(h = c, col = 'yellow', lwd = 2)
     
-    indices_i_new = which(indices_i == T)
-    for(w in 1:length(indices_i_new)) {
-        start_index = indices_i_new[1]
-        end_index = indices_i_new[w] 
-        if(w - win_length > 0) start_index = indices_i_new[w - win_length]
-        
-        y_or_n_2 = apply(B_chain[, start_index:end_index, drop=F],
-                         1, function(x) (2 %in% x))
-        prob_2 = mean(y_or_n_2)
-        
-        cumulative_post_prob[, ind] = c(prob_2, 1-prob_2)
-        ind = ind + 1
-    }
     
-    barplot( cumulative_post_prob,
-             col=c('darkred', 'black'),
-             main=paste0('cumulative prob.'), xlab='time', space=0, 
-             col.main='green', border=NA,
-             xlim=range(pb) + c(-0.5,0.5))
-    grid( nx=20, NULL, col='white')
-    legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c('', 'State 2'), pch=15, pt.cex=1.5,
-            col=c('black', 'darkred'))
-    axis( side=1, at=t_grid_bar-0.5, col.axis='green', labels = t_grid)
-    axis( side=2, at=0:1, col.axis='green')
-    
-    abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
-    abline(v = rbc_admin_times_bar-0.5, col = 'aquamarine', lwd = 1)
-    abline(h = c, col = 'yellow', lwd = 2)
     
     # State verification  ------------------------------------------------------
-    if(simulation) {
-        bleed_or_no = as.numeric(cumulative_post_prob[1,] > c)
-        plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of State 2',
-            xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
-            xlim = range(pb) + c(-0.5,0.5),
-            xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
-        if(simulation) {
-            legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
-                        legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
-                        col=c('green', 'red'))
-        }
-        axis( side=1, at=pb, col.axis='green', labels=t_grid)
-        axis( side=2, at=0:1, col.axis='green', labels = c("other", "S2"),
-            cex.axis=1)
-        
-        if(simulation) {
-            correct_choice = bleed_or_no
-            for(b in 1:length(b_i)) {
-                if(bleed_or_no[b] == 1) {
-                    if(b_i[b] == 2) {
-                        correct_choice[b] = 'green'
-                    } else {
-                        correct_choice[b] = 'red'
-                    }
-                } else {
-                    if(b_i[b] == 2) {
-                        correct_choice[b] = 'red'
-                    } else {
-                        correct_choice[b] = 'green'
-                    }
-                }
-            }
-            
-            if(simulation) {
-                rect(xleft = rect_coords$t[-nrow(rect_coords)], 
-                    ybottom = -0.25, 
-                    xright = rect_coords$t[-1], 
-                    ytop = 1.25,
-                    col = col_vec[-nrow(rect_coords)],
-                    border = NA)
-            } 
-            
-            points(x=pb, y=bleed_or_no, col = correct_choice, pch=19)   
-        }
-    }
+    # if(simulation) {
+    #     bleed_or_no = as.numeric(cumulative_post_prob[1,] > c)
+    #     plot(x=pb, y=bleed_or_no, type = 's', lwd = 2, main = 'Identification of State 2',
+    #         xlab='time', ylab = ' ', col.main='green', col.lab = 'green',
+    #         xlim = range(pb) + c(-0.5,0.5),
+    #         xaxt='n', yaxt='n', ylim = c(-0.25,1.25), col = 'white')
+    #     if(simulation) {
+    #         legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
+    #                     legend=c( 'Correct', 'Incorrect'), pch=15, pt.cex=1.5,
+    #                     col=c('green', 'red'))
+    #     }
+    #     axis( side=1, at=pb, col.axis='green', labels=t_grid)
+    #     axis( side=2, at=0:1, col.axis='green', labels = c("other", "S2"),
+    #         cex.axis=1)
+    # 
+    #     if(simulation) {
+    #         correct_choice = bleed_or_no
+    #         for(b in 1:length(b_i)) {
+    #             if(bleed_or_no[b] == 1) {
+    #                 if(b_i[b] == 2) {
+    #                     correct_choice[b] = 'green'
+    #                 } else {
+    #                     correct_choice[b] = 'red'
+    #                 }
+    #             } else {
+    #                 if(b_i[b] == 2) {
+    #                     correct_choice[b] = 'red'
+    #                 } else {
+    #                     correct_choice[b] = 'green'
+    #                 }
+    #             }
+    #         }
+    # 
+    #         if(simulation) {
+    #             rect(xleft = rect_coords$t[-nrow(rect_coords)],
+    #                 ybottom = -0.25,
+    #                 xright = rect_coords$t[-1],
+    #                 ytop = 1.25,
+    #                 col = col_vec[-nrow(rect_coords)],
+    #                 border = NA)
+    #         }
+    # 
+    #         points(x=pb, y=bleed_or_no, col = correct_choice, pch=19)
+    #     }
+    # }
 }
 dev.off()
 
