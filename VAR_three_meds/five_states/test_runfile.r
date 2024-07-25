@@ -2,8 +2,6 @@ library(RcppArmadillo)
 library(RcppDist)
 library(Rcpp)
 
-Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
-
 sim_dat_num = 2
 load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
 data_format = use_data
@@ -86,14 +84,19 @@ for(i in EIDs){
 # -----------------------------------------------------------------------------
 # Focusing on subject 72450 ---------------------------------------------------
 # -----------------------------------------------------------------------------
+Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
+
 i = 72450
 ii = which(EIDs == i)
-t_pts = c(-1,-1)
+t_pts = c(28:54)
 A = alpha_i_mat[[ii]]
 Y_temp = Y[Y[,"EID"] == i, ]
 z_temp = z[Y[,"EID"] == i, ]
 Dn_omega_temp = Dn_omega[[ii]]
 W_temp = W[[ii]]
+
+sub_interest = data_format[data_format[,"EID"] == i, ]
+
 
 b_tester = function(b) {
     
@@ -119,7 +122,9 @@ b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
            2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3))
 # Correct identification of change
 b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-           2,2,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1))
+           2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1))
+
+
 
 
 

@@ -5,7 +5,7 @@ df_num = 1
 data_name = paste0('Data_updates/data_format_', df_num, '.rda')
 load(data_name)
 
-it_num = 2
+it_num = 3
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 EIDs = unique(data_format[,"EID"])
@@ -146,13 +146,14 @@ pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1
 
 pars_mean[par_index$vec_init] = c(-1, -1, 0.5, -1)
 
-pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
-                                      -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
-                                      -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
-                                      -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
-                                       1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
-                                      -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
-                                      -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+# pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+#                                       -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+#                                       -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+#                                       -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+#                                        1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+#                                       -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+#                                       -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+pars_mean[par_index$omega_tilde] = 0
 
 
 # Parameters ------------------------------------------------------------------
@@ -304,7 +305,8 @@ for (www in 1:1) {
         while(vec_alpha_i[2] > 0 | vec_alpha_i[3] < 0) {
             vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         }
-        vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
+        # vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
+        vec_omega_i = rep(0, length(omega))
 
         alpha_i_mat[[i]] = matrix(vec_alpha_i, ncol = 1)
         omega_i_mat[[i]] = matrix(vec_omega_i, ncol = 1)
