@@ -20,11 +20,11 @@ data_format = NULL
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 2
+    sim_dat_num = 3
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 5
+    trialNum = 6
     
     max_ind = 5
 } else {
@@ -139,7 +139,7 @@ if(simulation) {
     }
     rm(Dn_omega_big)
     
-    load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
+    # load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
     
     if(max_ind == 5) {
         par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])

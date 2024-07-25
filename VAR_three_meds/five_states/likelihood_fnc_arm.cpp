@@ -442,6 +442,7 @@ arma::mat Omega_fun_cpp_new_multi(const int k, const int n_i, const arma::vec &b
     
 }
 
+// [[Rcpp::export]]
 arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::vec &par, 
                    const arma::field<arma::uvec> &par_index, const arma::vec &A, const arma::vec &B, 
                    const arma::mat &Y, const arma::mat &z, const arma::field<arma::mat> &Dn, 

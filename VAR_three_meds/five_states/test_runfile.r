@@ -3,97 +3,124 @@ library(RcppDist)
 library(Rcpp)
 
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
-set.seed(5)
 
-get_Omega_list_r <- function(adj_mat, s) {
-    a = list()
-    b = list()
-    c = list()
+sim_dat_num = 2
+load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
+data_format = use_data
+
+Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 
+                    'RBC_rule', 'clinic_rule')] 
+EIDs = as.character(unique(data_format[,'EID']))
+
+x = data_format[,c('n_RBC_admin'), drop=F]
+p = ncol(x)
+
+z = cbind(1, data_format[,c('RBC_ordered'), drop=F])
+m = ncol(z)
+
+par_index = list()
+par_index$vec_beta = 1:4
+par_index$vec_alpha_tilde = 5:24
+par_index$vec_sigma_upsilon = 25:424
+par_index$vec_A = 425:444
+par_index$vec_R = 445:460
+par_index$vec_zeta = 461:484
+par_index$vec_init = 485:488
+par_index$omega_tilde = 489:576
+par_index$vec_upsilon_omega = 577:664
+
+load(paste0('Data_sim/true_pars_', sim_dat_num, '.rda'))
+load(paste0('Data_sim/alpha_i_mat_', sim_dat_num, '.rda'))
+load(paste0('Data_sim/omega_i_mat_', sim_dat_num, '.rda'))
+load(paste0('Data_sim/Dn_omega_sim_', sim_dat_num, '.rda'))
+load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
+
+par = true_pars
+Dn_omega = Dn_omega_sim
+rm(Dn_omega_sim)
+
+b_chain = data_format[, "b_true"]
+
+A = list()
+W = list()
+B = list()
+
+for(i in EIDs){
     
-    for(i in 1:nrow(adj_mat)) {
-        a_temp_list = getAllStateSequences_forward(i-1, adj_mat, s+1)
-        if(length(a_temp_list) > 0) {
-            a_temp = do.call(rbind, a_temp_list)
-            a_temp = a_temp[,-1,drop=F]   
-        } else {
-            a_temp = matrix(-2, nrow = 1, ncol = s)
-        }
-        
-        c_temp_list = getAllStateSequences_backward(i-1, adj_mat, s+1)
-        if(length(c_temp_list) > 0) {
-            c_temp = do.call(rbind, c_temp_list)
-            c_temp = c_temp[,-(s+1),drop=F]
-            # c_temp = c_temp[order(c_temp[,s]), ]
-        } else {
-            c_temp = matrix(-2, nrow = 1, ncol = s)
-        }
-        
-        a[[i]] = matrix(c(a_temp) + 1, ncol = s)
-        c[[i]] = matrix(c(c_temp) + 1, ncol = s)
-        
-        
-        b[[i]] = list()
-        for(j in 1:ncol(adj_mat)) {
-            b_temp_list = getAllStateSequences_both(i-1, j-1, adj_mat, s+2)
-            if(length(b_temp_list) > 0) {
-                b_temp = do.call(rbind, b_temp_list)
-                b_temp = b_temp[,-c(1, s+2),drop=F]
-                b[[i]][[j]] = matrix(c(b_temp) + 1, ncol = s)
-            } else {
-                b[[i]][[j]] = matrix(-1, nrow = 1, ncol = s)
+    A[[i]] = alpha_i_mat[[which(EIDs == i)]]
+    W[[i]] = omega_i_mat[[which(EIDs == i)]]
+    
+    b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
+    
+    # Better initialization for the RBC and Clinic rule patients
+    clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
+    if(length(clinic_rule)>1) print(paste0("error ", i))
+    rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
+    if(length(rbc_rule)>1) print(paste0("error ", i))
+    
+    if(clinic_rule == 1) {
+        if(rbc_rule == 1) {
+            bi_i = bleed_indicator[data_format[,"EID"] == i]
+            bi_i_loc = min(which(bi_i == 1))
+            if(bi_i_loc != 1) {
+                b_temp[bi_i_loc - 1] = 2
             }
+            b_temp[bi_i_loc] = 2
+            b_temp[bi_i_loc + 1] = 3
+        }
+    } else if(clinic_rule == 0) {
+        if(rbc_rule == 1) {
+            bi_i = bleed_indicator[data_format[,"EID"] == i]
+            bi_i_loc = min(which(bi_i == 1))
+            if(bi_i_loc != 1) {
+                b_temp[bi_i_loc - 1] = 2
+            }
+            b_temp[bi_i_loc] = 2
+            b_temp[bi_i_loc + 1] = 3
         }
     }
     
-    Omega_List = list()
-    Omega_List[[1]] = c
-    Omega_List[[2]] = b
-    Omega_List[[3]] = a
-    
-    return(Omega_List)
+    B[[i]] = matrix(b_temp, ncol = 1)
 }
 
-adjacency_matrix <- matrix(c(1, 1, 0, 1, 0,
-                             0, 1, 1, 1, 0,
-                             1, 1, 1, 1, 0,
-                             0, 1, 0, 1, 1,
-                             1, 1, 0, 1, 1), nrow = 5, byrow = TRUE)
+# -----------------------------------------------------------------------------
+# Focusing on subject 72450 ---------------------------------------------------
+# -----------------------------------------------------------------------------
+i = 72450
+ii = which(EIDs == i)
+t_pts = c(-1,-1)
+A = alpha_i_mat[[ii]]
+Y_temp = Y[Y[,"EID"] == i, ]
+z_temp = z[Y[,"EID"] == i, ]
+Dn_omega_temp = Dn_omega[[ii]]
+W_temp = W[[ii]]
 
-adjacency_matrix_sub <- matrix(c(1, 0, 0, 1, 0,
-                                 0, 1, 0, 0, 0,
-                                 1, 0, 1, 1, 0,
-                                 0, 0, 0, 1, 1,
-                                 1, 0, 0, 1, 1), nrow = 5, byrow = TRUE)
+b_tester = function(b) {
+    
+    B[[ii]] = matrix(b, ncol = 1)
+    
+    Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
+    Dn = Dn_Xn[[1]]; names(Dn) = EIDs
+    Xn = Dn_Xn[[2]]
+    
+    Dn_temp = Dn[[ii]]
+    Xn_temp = Xn[[ii]]
+    
+    like_val = log_f_i_cpp(i, ii, t_pts, par, par_index, A, B[[ii]], Y_temp, z_temp, Dn_temp,
+                           Xn_temp, Dn_omega_temp, W_temp)
+    
+    return(like_val)
+}
 
-t_pt_length = 2
-Omega_List_GLOBAL_sub_multi = get_Omega_list(adj_mat = adjacency_matrix_sub, 
-                                             s = t_pt_length)
-Omega_List_GLOBAL_multi     = get_Omega_list(adj_mat = adjacency_matrix, 
-                                             s = t_pt_length)
+# Initial state sequence
+b_tester(rep(1, 54))
+# True state sequence
+b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+           2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3))
+# Correct identification of change
+b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+           2,2,2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1))
 
-N = ncol(adjacency_matrix)
 
-# print("Case (c) Full")
-# for(w in 1:N) {
-#     print(paste0("() -> () -> ",w))
-#     print(paste0(nrow(Omega_List_GLOBAL_multi[[1]][[w]]), " combos"))
-#     print(Omega_List_GLOBAL_multi[[1]][[w]][order(Omega_List_GLOBAL_multi[[1]][[w]][,2]), ])
-# }
-# 
-# print("Case (b) Full")
-# for(i in 1:N) {
-#     for(j in 1:N) {
-#         print(paste0(i, "-->", j))
-#         print(paste0(nrow(Omega_List_GLOBAL_multi[[2]][[i]][[j]]), " combos"))
-#         print(Omega_List_GLOBAL_multi[[2]][[i]][[j]])
-#     }
-# }
-# 
-# print("Case (a) Full")
-# for(w in 1:N) {
-#     print(paste0(w, " -> () -> ()"))
-#     print(paste0(nrow(Omega_List_GLOBAL_multi[[3]][[w]]), " combos"))
-#     print(Omega_List_GLOBAL_multi[[3]][[w]])
-# }
 
-test_fnc()
+

@@ -77,7 +77,9 @@ for(seed_num in 1:length(seed_list)) {
 if(simulation) {
     load(paste0('Data_sim/use_data1_', data_num, '.rda'))
     load(paste0('Data_sim/Dn_omega_sim_', data_num, '.rda'))
+    load(paste0('Data_sim/omega_i_mat_', data_num, '.rda'))
     Dn_omega = Dn_omega_sim
+    rm(Dn_omega_sim)
     EIDs = unique(use_data[,'EID'])
 } else {
     if(trialNum < 13) {
@@ -387,10 +389,15 @@ for(i in EIDs){
     
     # Medication admin plot ----------------------------------------------------
     med_i = Dn_omega[[which(EIDs == i)]]
+    omega_i = omega_i_mat[[which(EIDs == i)]]
     med_i_mat = stacked_chains = do.call( rbind, med_i)
     
     hr_med_i_mat = med_i_mat[seq(2, nrow(med_i_mat), by = 4), ]
     map_med_i_mat = med_i_mat[seq(3, nrow(med_i_mat), by = 4), ]
+    
+    hr_mean_effect = hr_med_i_mat %*% omega_i
+    map_mean_effect = map_med_i_mat %*% omega_i
+    
     hr_med_i_mat = hr_med_i_mat[, hr_map_names %in% c('hr_cont', 'hr_disc')]
     map_med_i_mat = map_med_i_mat[, hr_map_names %in% c('map_cont', 'map_disc')]
     
@@ -415,8 +422,10 @@ for(i in EIDs){
     total_map_up = rowSums(map_upp_i)
     total_map_dn = rowSums(map_down_i)
     
-    hr_map_ylim = c(min(total_hr_up, total_hr_dn, total_map_up, total_map_dn), 
-                    max(total_hr_up, total_hr_dn, total_map_up, total_map_dn))
+    hr_map_ylim = c(min(total_hr_up, total_hr_dn, total_map_up, total_map_dn,
+                        hr_mean_effect, map_mean_effect), 
+                    max(total_hr_up, total_hr_dn, total_map_up, total_map_dn,
+                        hr_mean_effect, map_mean_effect))
     if(hr_map_ylim[1] == hr_map_ylim[2]) hr_map_ylim = c(0,1)
     
     plot(NULL, xlim=range(pb) + c(-0.5,0.5), ylim=hr_map_ylim, main='Med. admin',
@@ -431,18 +440,27 @@ for(i in EIDs){
              col = col_vec[-nrow(rect_coords)],
              border = NA)
     } 
+    points(x = pb, y = hr_mean_effect, xlab='time', ylab=NA, 
+          col.main='green', col.axis='green', 
+          col = 'aquamarine', pch = 16) 
+    points(x = pb, y = map_mean_effect, xlab='time', ylab=NA, 
+          col = 'orange', pch = 16) 
+    lines(x = pb, y = hr_mean_effect, xlab='time', ylab=NA, 
+          lwd=2, lty = 1, col = 'aquamarine') 
+    lines(x = pb, y = map_mean_effect, xlab='time', ylab=NA, 
+          lwd=2, lty = 1, col = 'orange') 
     
-    lines(x = pb, y = total_hr_up, xlab='time', ylab=NA, col.main='green',
-          col.axis='green', lwd=4, lty = 1, col = 'aquamarine4') 
+    lines(x = pb, y = total_hr_up, xlab='time', ylab=NA, 
+          lwd=1, lty = 2, col = 'aquamarine4') 
     lines(x = pb, y = total_map_up, xlab='time', ylab=NA,
-          lwd=3, lty = 2, col = 'darkolivegreen2') 
+          lwd=1, lty = 3, col = 'darkolivegreen2') 
     lines(x = pb, y = total_hr_dn, xlab='time', ylab=NA,
-          lwd=2, lty = 2, col = 'orange')
+          lwd=1, lty = 4, col = 'deeppink')
     lines(x = pb, y = total_map_dn, xlab='time', ylab=NA,
-          lwd=2, lty = 4, col = 'palevioletred')
+          lwd=1, lty = 5, col = 'palevioletred')
     legend( 'topright', inset=inset_dim, xpd=T, horiz=T, bty='n', x.intersp=.75,
-            legend=c( 'HR(up)', 'MAP(up)', 'HR(dn)', 'MAP(dn)'), pch=15, pt.cex=1.5, 
-            col=c( 'aquamarine4', 'darkolivegreen2', 'orange', 'palevioletred'))
+            legend=c( 'HR effect', 'MAP effect'), pch=15, pt.cex=1.5, 
+            col=c( 'aquamarine', 'orange'))
     axis( side=1, at=pb, col.axis='green', labels=t_grid)
     
     abline(v = rbc_times_bar-0.5, col = 'darkorchid1', lwd = 1)
