@@ -1,7 +1,8 @@
 source('mcmc_routine_arma.r')
 
-args = commandArgs(TRUE)
-seed_num = as.numeric(args[1])
+# args = commandArgs(TRUE)
+# seed_num = as.numeric(args[1])
+seed_num = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
 df_num_list = rep(1:10, each = 3)
 df_num = df_num_list[seed_num]

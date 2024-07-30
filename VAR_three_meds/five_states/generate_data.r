@@ -119,8 +119,6 @@ save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 prev_file = "Model_out/mcmc_out_interm_3_1it2.rda"
 load(prev_file)
 
-# par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, 
-#                                                       par_index$vec_R)]
 pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
 rownames(pars_mean) = NULL
 
@@ -134,9 +132,6 @@ pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9, 2, 2, 16, 16,
                                                   100, 9, 9, 25, 25, 
                                                     9, 2, 2, 16, 16)))
 
-# ------- NOT CHANGING -------
-# par_index$vec_A, par_index$vec_R, par_index$vec_upsilon_omega
-
 #    transitions:                         1->2,         1->4,         2->3,         2->4, 
 #                                         3->1,         3->2,         3->4,         4->2, 
 #                                         4->5,         5->1,         5->2,         5->4
@@ -146,14 +141,15 @@ pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1
 
 pars_mean[par_index$vec_init] = c(-1, -1, 0.5, -1)
 
-# pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
-#                                       -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
-#                                       -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
-#                                       -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
-#                                        1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
-#                                       -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
-#                                       -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
-pars_mean[par_index$omega_tilde] = 0
+pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+                                      -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
+                                      -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
+                                      -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
+                                       1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
+                                      -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
+                                      -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
+pars_mean[par_index$vec_A] = 1.5
+pars_mean[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
 
 
 # Parameters ------------------------------------------------------------------
@@ -171,15 +167,6 @@ A_mat_scale = matrix(correct_scale_A, nrow = 4)
 # columns: hemo, hr, map, lactate
 R = matrix(pars_mean[par_index$vec_R], ncol = 4)
 
-# transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-# pars_mean[par_index$vec_zeta][5:6] = c(-3, 1)
-# pars_mean[par_index$vec_zeta][7:8] = c(-2,-0.5)
-# pars_mean[par_index$vec_zeta][14] = c(-1)
-# pars_mean[par_index$vec_zeta][15:16] = c(-7,1)
-# pars_mean[par_index$vec_zeta][23:24] = c(-3,1)
-# pars_mean[par_index$vec_zeta][19:20] = c(-3,-1)
-# pars_mean[par_index$vec_zeta][17:18] = c(-2,-0.5)
-
 zeta = matrix(pars_mean[par_index$vec_zeta], nrow = 2)
 colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1', 
                    '(6) 3->2', '(7) 3->4','(8) 4->2', '(9) 4->5', '(10) 5->1', 
@@ -188,15 +175,6 @@ colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1',
 init_logit = pars_mean[par_index$vec_init]
 init_logit = c(0, init_logit)
 
-# omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
-#           -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
-#           -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
-#           -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
-#            1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
-#           -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
-#           -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
-# 
-# pars_mean[par_index$omega_tilde] = omega
 omega = pars_mean[par_index$omega_tilde]
 
 upsilon_omega = exp(pars_mean[par_index$vec_upsilon_omega])
@@ -301,12 +279,13 @@ for (www in 1:1) {
         
         # Generate realizations of hc, hr, bp, and lact ------------------------
         Y_i = matrix(nrow = n_i, ncol = 4)
+        
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         while(vec_alpha_i[2] > 0 | vec_alpha_i[3] < 0) {
             vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
         }
-        # vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
-        vec_omega_i = rep(0, length(omega))
+        
+        vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
 
         alpha_i_mat[[i]] = matrix(vec_alpha_i, ncol = 1)
         omega_i_mat[[i]] = matrix(vec_omega_i, ncol = 1)

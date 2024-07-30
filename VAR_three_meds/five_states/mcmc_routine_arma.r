@@ -17,7 +17,8 @@ sourceCpp("likelihood_fnc_arm.cpp")
 mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind, df_num){
     
-    n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
+    # n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
+    n_cores = 16
 
     print(paste0("Number of cores: ", n_cores))
 
