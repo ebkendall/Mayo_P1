@@ -37,54 +37,40 @@ par = true_pars
 Dn_omega = Dn_omega_sim
 rm(Dn_omega_sim)
 
-b_chain = data_format[, "b_true"]
+# Artificially increase the noise of the VAR process
+par[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
 
 A = list()
 W = list()
 B = list()
 
 for(i in EIDs){
-    
     A[[i]] = alpha_i_mat[[which(EIDs == i)]]
     W[[i]] = omega_i_mat[[which(EIDs == i)]]
-    
-    b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
-    
-    # Better initialization for the RBC and Clinic rule patients
-    clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
-    if(length(clinic_rule)>1) print(paste0("error ", i))
-    rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
-    if(length(rbc_rule)>1) print(paste0("error ", i))
-    
-    if(clinic_rule == 1) {
-        if(rbc_rule == 1) {
-            bi_i = bleed_indicator[data_format[,"EID"] == i]
-            bi_i_loc = min(which(bi_i == 1))
-            if(bi_i_loc != 1) {
-                b_temp[bi_i_loc - 1] = 2
-            }
-            b_temp[bi_i_loc] = 2
-            b_temp[bi_i_loc + 1] = 3
-        }
-    } else if(clinic_rule == 0) {
-        if(rbc_rule == 1) {
-            bi_i = bleed_indicator[data_format[,"EID"] == i]
-            bi_i_loc = min(which(bi_i == 1))
-            if(bi_i_loc != 1) {
-                b_temp[bi_i_loc - 1] = 2
-            }
-            b_temp[bi_i_loc] = 2
-            b_temp[bi_i_loc + 1] = 3
-        }
-    }
-    
-    B[[i]] = matrix(b_temp, ncol = 1)
+    B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
 }
+
+Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
+
+# -----------------------------------------------------------------------------
+# Function that initializes the state space based on the "highest" likelihood -
+# -----------------------------------------------------------------------------
+Xn_initial = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
+Xn = Xn_initial[[2]]
+
+B = list()
+B = initialize_b_i(as.numeric(EIDs), par, par_index, A, Y, z, Xn, Dn_omega, W, 10)
+
+
+# How close is this to the true state sequences
+true_B = data_format[,"b_true"]
+initial_B = c(do.call( rbind, B))
+side_by_side_state = cbind(data_format[,"EID"], cbind(true_B, initial_B))
+not_correct = side_by_side_state[(side_by_side_state[,2] != side_by_side_state[,3]), ]
 
 # -----------------------------------------------------------------------------
 # Focusing on subject 72450 ---------------------------------------------------
 # -----------------------------------------------------------------------------
-Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 
 i = 72450
 ii = which(EIDs == i)
@@ -122,7 +108,7 @@ b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
            2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3))
 # Correct identification of change
 b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-           2,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1))
+           1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2))
 
 
 

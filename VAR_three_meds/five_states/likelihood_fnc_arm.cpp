@@ -519,7 +519,7 @@ arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::ve
   if (any(t_pts == -1)) { t_pts = arma::linspace(1, n_i, n_i);}
   
   // arma::mat mean_mat(4, t_pts.n_elem, arma::fill::zeros);
-  // arma::mat like_cont(2, t_pts.n_elem, arma::fill::zeros); 
+  // arma::mat like_cont(2, t_pts.n_elem, arma::fill::zeros);
   
   for(int w=0; w < t_pts.n_elem;++w){
     int k = t_pts(w);
@@ -621,7 +621,7 @@ arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::ve
         
         // like_cont.col(w) = {log(P_i( b_k_1 - 1, b_k - 1)), arma::as_scalar(log_y_k_pdf)};
         
-        // if(w < 4) {
+        // if(k > 50) {
         //     arma::mat R_2 = R;
         //     R_2(0,0) = R(0,0) * 100;
         //     R_2(3,3) = R(3,3) * 50;
@@ -643,9 +643,9 @@ arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::ve
   //         }
   //     }
   //     mm = Rcpp::transpose(mm);
-  //     
+  // 
   //     like_cont = arma::join_rows(b_i.rows(t_pts(0)-1, t_pts(t_pts.n_elem-1)-1), like_cont.t());
-  //     
+  // 
   //     NumericMatrix lc(like_cont.n_rows, like_cont.n_cols + 5);
   //     for(int ll = 0; ll < like_cont.n_rows; ll++){
   //         for(int jj = 0; jj < like_cont.n_cols+1; jj++) {
@@ -654,17 +654,17 @@ arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::ve
   //             } else {
   //                 lc(ll,jj) = ::Rf_fround(like_cont(ll,jj-1), 4);
   //             }
-  //         } 
+  //         }
   //     }
-  //     
+  // 
   //     lc(_,4) = mm(_,1);
   //     lc(_,5) = mm(_,2);
   //     lc(_,6) = mm(_,3);
   //     lc(_,7) = mm(_,4);
-  //    
+  // 
   //     Rcpp::Rcout << lc << std::endl;
   //     Rcpp::Rcout << arma::sum(like_cont, 0) << std::endl;
-  //     
+  // 
   //     double min_log = log(arma::randu(arma::distr_param(0,1)));
   //     Rcpp::Rcout << "log(unif(0,1)) = " << min_log << std::endl;
   // }
@@ -2638,7 +2638,137 @@ Rcpp::List update_b_i_impute_cpp( const arma::vec EIDs, const arma::vec &par,
     return B_Dn;
 }
 
-
+// [[Rcpp::export]] 
+arma::field <arma::vec> initialize_b_i(const arma::vec EIDs, const arma::vec &par, 
+                                       const arma::field<arma::uvec> &par_index, 
+                                       const arma::field <arma::vec> &A, 
+                                       const arma::mat &Y, const arma::mat &z, 
+                                       const arma::field <arma::field<arma::mat>> &Xn, 
+                                       const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                                       const arma::field <arma::vec> &W, int n_cores) {
+    // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
+    //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
+    // Y key: (0) EID, (1) hemo, (2) hr, (3) map, (4) lactate, (5) RBC, (6) clinic
+    // "i" is the numeric EID number
+    // "ii" is the index of the EID
+    
+    // In previous iterations, t_pt_length = 2
+    arma::vec eids = Y.col(0); 
+    
+    arma::field<arma::vec> B_return(EIDs.n_elem);
+    
+    omp_set_num_threads(n_cores);
+    # pragma omp parallel for
+    for (int ii = 0; ii < EIDs.n_elem; ii++) {
+        Rcpp::Rcout << ii << std::endl;
+        
+        int i = EIDs(ii);
+        arma::uvec sub_ind = arma::find(eids == i);
+        
+        int n_i = sub_ind.n_elem;
+        
+        // Subsetting fields
+        arma::vec B_temp(n_i, arma::fill::ones);
+        arma::vec A_temp = A(ii);
+        arma::vec W_temp = W(ii);
+        
+        arma::field<arma::mat> Dn_temp(n_i);
+        arma::field<arma::mat> Dn_omega_temp = Dn_omega(ii);
+        arma::field<arma::mat> Xn_temp = Xn(ii);
+        
+        // Subsetting the remaining data
+        arma::mat Y_temp = Y.rows(sub_ind);
+        arma::mat z_temp = z.rows(sub_ind);
+        
+        for (int k = 0; k < n_i; k++) {
+            
+            // Initial state --------------------------------------------------
+            if(k == 0) {
+                arma::vec poss_state_like(5,arma::fill::zeros);
+                for(int w = 0; w < 5; w++) {
+                    B_temp(k) = w + 1;
+                    
+                    arma::vec twos(B_temp.n_elem, arma::fill::zeros);
+                    arma::vec threes = twos; // THREE STATE
+                    arma::vec fours = twos;
+                    arma::vec fives = twos;
+                    
+                    twos.elem(arma::find(B_temp == 2)) += 1;
+                    threes.elem(arma::find(B_temp == 3)) += 1; // THREE STATE
+                    fours.elem(arma::find(B_temp == 4)) += 1;
+                    fives.elem(arma::find(B_temp == 5)) += 1;
+                    
+                    arma::vec ones(B_temp.n_elem, arma::fill::ones);
+                    
+                    arma::mat bigB = arma::join_rows(ones, arma::cumsum(twos));
+                    bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
+                    bigB = arma::join_rows(bigB, arma::cumsum(fours));
+                    bigB = arma::join_rows(bigB, arma::cumsum(fives));
+                    
+                    arma::mat I = arma::eye(4,4);
+                    Dn_temp(k) = arma::kron(I, bigB.row(0));
+                    
+                    arma::vec t_pts = {1};
+                    
+                    arma::vec log_prev_vec = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
+                                                         B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,
+                                                         Dn_omega_temp, W_temp);
+                    poss_state_like(w) = log_prev_vec(0);
+                }
+                // Determine max likelihood state
+                B_temp(k) = poss_state_like.index_max() + 1;
+                
+            } else {
+                int prev_state = B_temp(k-1);
+                arma::vec poss_next_state(arma::accu(adj_mat.row(prev_state-1)), arma::fill::zeros);
+                arma::vec poss_state_like(arma::accu(adj_mat.row(prev_state-1)), arma::fill::zeros);
+                int w_ind = 0;
+                for(int w = 0; w < 5; w++) {
+                    if(adj_mat(prev_state-1, w) != 0) {
+                        poss_next_state(w_ind) = w + 1;
+                        B_temp(k) = w + 1;
+                        
+                        arma::vec twos(B_temp.n_elem, arma::fill::zeros);
+                        arma::vec threes = twos; // THREE STATE
+                        arma::vec fours = twos;
+                        arma::vec fives = twos;
+                        
+                        twos.elem(arma::find(B_temp == 2)) += 1;
+                        threes.elem(arma::find(B_temp == 3)) += 1; // THREE STATE
+                        fours.elem(arma::find(B_temp == 4)) += 1;
+                        fives.elem(arma::find(B_temp == 5)) += 1;
+                        
+                        arma::vec ones(B_temp.n_elem, arma::fill::ones);
+                        
+                        arma::mat bigB = arma::join_rows(ones, arma::cumsum(twos));
+                        bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
+                        bigB = arma::join_rows(bigB, arma::cumsum(fours));
+                        bigB = arma::join_rows(bigB, arma::cumsum(fives));
+                        
+                        arma::mat I = arma::eye(4,4);
+                        for(int jj = k-1; jj <= k; jj++) {
+                            Dn_temp(jj) = arma::kron(I, bigB.row(jj));
+                        }
+                        
+                        arma::vec t_pts = arma::linspace(k+1, k+1, 1);
+                        
+                        arma::vec log_prev_vec = log_f_i_cpp(i, ii, t_pts, par, par_index,A_temp,
+                                                             B_temp,Y_temp,z_temp,Dn_temp,Xn_temp,
+                                                             Dn_omega_temp, W_temp);
+                        poss_state_like(w_ind) = log_prev_vec(0);
+                        
+                        w_ind += 1;
+                    }
+                }
+                // Determine max likelihood state
+                B_temp(k) = poss_next_state(poss_state_like.index_max());
+            }
+        }
+        B_return(ii) = B_temp;
+    }
+    
+    return B_return;
+}
 
 // [[Rcpp::export]]
 void test_fnc() {

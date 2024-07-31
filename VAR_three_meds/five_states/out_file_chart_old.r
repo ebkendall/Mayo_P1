@@ -9,7 +9,7 @@ if(simulation) {
     data_num = 3
     
     trialNum = 6
-    itNum = 5
+    itNum = 1
 } else {
     trialNum = 16
     itNum = 1
@@ -35,7 +35,7 @@ for(seed_num in 1:length(seed_list)) {
     print(seed_num)
 
     if(long_chain) {
-        it_seq = (itNum-2):itNum
+        it_seq = 1:itNum
     } else {
         it_seq = itNum
     }

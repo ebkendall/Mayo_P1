@@ -1,8 +1,8 @@
 source('mcmc_routine_arma.r')
 
-# args = commandArgs(TRUE)
-# seed_num = as.numeric(args[1])
-seed_num = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+args = commandArgs(TRUE)
+seed_num = as.numeric(args[1])
+# seed_num = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
 df_num_list = rep(1:10, each = 3)
 df_num = df_num_list[seed_num]
@@ -21,11 +21,11 @@ data_format = NULL
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 3
+    sim_dat_num = 2
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 6
+    trialNum = 7
     
     max_ind = 5
 } else {
@@ -116,6 +116,9 @@ if(simulation) {
 
     par = true_pars
     Dn_omega = Dn_omega_sim
+    
+    # Artificially increase the noise of the VAR process
+    par[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
     
     b_chain = data_format[, "b_true"]
 } else {
