@@ -232,23 +232,23 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             break
         }
         
-        if((ttt == 1) | (ttt %% 100 == 0)) {
+        # if((ttt == 1) | (ttt %% 100 == 0)) {
             print(c(B[['72450']]))
             print(chain[chain_ind, par_index$vec_R])
-        }
+        # }
 
         # print("Update metropolis step"); s_time = Sys.time()
         # Metropolis-within-Gibbs updates -------------------------------------
         for(j in 1:n_group) {
             ind_j = mpi[[j]]
 
-            # Fix the R parameters the first half of burnin to help
-            # the state space move
-            if(ttt <= burnin/2){
-                if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
-                    next
-                }
-            }
+            # # Fix the R parameters the first half of burnin to help
+            # # the state space move
+            # if(ttt <= burnin/2){
+            #     if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
+            #         next
+            #     }
+            # }
 
             proposal = par
 

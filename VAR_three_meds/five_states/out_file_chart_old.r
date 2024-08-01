@@ -6,9 +6,9 @@ all_seeds = F
 long_chain = T
 
 if(simulation) {
-    data_num = 3
+    data_num = 2
     
-    trialNum = 6
+    trialNum = 7
     itNum = 1
 } else {
     trialNum = 16

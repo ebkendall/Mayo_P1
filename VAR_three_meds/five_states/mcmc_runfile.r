@@ -38,7 +38,7 @@ if(simulation) {
     # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
     # trial 13: rule change for b_i sampler, running for multiple data sets
     # trial 14: same as trial 13, just fix the zeta pars for first half of burnin
-    trialNum = 16
+    trialNum = 1
     max_ind = 5
     if(max_ind > 5) burnin = 0
 
@@ -59,25 +59,28 @@ m = ncol(z)
 beta = c(0.25, -1, 2, -0.25)
 
 # columns: hemo, hr, map, lactate
-alpha_tilde = c(9.57729783,          -1,        0.1, 0, 0,
+alpha_tilde = c( 9.57729783,          -1,        0.1, 0, 0,
                 88.69780576,  5.04150472,         -4, 0, 0,
                 79.74903940, -5.04150472,          4, 0, 0,
-                5.2113319,   0.5360813, -0.6866748, 0, 0)
+                  5.2113319,   0.5360813, -0.6866748, 0, 0)
 
-sigma_upsilon = c(diag(c(  9,  2,  2,  2,  2, 
-                         400, 16, 16, 16, 16, 
-                         400, 16, 16, 16, 16, 
-                           9,  2,  2,  2,  2)))
+sigma_upsilon = c(diag(c(  4, 2, 2, 2, 2, 
+                         100, 9, 9, 9, 9, 
+                         100, 9, 9, 9, 9, 
+                           4, 2, 2, 2, 2)))
 
-vec_A = rep(0, 20)
+vec_A = rep(1.5, 20)
 
 # columns: hemo, hr, map, lactate
 R = diag(c(4.58, 98.2, 101.3, 7.6))
 
 # transitions: 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-zeta = c(-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
-         -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
-         -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
+# zeta = c(-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
+#          -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
+#          -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
+zeta = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
+         -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
+         -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
 
 omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
           -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
@@ -90,7 +93,7 @@ omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
 omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
-init_logit = c(0, 0, 0, 0)
+init_logit = c(-1, -1, 0.5, -1)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -123,14 +126,19 @@ if(simulation) {
     b_chain = data_format[, "b_true"]
 } else {
     # ----------------------------------------------------------------------
-    if(max_ind == 5) {
-        prev_file = 'Model_out/mcmc_out_interm_3_1it2.rda'
-    } else {
+    if(max_ind > 5) {
         prev_file = paste0('Model_out/mcmc_out_interm_', ind, '_', trialNum, 
                            'it', max_ind-5, '_df', df_num, '.rda')
+        load(prev_file)
+        
+        par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
+        rownames(par_temp) = NULL
+        par = par_temp
+        
+        b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
+        
+        rm(mcmc_out_temp)
     }
-    
-    load(prev_file)
     # ----------------------------------------------------------------------
     
     load('Data_updates/Dn_omega1.rda')
@@ -142,23 +150,6 @@ if(simulation) {
         Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
     }
     rm(Dn_omega_big)
-    
-    # load(paste0('Data_sim/bleed_indicator_sim_', sim_dat_num,'.rda'))
-    
-    if(max_ind == 5) {
-        par_temp = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
-        rownames(par_temp) = NULL
-        par[c(par_index$vec_A, par_index$vec_R)] = par_temp[c(par_index$vec_A, 
-                                                              par_index$vec_R)]
-    } else {
-        par_temp = mcmc_out_temp$chain[nrow(mcmc_out_temp$chain), ]
-        rownames(par_temp) = NULL
-        par = par_temp   
-    }
-    
-    b_chain = c(mcmc_out_temp$B_chain[nrow(mcmc_out_temp$B_chain), ])
-    
-    rm(mcmc_out_temp)
 }
 # -----------------------------------------------------------------------------
 A = list()
