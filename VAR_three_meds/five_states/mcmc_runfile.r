@@ -14,7 +14,7 @@ ind_list = rep(1:3, 10)
 ind = ind_list[seed_num]
 print(ind)
 
-simulation = T
+simulation = F
 
 data_format = NULL
 
@@ -41,8 +41,6 @@ if(simulation) {
     trialNum = 1
     max_ind = 5
     if(max_ind > 5) burnin = 0
-
-    print(data_name)
 }
 
 Y = data_format[, c('EID','hemo', 'hr', 'map', 'lactate', 
@@ -64,10 +62,10 @@ alpha_tilde = c( 9.57729783,          -1,        0.1, 0, 0,
                 79.74903940, -5.04150472,          4, 0, 0,
                   5.2113319,   0.5360813, -0.6866748, 0, 0)
 
-sigma_upsilon = c(diag(c(  4, 2, 2, 2, 2, 
-                         100, 9, 9, 9, 9, 
-                         100, 9, 9, 9, 9, 
-                           4, 2, 2, 2, 2)))
+sigma_upsilon = c(diag(c(  4, 2, 2, 25, 25, 
+                         100, 9, 9, 25, 25, 
+                         100, 9, 9, 25, 25, 
+                           4, 2, 2, 25, 25)))
 
 vec_A = rep(1.5, 20)
 
@@ -79,8 +77,8 @@ R = diag(c(4.58, 98.2, 101.3, 7.6))
 #          -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
 #          -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1)
 zeta = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
-         -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
-         -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
+         -7.4459,  -1, -6.2404,   2, -5.2151,   1, -5.1778, 2.5, 
+         -2.6523,   0, -6.4459,  -1, -7.2404, 3.5, -4.2151,   1)
 
 omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
           -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
@@ -93,7 +91,7 @@ omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
 omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
-init_logit = c(-1, -1, 0.5, -1)
+init_logit = c(-0.5, -0.5, -0.1, -0.5)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -150,6 +148,8 @@ if(simulation) {
         Dn_omega[[jjj]] = Dn_omega_big[[eid_index[jjj]]]
     }
     rm(Dn_omega_big)
+    
+    bleed_indicator = b_ind_fnc(data_format)
 }
 # -----------------------------------------------------------------------------
 A = list()
@@ -165,43 +165,15 @@ for(i in EIDs){
         W[[i]] = matrix(par[par_index$omega_tilde], ncol =1)
     }
     
-    if(max_ind == 5) {
-        
-        b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
-        
-        # Better initialization for the RBC and Clinic rule patients
-        clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
-        if(length(clinic_rule)>1) print(paste0("error ", i))
-        rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
-        if(length(rbc_rule)>1) print(paste0("error ", i))
-        
-        if(clinic_rule == 1) {
-            if(rbc_rule == 1) {
-                bi_i = bleed_indicator[data_format[,"EID"] == i]
-                bi_i_loc = min(which(bi_i == 1))
-                if(bi_i_loc != 1) {
-                    b_temp[bi_i_loc - 1] = 2
-                }
-                b_temp[bi_i_loc] = 2
-                b_temp[bi_i_loc + 1] = 3
-            }
-        } else if(clinic_rule == 0) {
-            if(rbc_rule == 1) {
-                bi_i = bleed_indicator[data_format[,"EID"] == i]
-                bi_i_loc = min(which(bi_i == 1))
-                if(bi_i_loc != 1) {
-                    b_temp[bi_i_loc - 1] = 2
-                }
-                b_temp[bi_i_loc] = 2
-                b_temp[bi_i_loc + 1] = 3
-            }
-        }
-    } else {
+    if(max_ind > 5) {
         b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]   
+        B[[i]] = matrix(b_temp, ncol = 1)
+    } else {
+        B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
     }
-    
-    B[[i]] = matrix(b_temp, ncol = 1)
 }
+
+
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")
@@ -220,6 +192,9 @@ print(R_t)
 
 print("zeta")
 zed = matrix(par[par_index$vec_zeta], nrow = 2)
+colnames(zed) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1', 
+                   '(6) 3->2', '(7) 3->4','(8) 4->2', '(9) 4->5', '(10) 5->1', 
+                   '(11) 5->2', '(12) 5->4')
 print(zed)
 
 s_time = Sys.time()

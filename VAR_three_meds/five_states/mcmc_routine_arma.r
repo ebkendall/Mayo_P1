@@ -18,7 +18,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                          trialNum, Dn_omega, simulation, bleed_indicator, max_ind, df_num){
     
     n_cores = strtoi(Sys.getenv(c("LSB_DJOB_NUMPROC")))
-    # n_cores = 16
 
     print(paste0("Number of cores: ", n_cores))
 
@@ -34,16 +33,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-    mpi = list(#c(par_index$vec_init),
-               #c(par_index$vec_zeta[1:4]),
-               #c(par_index$vec_zeta[5:8]),
-               #c(par_index$vec_zeta[9:14]),
-               #c(par_index$vec_zeta[15:24]),
-               #c(par_index$vec_A[1:4]),
-               #c(par_index$vec_A[5:12]),
-               #c(par_index$vec_A[13:20]),
-               #c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
-               #c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
+    mpi = list(c(par_index$vec_init),
+               c(par_index$vec_zeta[1:4]),
+               c(par_index$vec_zeta[5:8]),
+               c(par_index$vec_zeta[9:14]),
+               c(par_index$vec_zeta[15:24]),
+               c(par_index$vec_A[1:4]),
+               c(par_index$vec_A[5:12]),
+               c(par_index$vec_A[13:20]),
+               c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
+               c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -63,27 +62,36 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                 for(i in EIDs) {
                     print(which(EIDs == i))
                     heading_names = c('hemo', 'hr', 'map', 'lactate')
+                    noise_var = c(diag(matrix(par[par_index$vec_R], nrow = 4)))
                     sub_dat = Y[Y[,"EID"] == i, ]
             
                     for(k in 1:length(heading_names)) {
                         if(sum(is.na(sub_dat[,heading_names[k]])) == nrow(sub_dat)) {
-                            sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T)
+                            sub_dat[,heading_names[k]] = mean(Y[,heading_names[k]], na.rm =T) + 
+                                rnorm(n = nrow(sub_dat), mean = 0, sd = sqrt(noise_var[k]))
                         } else {
                             if(sum(!is.na(sub_dat[,heading_names[k]])) == 1) {
-                                sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                                non_na_val = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
+                                sub_dat[is.na(sub_dat[,heading_names[k]]), heading_names[k]] = rnorm(n = sum(is.na(sub_dat[,heading_names[k]])), 
+                                                                                                     mean = non_na_val,
+                                                                                                     sd = sqrt(noise_var[k]))
+                                # sub_dat[,heading_names[k]] = sub_dat[!is.na(sub_dat[,heading_names[k]]), heading_names[k]]
                             } else {
                                 obs_indices = which(!is.na(sub_dat[,heading_names[k]]))
                                 miss_indices = which(is.na(sub_dat[,heading_names[k]]))
                                 for(j in miss_indices) {
                                     if(j < obs_indices[1]) {
-                                        sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]]
+                                        sub_dat[j,heading_names[k]] = sub_dat[obs_indices[1], heading_names[k]] + 
+                                            rnorm(n = 1, mean = 0, sd = sqrt(noise_var[k]))
                                     } else if(j > tail(obs_indices,1)) {
-                                        sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]]
+                                        sub_dat[j,heading_names[k]] = sub_dat[tail(obs_indices,1), heading_names[k]] + 
+                                            rnorm(n = 1, mean = 0, sd = sqrt(noise_var[k]))
                                     } else {
                                         end_pts = c(max(obs_indices[obs_indices < j]),
                                                     min(obs_indices[obs_indices > j]))
                                         slope = (sub_dat[end_pts[2], heading_names[k]] - sub_dat[end_pts[1], heading_names[k]]) / diff(end_pts)
-                                        sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]]
+                                        sub_dat[j,heading_names[k]] = slope * (j - end_pts[1]) + sub_dat[end_pts[1], heading_names[k]] + 
+                                                                                rnorm(n = 1, mean = 0, sd = sqrt(noise_var[k]))
                                     }
                                 }
                             }
@@ -126,6 +134,24 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             rm(mcmc_out_temp)
         }
     } 
+    
+    if(max_ind == 5) {
+        # Initialize B based on max likelihood at each point given initial values
+        Xn_initial = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
+        Xn = Xn_initial[[2]]
+        
+        B = list()
+        B = initialize_b_i(as.numeric(EIDs), par, par_index, A, Y, z, Xn, Dn_omega, W, 10)
+        
+        # Reset the clinic_rule subjects
+        if(!simulation) {
+            c_r = unique(Y[Y[,"clinic_rule"] < 0, "EID"])  
+            for(j in c_r) {
+                c_r_ind = which(EIDs == j)
+                B[[c_r_ind]] = matrix(1, nrow = sum(Y[,"EID"] == j), ncol = 1)
+            }
+        }
+    }
   
     # Begin the MCMC algorithm -------------------------------------------------
     chain_length_MASTER = 1001
@@ -165,9 +191,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the alpha_i -----------------------------------------
         # print("Update alpha_i"); s_time = Sys.time()
-        # A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
-        #                         Dn_omega, W, B, n_cores)
-        # names(A) = EIDs
+        A = update_alpha_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
+                                Dn_omega, W, B, n_cores)
+        names(A) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         for(aaa in 1:length(a_chain_id)) {
@@ -176,9 +202,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the omega_i -----------------------------------------
         # print("Update omega_i"); s_time = Sys.time()
-        # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
-        #                         Dn_omega, A, B, n_cores)
-        # names(W) = EIDs
+        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
+                                Dn_omega, A, B, n_cores)
+        names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         # ----------------------------------------------------------------------
@@ -210,14 +236,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
-        # par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
-        #                                  Dn, Xn, Dn_omega, W, B, n_cores)
+        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
+                                         Dn, Xn, Dn_omega, W, B, n_cores)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update alpha tilde"); s_time = Sys.time()
-        # par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
+        par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update omega tilde"); s_time = Sys.time()
-        # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
+        par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Save the parameter updates made in the Gibbs steps before Metropolis steps
@@ -232,10 +258,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
             break
         }
         
-        # if((ttt == 1) | (ttt %% 100 == 0)) {
-            print(c(B[['72450']]))
-            print(chain[chain_ind, par_index$vec_R])
-        # }
 
         # print("Update metropolis step"); s_time = Sys.time()
         # Metropolis-within-Gibbs updates -------------------------------------
