@@ -116,7 +116,7 @@ save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 
 # Loading the parameter values to base this off of
 # prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_10it', 1, '.rda')
-prev_file = "Model_out/mcmc_out_interm_3_1it2.rda"
+prev_file = "Model_out/OG/mcmc_out_interm_3_1it2.rda"
 load(prev_file)
 
 pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
@@ -127,19 +127,23 @@ pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -3,          3, -0
                                         88.69780576,  10.04150472,        -8, -0.5, -0.5,
                                         79.74903940, -10.04150472,         8,  0.5, -0.5,
                                           5.2113319,   3.5360813, -3.6866748,  0.2,  0.2)
-pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  9, 2, 2, 16, 16, 
+pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  4, 2, 2, 25, 25, 
                                                   100, 9, 9, 25, 25, 
                                                   100, 9, 9, 25, 25, 
-                                                    9, 2, 2, 16, 16)))
+                                                    4, 2, 2, 25, 25)))
 
 #    transitions:                         1->2,         1->4,         2->3,         2->4, 
 #                                         3->1,         3->2,         3->4,         4->2, 
 #                                         4->5,         5->1,         5->2,         5->4
+# pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
+#                                   -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
+#                                   -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
 pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
-                                  -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
-                                  -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
+                                  -7.4459,  -1, -6.2404,   2, -5.2151,   1, -5.1778, 2.5, 
+                                  -4.6523,   0, -6.4459,  -1, -7.2404, 3.5, -5.2151,   1)
 
-pars_mean[par_index$vec_init] = c(-1, -1, 0.5, -1)
+
+pars_mean[par_index$vec_init] = c(-1, -0.5, -0.1, -0.3)
 
 pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
                                       -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,

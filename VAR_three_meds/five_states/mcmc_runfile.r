@@ -14,18 +14,18 @@ ind_list = rep(1:3, 10)
 ind = ind_list[seed_num]
 print(ind)
 
-simulation = F
+simulation = T
 
 data_format = NULL
 
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 2
+    sim_dat_num = 3
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 7
+    trialNum = 3
     
     max_ind = 5
 } else {
@@ -35,9 +35,6 @@ if(simulation) {
     data_name = paste0('Data_updates/data_format_', df_num, '.rda')
     load(data_name)
     
-    # trial 12: reintroduce hemo,lact > 0, change priors for zeta and alpha tilde
-    # trial 13: rule change for b_i sampler, running for multiple data sets
-    # trial 14: same as trial 13, just fix the zeta pars for first half of burnin
     trialNum = 1
     max_ind = 5
     if(max_ind > 5) burnin = 0
@@ -91,7 +88,7 @@ omega = c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
 omega = 3 * omega
 upsilon_omega = rep(1, length(omega))
 
-init_logit = c(-0.5, -0.5, -0.1, -0.5)
+init_logit = c(-1, -0.5, -0.1, -0.3)
 init_logit = exp(init_logit)
 
 par = c(beta, c(alpha_tilde), c(sigma_upsilon), c(vec_A), c(R), c(zeta), 
@@ -118,8 +115,8 @@ if(simulation) {
     par = true_pars
     Dn_omega = Dn_omega_sim
     
-    # Artificially increase the noise of the VAR process
-    par[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
+    # # Artificially increase the noise of the VAR process
+    # par[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
     
     b_chain = data_format[, "b_true"]
 } else {
@@ -167,10 +164,39 @@ for(i in EIDs){
     
     if(max_ind > 5) {
         b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]   
-        B[[i]] = matrix(b_temp, ncol = 1)
     } else {
-        B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
+        b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
+        
+        # Better initialization for the RBC and Clinic rule patients
+        clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
+        if(length(clinic_rule)>1) print(paste0("error ", i))
+        rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
+        if(length(rbc_rule)>1) print(paste0("error ", i))
+        
+        if(clinic_rule == 1) {
+            if(rbc_rule == 1) {
+                bi_i = bleed_indicator[data_format[,"EID"] == i]
+                bi_i_loc = min(which(bi_i == 1))
+                if(bi_i_loc != 1) {
+                    b_temp[bi_i_loc - 1] = 2
+                }
+                b_temp[bi_i_loc] = 2
+                b_temp[bi_i_loc + 1] = 3
+            }
+        } else if(clinic_rule == 0) {
+            if(rbc_rule == 1) {
+                bi_i = bleed_indicator[data_format[,"EID"] == i]
+                bi_i_loc = min(which(bi_i == 1))
+                if(bi_i_loc != 1) {
+                    b_temp[bi_i_loc - 1] = 2
+                }
+                b_temp[bi_i_loc] = 2
+                b_temp[bi_i_loc + 1] = 3
+            }
+        }
     }
+    
+    B[[i]] = matrix(b_temp, ncol = 1)
 }
 
 
@@ -196,6 +222,21 @@ colnames(zed) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1',
                    '(6) 3->2', '(7) 3->4','(8) 4->2', '(9) 4->5', '(10) 5->1', 
                    '(11) 5->2', '(12) 5->4')
 print(zed)
+
+vec_A1 = par[par_index$vec_A]
+scale_A1 = exp(vec_A1) / (1+exp(vec_A1))
+
+diag_gamma = c(R_t[1,1] / (scale_A1[1]^2), R_t[2,2] / (scale_A1[2]^2),
+               R_t[3,3] / (scale_A1[3]^2), R_t[4,4] / (scale_A1[4]^2),
+               R_t[1,1] / (scale_A1[5]^2), R_t[2,2] / (scale_A1[6]^2),
+               R_t[3,3] / (scale_A1[7]^2), R_t[4,4] / (scale_A1[8]^2),
+               R_t[1,1] / (scale_A1[9]^2), R_t[2,2] / (scale_A1[10]^2),
+               R_t[3,3] / (scale_A1[11]^2), R_t[4,4] / (scale_A1[12]^2),
+               R_t[1,1] / (scale_A1[13]^2), R_t[2,2] / (scale_A1[14]^2),
+               R_t[3,3] / (scale_A1[15]^2), R_t[4,4] / (scale_A1[16]^2),
+               R_t[1,1] / (scale_A1[17]^2), R_t[2,2] / (scale_A1[18]^2),
+               R_t[3,3] / (scale_A1[19]^2), R_t[4,4] / (scale_A1[20]^2))
+print(round(sqrt(diag_gamma), 3))
 
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 

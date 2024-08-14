@@ -1,7 +1,7 @@
 # Size of posterior sample from mcmc chains
 steps = 1001
 
-simulation = T
+simulation = F
 
 # load("../Data/Dn_omega_names3.rda")
 # load('../Data/hr_map_names3.rda')
@@ -53,8 +53,8 @@ if(simulation) {
     true_par = true_pars     
 } else {
     index_seeds = c(1:3)
-    trialNum = 16
-    itNum = 2
+    trialNum = 1
+    itNum = 1
     long_chain = T
     df_num = 1
     
@@ -86,13 +86,8 @@ for(seed in index_seeds){
             file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
                                 trialNum,'it', it, '_sim.rda') 
         } else {
-            if(trialNum < 13) {
-                file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
-                                trialNum,'it', it, '.rda')
-            } else {
-                file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
-                                trialNum,'it', it, '_df', df_num, '.rda')
-            }
+            file_name = paste0(dir,'mcmc_out_interm_',toString(seed),'_', 
+                               trialNum,'it', it, '_df', df_num, '.rda')
         }
 
         load(file_name)
@@ -149,12 +144,8 @@ pdf_title = NULL
 if(simulation) {
     pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '_sim.pdf')
 } else {
-    if(trialNum < 13) {
-        pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, '.pdf')
-    } else {
-        pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, 
-                           '_df', df_num, '.pdf')
-    }
+    pdf_title = paste0('Plots/trace_plot_', trialNum, '_it', itNum, 
+                       '_df', df_num, '.pdf')
 }
 pdf(pdf_title)
 par(mfrow=c(3, 2))
