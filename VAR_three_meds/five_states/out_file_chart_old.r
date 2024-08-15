@@ -6,10 +6,10 @@ all_seeds = F
 long_chain = T
 
 if(simulation) {
-    data_num = 2
+    data_num = 3
     
-    trialNum = 2
-    itNum = 5
+    trialNum = 3
+    itNum = 4
 } else {
     trialNum = 1
     itNum = 1
@@ -19,7 +19,7 @@ if(simulation) {
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 1
+    seed_list = 2
 }
 
 # Load the model output -------------------------------------------------------

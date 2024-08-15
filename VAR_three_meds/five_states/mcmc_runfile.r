@@ -25,7 +25,7 @@ if(simulation) {
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 3
+    trialNum = 4
     
     max_ind = 5
 } else {

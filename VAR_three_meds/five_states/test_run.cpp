@@ -248,3 +248,15 @@ arma::mat stateSequences(int end_state, int sequence_length, const arma::mat& ad
 //     
 //     return result;
 // }
+
+
+// [[Rcpp::export]]
+void test_fnc() {
+    int nu_R = 1000;
+    //   arma::mat Psi_R(4,4,arma::fill::eye);
+    arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+    scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
+    arma::mat Psi_R = arma::diagmat(scalar_vec_R);
+    
+    Rcpp::Rcout << Psi_R << std::endl;
+}

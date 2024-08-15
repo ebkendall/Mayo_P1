@@ -772,7 +772,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::vec vec_R_content = par.elem(par_index(4) - 1);
   arma::mat R = arma::reshape(vec_R_content, 4, 4);
   
-  int nu_R = 10;
+  int nu_R = 1000;
   //   arma::mat Psi_R(4,4,arma::fill::eye);
   arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
   scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
@@ -2845,7 +2845,13 @@ void test_fnc() {
         Rcpp::Rcout << Omega_List_GLOBAL_sub_multi(2)(w) << std::endl;
     }
 
-
+    int nu_R = 1000;
+    //   arma::mat Psi_R(4,4,arma::fill::eye);
+    arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+    scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
+    arma::mat Psi_R = arma::diagmat(scalar_vec_R);
+    
+    Rcpp::Rcout << Psi_R << std::endl;
     // Rcpp::Rcout << "Case (c) Sub" << std::endl;
     // for (int w = 0; w < N; w++) {
     //   Rcpp::Rcout << "() -> () -> " << w + 1 << std::endl;
