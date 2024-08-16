@@ -38,9 +38,10 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_zeta[5:8]),
                c(par_index$vec_zeta[9:14]),
                c(par_index$vec_zeta[15:24]),
-               c(par_index$vec_A[1:4]),
-               c(par_index$vec_A[5:12]),
-               c(par_index$vec_A[13:20]),
+               c(par_index$vec_A[c(1,5,9,13,17)]),
+               c(par_index$vec_A[c(2,6,10,14,18)]),
+               c(par_index$vec_A[c(3,7,11,15,19)]),
+               c(par_index$vec_A[c(4,8,12,16,20)]),
                c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
                c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
                c(par_index$vec_R))
@@ -171,7 +172,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         A_chain[[a_ind]] = matrix(nrow = 20, ncol = chain_length_MASTER)
     }
 
-    for(ttt in 1:steps){
+    chain[1,] = par
+    
+    for(ttt in 2:steps){
 
         chain_ind = ttt %% 10000
         if(chain_ind == 0) chain_ind = 10000
@@ -264,13 +267,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         for(j in 1:n_group) {
             ind_j = mpi[[j]]
 
-            # # Fix the R parameters the first half of burnin to help
-            # # the state space move
-            # if(ttt <= burnin/2){
-            #     if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
-            #         next
-            #     }
-            # }
+            # Fix the R and zeta parameters the first half of burnin to help
+            # the state space move
+            if(ttt < burnin/2){
+                if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
+                    next
+                }
+                if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
+                    next
+                }
+            }
 
             proposal = par
 

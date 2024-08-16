@@ -1,7 +1,7 @@
 # Size of posterior sample from mcmc chains
 steps = 1001
 
-simulation = F
+simulation = T
 
 # load("../Data/Dn_omega_names3.rda")
 # load('../Data/hr_map_names3.rda')
@@ -44,11 +44,11 @@ dir = 'Model_out/'
 
 if(simulation) {
     index_seeds = c(1:3)
-    trialNum = 3
-    itNum = 5
+    trialNum = 4
+    itNum = 1
     long_chain = T
     
-    data_num = 1
+    data_num = 3
     load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {

@@ -730,17 +730,23 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   arma::uvec vec_zeta_ind = par_index(5);
   arma::vec vec_zeta_content = par.elem(vec_zeta_ind - 1);
   arma::mat zeta = arma::reshape(vec_zeta_content, 2, 12); // THREE STATE
-
   
   // transitions:                    1->2,         1->4,         2->3,         2->4, 
   //                                 3->1,         3->2,         3->4,         4->2, 
   //                                 4->5,         5->1,         5->2,         5->4
-  arma::vec vec_zeta_mean = {-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
-                             -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
-                             -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1}; 
-  arma::vec scalar_1 = {0.25, 1, 0.25, 1, 0.50, 1, 0.50, 1, 
-                        0.70, 1, 0.50, 1, 0.70, 1, 0.25, 1, 
-                        0.50, 1, 0.70, 1, 0.50, 1, 0.70, 1};
+  arma::vec vec_zeta_mean = {-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
+                             -7.4459,  -1, -6.2404,   2, -5.2151,   1, -5.1778, 2.5, 
+                             -4.6523,   0, -6.4459,  -1, -7.2404, 3.5, -5.2151,   1};
+  arma::vec scalar_1 = {4, 1, 4, 1, 4, 1, 4, 1, 
+                        4, 1, 4, 1, 4, 1, 4, 1, 
+                        4, 1, 4, 1, 4, 1, 4, 1};
+  // arma::vec vec_zeta_mean = {-7.2405, 1.5, -5.2152,   1, -2.6473,  -1, -5.1475,  -1, 
+  //                            -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 1.5, 
+  //                            -2.6523,   0, -9.4459,  -1, -7.2404, 1.5, -5.2151,   1};
+  // arma::vec scalar_1 = {0.25, 1, 0.25, 1, 0.50, 1, 0.50, 1, 
+  //                       0.70, 1, 0.50, 1, 0.70, 1, 0.25, 1, 
+  //                       0.50, 1, 0.70, 1, 0.50, 1, 0.70, 1};
+  
   arma::mat zeta_sd = arma::diagmat(scalar_1);
 
   arma::vec prior_zeta = dmvnorm(vec_zeta_content.t(), vec_zeta_mean, zeta_sd, true);
@@ -1028,12 +1034,6 @@ Rcpp::List update_b_i_cpp_multi(const arma::vec EIDs, const arma::vec &par,
         
         for (int k = 0; k < n_i - (t_pt_length - 1); k++) {
             
-            // arma::vec t_pts;
-            // if (k == n_i - t_pt_length) {
-            //     t_pts = arma::linspace(k+1, k+t_pt_length, t_pt_length);
-            // } else {
-            //     t_pts = arma::linspace(k+1, k+t_pt_length+1, t_pt_length+1);
-            // }
             arma::vec t_pts = arma::linspace(k+1, n_i, n_i - k);
             
             arma::vec pr_B = B_temp;
@@ -1519,17 +1519,21 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     // "ii" is the index of the EID
     
     // The prior mean for vec_alpha_tilde
+    // 9.57729783,          -3,          3, -0.2, -0.2,
+    // 88.69780576,  10.04150472,        -8, -0.5, -0.5,
+    // 79.74903940, -10.04150472,         8,  0.5, -0.5,
+    // 5.2113319,   3.5360813, -3.6866748,  0.2,  0.2
     arma::vec vec_alpha_tilde_0 = {9.57729783,          -1,        0.1, 0, 0,
-                                  88.69780576,  5.04150472,         -4, 0, 0,
-                                  79.74903940, -5.04150472,          4, 0, 0,
+                                  88.69780576,  7.04150472,         -6, 0, 0,
+                                  79.74903940, -7.04150472,          6, 0, 0,
                                     5.2113319,   0.5360813, -0.6866748, 0, 0}; // THREE STATE
     
     // The prior PRECISION matrix for vec_alpha_tilde
     // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = { 0.1, 0.3, 0.5, 0.05, 0.05,
-                                      0.05, 0.5, 0.5, 0.05, 0.05,
-                                      0.05, 0.5, 0.5, 0.05, 0.05,
-                                       0.1, 0.3, 0.5, 0.05, 0.05}; // THREE STATE
+    arma::vec inv_Sigma_alpha_diag = {0.04, 0.04, 0.04, 0.01, 0.01,
+                                      0.01, 0.04, 0.04, 0.01, 0.01,
+                                      0.01, 0.04, 0.04, 0.01, 0.01,
+                                      0.04, 0.04, 0.04, 0.01, 0.01}; // THREE STATE
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     
@@ -1652,7 +1656,7 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     // We know one unit of RBC leads to 1 unit increase in hemo in 1 hour
 
     arma::vec scalar_mult(vec_beta_ind.n_elem, arma::fill::ones);
-    scalar_mult.fill(0.01);
+    scalar_mult.fill(0.04);
     // Make the prior tighter for RBC effect on hemoglobin
     scalar_mult(0) = 4;
     arma::mat inv_Sigma_beta = arma::diagmat(scalar_mult);
@@ -1690,10 +1694,10 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     int nu_Upsilon = 100;
     
     // arma::vec scalar_mult2(20, arma::fill::ones); // THREE STATE
-    arma::vec scalar_mult2 = {  9,  2,  2,  2,  2, 
-                              400, 16, 16, 16, 16, 
-                              400, 16, 16, 16, 16, 
-                                9,  2,  2,  2,  2};
+    arma::vec scalar_mult2 = {  4, 2, 2, 25, 25, 
+                              100, 9, 9, 25, 25, 
+                              100, 9, 9, 25, 25, 
+                                4, 2, 2, 25, 25};
     scalar_mult2 = (nu_Upsilon - 20 - 1) * scalar_mult2;
     
     arma::mat Psi_Upsilon = arma::diagmat(scalar_mult2);
