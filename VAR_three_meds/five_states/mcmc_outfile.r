@@ -44,7 +44,7 @@ dir = 'Model_out/'
 
 if(simulation) {
     index_seeds = c(1:3)
-    trialNum = 4
+    trialNum = 5
     itNum = 1
     long_chain = T
     
@@ -176,7 +176,10 @@ for(s in names(par_index)){
                                           ", ", round(upper, 4), "]"),
               col.main = title_color)
         
-        for(seed in 1:length(chain_list)) lines( chain_list[[seed]][,r], type='l', col=seed)
+        for(seed in 1:length(chain_list)) {
+            lines( chain_list[[seed]][,r], type='l', col=seed)
+            abline(h = chain_list[[seed]][1,r], col=seed)
+        }
         
         if (simulation) {
             x_label = paste0('Mean =',toString(parMean),
@@ -222,7 +225,10 @@ for(rr in 1:ncol(gamma_chain)){
           ylim=y_limit, xlab = paste0("95% CI: [", round(lower, 4),
                                       ", ", round(upper, 4), "]"))
 
-    for(seed in 1:length(chain_list_gamma)) lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
+    for(seed in 1:length(chain_list_gamma)) {
+        lines( chain_list_gamma[[seed]][,rr], type='l', col=seed)
+        abline(h = chain_list_gamma[[seed]][1,rr], col=seed)
+    }
 
     x_label = paste0('Mean =',toString(parMean),' Median =',toString(parMedian))
     

@@ -1,8 +1,8 @@
 #include <RcppDist.h>
 // [[Rcpp::depends(RcppArmadillo, RcppDist)]]
 
-#include <omp.h>
-// [[Rcpp::plugins(openmp)]]
+// #include <omp.h>
+// // [[Rcpp::plugins(openmp)]]
 
 using namespace Rcpp;
 
@@ -688,8 +688,8 @@ double log_f_i_cpp_total(const arma::vec &EIDs, arma::vec t_pts, const arma::vec
   arma::vec in_vals(EIDs.n_elem, arma::fill::zeros);
   arma::vec in_vals_init(EIDs.n_elem, arma::fill::zeros);
 
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         arma::vec in_val_vec = log_f_i_cpp(i, ii, t_pts, par, par_index, A(ii), B(ii), Y, z, Dn(ii), Xn(ii), Dn_omega(ii), W(ii));
@@ -806,6 +806,114 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
 }
 
 // [[Rcpp::export]]
+arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length, 
+                          const bool sub, const arma::vec &par, 
+                          const arma::field<arma::uvec> &par_index, 
+                          const arma::mat &z_i, const arma::vec &b_i,
+                          arma::mat omega_set) {
+    
+    arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
+    arma::mat zeta = arma::reshape(vec_zeta_content, 2, 12); // THREE STATE
+    
+    arma::vec vec_init_content = par.elem(par_index(6) - 1);
+    arma::vec init_logit = {1, exp(vec_init_content(0)), exp(vec_init_content(1)),
+                            exp(vec_init_content(2)), exp(vec_init_content(3))}; // THREE STATE
+    arma::vec P_init = init_logit / arma::accu(init_logit); 
+    
+    arma::vec prob_dist(omega_set.n_rows, arma::fill::ones);
+    
+    for(int j = 0; j < prob_dist.n_elem; j++) {
+        
+        arma::vec t_pts;
+        
+        arma::vec ss_j;
+        if (k == 1) {
+            // () -> () -> 1-5
+            arma::vec ss_temp(omega_set.n_cols + 1, arma::fill::zeros);
+            ss_temp(ss_temp.n_elem - 1) = b_i(t_pt_length);
+            ss_temp.rows(0, ss_temp.n_elem - 2) = omega_set.row(j).t();
+            t_pts = arma::linspace(0, t_pt_length, t_pt_length + 1);
+            
+            ss_j = ss_temp;
+        } else if (k <= n_i - t_pt_length) {
+            // 1-5 -> () -> () -> 1-5
+            arma::vec ss_temp(omega_set.n_cols + 2, arma::fill::zeros);
+            ss_temp(0) = b_i(k - 2);
+            ss_temp(ss_temp.n_elem - 1) = b_i(k + t_pt_length - 1);
+            ss_temp.rows(1, ss_temp.n_elem - 2) = omega_set.row(j).t();
+            t_pts = arma::linspace(k - 2, k + t_pt_length - 1, t_pt_length + 2);
+            
+            ss_j = ss_temp;
+        } else if (k == n_i - t_pt_length + 1) {
+            // 1-5 -> () -> ()
+            arma::vec ss_temp(omega_set.n_cols + 1, arma::fill::zeros);
+            ss_temp(0) = b_i(n_i - t_pt_length - 1);
+            ss_temp.rows(1, ss_temp.n_elem - 1) = omega_set.row(j).t();
+            t_pts = arma::linspace(k - 2, n_i - 1, t_pt_length + 1);
+            
+            ss_j = ss_temp;
+        }
+        
+        for(int jj = 0; jj < ss_j.n_elem; jj++) {
+            if(jj == 0) {
+                if(k == 1) {
+                    prob_dist(j) = prob_dist(j) * P_init(ss_j(jj) - 1);   
+                }
+            } else {
+                // State space component
+                double q1_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(0));
+                double q1 = exp(q1_sub);
+                double q2_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(1));
+                double q2 = exp(q2_sub);
+                double q3_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(2));
+                double q3 = exp(q3_sub);
+                double q4_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(3));
+                double q4 = exp(q4_sub);
+                
+                double q5_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(4));
+                double q5 = exp(q5_sub);
+                double q6_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(5));
+                double q6 = exp(q6_sub);
+                double q7_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(6));
+                double q7 = exp(q7_sub);
+                double q8_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(7));
+                double q8 = exp(q8_sub);
+                
+                double q9_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(8));
+                double q9 = exp(q9_sub);
+                double q10_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(9));
+                double q10 = exp(q10_sub);
+                double q11_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(10));
+                double q11 = exp(q11_sub);
+                double q12_sub = arma::as_scalar(z_i.row(t_pts(jj)) * zeta.col(11));
+                double q12 = exp(q12_sub);
+                
+                arma::mat Q = { {   1,   q1,  0,  q2,  0},
+                                {   0,    1, q3,  q4,  0},
+                                {  q5,   q6,  1,  q7,  0},
+                                {   0,   q8,  0,   1, q9},
+                                { q10,  q11,  0, q12,  1}}; // THREE STATE
+                
+                arma::vec q_row_sums = arma::sum(Q, 1);
+                arma::mat P_i = Q.each_col() / q_row_sums;
+                int b_k_1 = ss_j(jj-1);
+                int b_k = ss_j(jj);
+                
+                prob_dist(j) = prob_dist(j) * P_i( b_k_1 - 1, b_k - 1);
+            }
+        }
+        
+        Rcpp::Rcout << ss_j.t() << std::endl;
+        Rcpp::Rcout << "prob = " << prob_dist(j) << std::endl;
+    }
+    
+    prob_dist = (1/arma::accu(prob_dist)) * prob_dist;
+    Rcpp::Rcout << prob_dist << std::endl;
+    
+    return prob_dist;
+}
+
+// [[Rcpp::export]]
 Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par, 
                           const arma::field<arma::uvec> &par_index, 
                           const arma::field <arma::vec> &A, 
@@ -830,8 +938,8 @@ Rcpp::List update_b_i_cpp(const arma::vec EIDs, const arma::vec &par,
   arma::field<arma::vec> B_return(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -1007,8 +1115,8 @@ Rcpp::List update_b_i_cpp_multi(const arma::vec EIDs, const arma::vec &par,
     arma::field<arma::vec> B_return(EIDs.n_elem);
     arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
 
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         arma::uvec sub_ind = arma::find(eids == i);
@@ -1164,8 +1272,8 @@ Rcpp::List update_Dn_Xn_cpp( const arma::vec EIDs, arma::field <arma::vec> &B,
   arma::field<arma::field<arma::mat>> Dn(EIDs.n_elem);
   arma::field<arma::field<arma::mat>> Xn(EIDs.n_elem);
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
     int i = EIDs(ii);
     arma::uvec sub_ind = arma::find(eids == i);
@@ -1264,8 +1372,8 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
                             exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
-  omp_set_num_threads(n_cores);
-  # pragma omp parallel for
+  // omp_set_num_threads(n_cores);
+  // # pragma omp parallel for
   for (int ii = 0; ii < EIDs.n_elem; ii++) {
       int i = EIDs(ii);
 
@@ -1422,8 +1530,8 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec &EIDs, const arma::v
                               exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         
@@ -1714,8 +1822,8 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     arma::field<arma::mat> in_Upsilon_cov_main(EIDs.n_elem);
     // arma::field<arma::mat> in_Upsilon_omega(EIDs.n_elem);
 
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         
@@ -1863,8 +1971,8 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
                                 exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
-      omp_set_num_threads(n_cores);
-      # pragma omp parallel for
+      // omp_set_num_threads(n_cores);
+      // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {	
         
         int i = EIDs(ii);
@@ -2488,8 +2596,8 @@ Rcpp::List update_b_i_impute_cpp( const arma::vec EIDs, const arma::vec &par,
     arma::field<arma::vec> B_return(EIDs.n_elem);
     arma::field<arma::field<arma::mat>> Dn_return(EIDs.n_elem);
     
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
         int i = EIDs(ii);
         arma::uvec sub_ind = arma::find(eids == i);
@@ -2662,8 +2770,8 @@ arma::field <arma::vec> initialize_b_i(const arma::vec EIDs, const arma::vec &pa
     
     arma::field<arma::vec> B_return(EIDs.n_elem);
     
-    omp_set_num_threads(n_cores);
-    # pragma omp parallel for
+    // omp_set_num_threads(n_cores);
+    // # pragma omp parallel for
     for (int ii = 0; ii < EIDs.n_elem; ii++) {
 
         int i = EIDs(ii);

@@ -1,7 +1,19 @@
 library(RcppArmadillo)
 library(RcppDist)
 library(Rcpp)
-Rcpp::sourceCpp("test_run.cpp")
+# Rcpp::sourceCpp("test_run.cpp")
+
+Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
+
+adjacency_mat = matrix(c(1, 1, 0, 1, 0,
+                         0, 1, 1, 1, 0,
+                         1, 1, 1, 1, 0,
+                         0, 1, 0, 1, 1,
+                         1, 1, 0, 1, 1), ncol = 5, byrow=T)
+
+omega_list_2 = get_Omega_list(adjacency_mat, 2)
+omega_list_4 = get_Omega_list(adjacency_mat, 4)
+
 # sim_dat_num = 2
 # load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
 # data_format = use_data

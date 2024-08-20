@@ -9,7 +9,7 @@ if(simulation) {
     data_num = 3
     
     trialNum = 4
-    itNum = 1
+    itNum = 4
 } else {
     trialNum = 1
     itNum = 1
@@ -199,6 +199,13 @@ if(simulation) {
     print(sort(prop_sub))
     
     eid_poor = EIDs[prop_sub < 0.9]
+    
+    state_2_info = which(ss_truth == 2)
+    state_2_truth = ss_truth[state_2_info]
+    state_2_mode  = state_seq_mode[state_2_info]
+    
+    print("Correct identification of bleeding")
+    print(sum(state_2_truth == state_2_mode) / length(state_2_mode))   
 }
     
     
