@@ -8,8 +8,8 @@ long_chain = T
 if(simulation) {
     data_num = 3
     
-    trialNum = 4
-    itNum = 4
+    trialNum = 6
+    itNum = 5
 } else {
     trialNum = 1
     itNum = 1

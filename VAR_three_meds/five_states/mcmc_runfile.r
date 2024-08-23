@@ -25,7 +25,7 @@ if(simulation) {
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 5
+    trialNum = 6
     
     max_ind = 5
 } else {
@@ -165,34 +165,45 @@ for(i in EIDs){
     if(max_ind > 5) {
         b_temp = b_chain[data_format[,"EID"] == as.numeric(i)]   
     } else {
-        b_temp = rep(1, sum(data_format[,"EID"] == as.numeric(i)))
+        init_logit = par[par_index$vec_init]
+        init_logit = c(0, init_logit)
+        P_i = exp(init_logit) / sum(exp(init_logit))
+        zeta = matrix(par[par_index$vec_zeta], nrow = 2)
+        colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1', 
+                           '(6) 3->2', '(7) 3->4','(8) 4->2', '(9) 4->5', '(10) 5->1', 
+                           '(11) 5->2', '(12) 5->4')
+        z_temp = z[Y[,"EID"] == i, ]
+        n_i = nrow(z_temp)
         
-        # Better initialization for the RBC and Clinic rule patients
-        clinic_rule = unique(data_format[data_format[,"EID"] == i, "clinic_rule"])
-        if(length(clinic_rule)>1) print(paste0("error ", i))
-        rbc_rule = unique(data_format[data_format[,"EID"] == i, "RBC_rule"])
-        if(length(rbc_rule)>1) print(paste0("error ", i))
-        
-        if(clinic_rule == 1) {
-            if(rbc_rule == 1) {
-                bi_i = bleed_indicator[data_format[,"EID"] == i]
-                bi_i_loc = min(which(bi_i == 1))
-                if(bi_i_loc != 1) {
-                    b_temp[bi_i_loc - 1] = 2
-                }
-                b_temp[bi_i_loc] = 2
-                b_temp[bi_i_loc + 1] = 3
+        b_temp = NULL
+        for(k in 1:n_i){
+            if(k==1){
+                b_temp = sample(1:5, size=1, prob=P_i)
+            } else{
+                q1   = exp(z_temp[k,, drop=F] %*% zeta[,  1, drop=F]) 
+                q2   = exp(z_temp[k,, drop=F] %*% zeta[,  2, drop=F])
+                q3   = exp(z_temp[k,, drop=F] %*% zeta[,  3, drop=F])
+                q4   = exp(z_temp[k,, drop=F] %*% zeta[,  4, drop=F])
+                q5   = exp(z_temp[k,, drop=F] %*% zeta[,  5, drop=F]) 
+                q6   = exp(z_temp[k,, drop=F] %*% zeta[,  6, drop=F])
+                q7   = exp(z_temp[k,, drop=F] %*% zeta[,  7, drop=F])
+                q8   = exp(z_temp[k,, drop=F] %*% zeta[,  8, drop=F])
+                q9   = exp(z_temp[k,, drop=F] %*% zeta[,  9, drop=F]) 
+                q10  = exp(z_temp[k,, drop=F] %*% zeta[,  10, drop=F])
+                q11  = exp(z_temp[k,, drop=F] %*% zeta[,  11, drop=F])
+                q12  = exp(z_temp[k,, drop=F] %*% zeta[,  12, drop=F])
+                
+                Q = matrix(c(   1,   q1,  0,  q2,  0,
+                                0,    1, q3,  q4,  0,
+                                q5,   q6,  1,  q7,  0,
+                                0,   q8,  0,   1, q9,
+                                q10,  q11,  0, q12,  1), ncol=5, byrow=T)
+                
+                P_i = Q / rowSums(Q)
+                # Sample the latent state sequence
+                b_temp = c( b_temp, sample(1:5, size=1, prob=P_i[tail(b_temp,1),]))
             }
-        } else if(clinic_rule == 0) {
-            if(rbc_rule == 1) {
-                bi_i = bleed_indicator[data_format[,"EID"] == i]
-                bi_i_loc = min(which(bi_i == 1))
-                if(bi_i_loc != 1) {
-                    b_temp[bi_i_loc - 1] = 2
-                }
-                b_temp[bi_i_loc] = 2
-                b_temp[bi_i_loc + 1] = 3
-            }
+            
         }
     }
     
