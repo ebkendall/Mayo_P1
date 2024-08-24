@@ -1,7 +1,6 @@
 library(RcppArmadillo)
 library(RcppDist)
 library(Rcpp)
-# Rcpp::sourceCpp("test_run.cpp")
 
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 
@@ -47,26 +46,28 @@ B = list()
 for(i in EIDs){
     A[[i]] = alpha_i_mat[[which(EIDs == i)]]
     W[[i]] = omega_i_mat[[which(EIDs == i)]]
-    B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
+    # B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
+    B[[i]] = matrix(data_format[data_format[,"EID"] == i, "b_true"], ncol = 1)
 }
 
 # -----------------------------------------------------------------------------
-# Function that initializes the state space based on the "highest" likelihood -
+# Isolate one subject and test efficacy of state sampler and see:
+# (a) actual posterior distribution of states
+# (b) compare to distribution of state proposals
+# (c) compare to "stationary" distribution (marginal probability of states at each time)
+# Also, write a sanity check code to ensure that the proposal probabilities are what we expect
+# Then, dig into MH ratio and see how we can incorporate the response values
 # -----------------------------------------------------------------------------
-Xn_initial = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
-Xn = Xn_initial[[2]]
+i = 502250
+ii = which(EIDs == i)
+EIDs_temp = i
+par_temp = true_pars
+Y_temp = Y[Y[,"EID"] == i, ]
+z_temp = z[Y[,"EID"] == i, ]
+n_i = nrow(Y_temp)
+b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
 
-B = list()
-B = initialize_b_i(as.numeric(EIDs), par, par_index, A, Y, z, Xn, Dn_omega, W, 10)
 
-
-# How close is this to the true state sequences
-true_B = data_format[,"b_true"]
-initial_B = c(do.call( rbind, B))
-side_by_side_state = cbind(data_format[,"EID"], cbind(true_B, initial_B))
-not_correct = side_by_side_state[(side_by_side_state[,2] != side_by_side_state[,3]), ]
-
-print(paste0("proportion incorrect: ", nrow(not_correct) / nrow(side_by_side_state)))
 
 # -----------------------------------------------------------------------------
 # Focusing on subject 259825 --------------------------------------------------
@@ -120,7 +121,6 @@ for(k in 1:n_i){
     
 }
 print(b_i)
-b_i_true = use_data[use_data[,"EID"] == i,"b_true"]
 #  ----------------------------------------------------------------------------
 
 B[[ii]] = matrix(b_i, ncol = 1)
@@ -261,3 +261,23 @@ for(it in 1:1000) {
 # # Correct identification of change
 # b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
 #            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2))
+
+
+# # -----------------------------------------------------------------------------
+# # Function that initializes the state space based on the "highest" likelihood -
+# # -----------------------------------------------------------------------------
+# Xn_initial = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
+# Xn = Xn_initial[[2]]
+# 
+# B = list()
+# B = initialize_b_i(as.numeric(EIDs), par, par_index, A, Y, z, Xn, Dn_omega, W, 10)
+
+# # How close is this to the true state sequences
+# true_B = data_format[,"b_true"]
+# initial_B = c(do.call( rbind, B))
+# side_by_side_state = cbind(data_format[,"EID"], cbind(true_B, initial_B))
+# not_correct = side_by_side_state[(side_by_side_state[,2] != side_by_side_state[,3]), ]
+# 
+# print(paste0("proportion incorrect: ", nrow(not_correct) / nrow(side_by_side_state)))
+# # -----------------------------------------------------------------------------
+# # -----------------------------------------------------------------------------
