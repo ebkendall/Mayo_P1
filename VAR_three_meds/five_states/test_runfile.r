@@ -137,7 +137,7 @@ Dn_omega_temp = list(); Dn_omega_temp[[1]] = Dn_omega[[ii]]
 W_temp = list(); W_temp[[1]] = W[[ii]]
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
 n_cores = 10
-t_pt_length = 4
+t_pt_length = 2
 
 it_length = 5000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
