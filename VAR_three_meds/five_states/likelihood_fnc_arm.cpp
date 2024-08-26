@@ -817,7 +817,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
 
 
 // [[Rcpp::export]]
-arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length, 
+arma::vec state_prob_gibbs(const int k, const int n_i, int t_pt_length, 
                           const arma::vec &par, const arma::field<arma::uvec> &par_index, 
                           const arma::mat &y_i, const arma::mat &z_i, const arma::vec &b_i,
                           const arma::vec &alpha_i, const arma::field<arma::mat> &x_i,
@@ -1046,17 +1046,17 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
 }
 
 // [[Rcpp::export]]
-Rcpp::List update_b_i_up(const arma::vec EIDs, const arma::vec &par, 
-                         const arma::field<arma::uvec> &par_index, 
-                         const arma::field <arma::vec> &A, 
-                         arma::field <arma::vec> &B, 
-                         const arma::mat &Y, const arma::mat &z, 
-                         arma::field<arma::field<arma::mat>> &Dn, 
-                         const arma::field <arma::field<arma::mat>> &Xn, 
-                         const arma::field<arma::field<arma::mat>> &Dn_omega, 
-                         const arma::field <arma::vec> &W,
-                         const arma::vec &bleed_indicator, int n_cores,
-                         int t_pt_length) {
+Rcpp::List update_b_i_gibbs( const arma::vec EIDs, const arma::vec &par, 
+                             const arma::field<arma::uvec> &par_index, 
+                             const arma::field <arma::vec> &A, 
+                             arma::field <arma::vec> &B, 
+                             const arma::mat &Y, const arma::mat &z, 
+                             arma::field<arma::field<arma::mat>> &Dn, 
+                             const arma::field <arma::field<arma::mat>> &Xn, 
+                             const arma::field<arma::field<arma::mat>> &Dn_omega, 
+                             const arma::field <arma::vec> &W,
+                             const arma::vec &bleed_indicator, int n_cores,
+                             int t_pt_length) {
     
     // par_index KEY: (0) beta, (1) alpha_tilde, (2) sigma_upsilon, (3) vec_A, (4) R, (5) zeta,
     //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
@@ -1114,10 +1114,10 @@ Rcpp::List update_b_i_up(const arma::vec EIDs, const arma::vec &par,
             } 
             
             // Learn the proposal distribution ---------------------------------
-            arma::vec ss_prob = state_prob_dist(k+1, n_i, t_pt_length, par,
-                                                par_index, y_i, z_temp, B_temp,
-                                                A_temp, Xn_temp, Dn_omega_temp,
-                                                W_temp, Omega_set);
+            arma::vec ss_prob = state_prob_gibbs(k+1, n_i, t_pt_length, par,
+                                                 par_index, y_i, z_temp, B_temp,
+                                                 A_temp, Xn_temp, Dn_omega_temp,
+                                                 W_temp, Omega_set);
             
             arma::vec x_sample = arma::linspace(1, Omega_set.n_rows, Omega_set.n_rows);
             arma::vec row_ind = RcppArmadillo::sample(x_sample, 1, false, ss_prob);

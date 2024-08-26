@@ -146,7 +146,7 @@ Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 for(it in 1:it_length) {
     print(it)
     
-    B_Dn = update_b_i_up(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
+    B_Dn = update_b_i_gibbs(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
                          z_temp, Dn_temp, Xn_temp, Dn_omega_temp, W_temp, 
                          bleed_indicator_temp, n_cores, t_pt_length)
     B_temp = B_Dn[[1]]
@@ -193,7 +193,7 @@ for(it in 1:1000) {
         }
         
         # Informed sampling
-        ss_prob = state_prob_dist(k, n_i, t_pt_length, true_pars, par_index, z_i, b_i, omega_set, prev_prob)
+        ss_prob = state_prob_gibbs(k, n_i, t_pt_length, true_pars, par_index, z_i, b_i, omega_set, prev_prob)
         # row_ind = sample(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]))
         row_ind = csample_num(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]), replace = F)
         prev_prob = ss_prob[row_ind, 2]
