@@ -912,7 +912,8 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
         }  
         
         // Likelihood computations ---------------------------------------------
-        double like_comp = 0;
+        double like_comp_prob = 0;
+        double like_comp_resp = 0;
         for(int jj = 0; jj < t_pts.n_elem; jj++) {
             
             int t_j = t_pts(jj);
@@ -920,7 +921,7 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
             // (1) Transition probabilities ------------------------------------
             if(jj < t_pt_length + 1) {
                 if(t_j == 0) {
-                    like_comp = like_comp + log(P_init(ss_j(t_j) - 1));
+                    like_comp_prob = like_comp_prob + log(P_init(ss_j(t_j) - 1));
                 } else{ 
                     // State space component
                     double q1_sub = arma::as_scalar(z_i.row(t_j) * zeta.col(0));
@@ -961,7 +962,7 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
                     int b_k_1 = ss_j(t_j-1);
                     int b_k = ss_j(t_j);
                     
-                    like_comp = like_comp + log(P_i(b_k_1 - 1, b_k - 1));
+                    like_comp_prob = like_comp_prob + log(P_i(b_k_1 - 1, b_k - 1));
                 } 
             }
             
@@ -992,7 +993,7 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
                                 + x_i(t_j) * vec_beta;
                 arma::vec like_y = dmvnorm(y_1.t(), nu_1, Gamma, true);
                 
-                like_comp = like_comp + arma::as_scalar(like_y);
+                like_comp_resp = like_comp_resp + arma::as_scalar(like_y);
                 
             } else { 
                 arma::vec vec_A = A_all_state.col(ss_j(t_j) - 1);
@@ -1010,20 +1011,36 @@ arma::vec state_prob_dist(const int k, const int n_i, int t_pt_length,
                 arma::vec mean_k = nu_k + A_1 * (y_k_1 - nu_k_1);
                 arma::vec like_y_k = dmvnorm(y_k.t(), mean_k, R, true);
                 
-                like_comp = like_comp + arma::as_scalar(like_y_k);
+                like_comp_resp = like_comp_resp + arma::as_scalar(like_y_k);
             }
+            // Rcpp::Rcout << "prob: " << like_comp_prob << std::endl;
+            // Rcpp::Rcout << "resp: " << like_comp_resp << std::endl;
         } 
         
-        // Converting out of the "log" domain
-        like_comp = exp(like_comp);
+        Rcpp::Rcout << "Total: " << like_comp_prob + like_comp_resp << std::endl;
+        Rcpp::Rcout << omega_set.row(j) << std::endl;
         
-        prob_dist(j) = like_comp;
+        prob_dist(j) = like_comp_prob + like_comp_resp;
         // Rcpp::Rcout << ss_j.t() << std::endl;
         // Rcpp::Rcout << "prob = " << prob_dist(j) << std::endl;
     }
     
+    // For numerical stability, we will scale on the log-scale
+    double prob_log_avg = arma::mean(prob_dist);
+    Rcpp::Rcout << "Avg: " << prob_log_avg << std::endl;
+    
+    prob_dist = prob_dist - prob_log_avg;
+    Rcpp::Rcout << "Centered: " << std::endl;
+    Rcpp::Rcout << prob_dist << std::endl;
+    
+    prob_dist = exp(prob_dist);
+    
+    Rcpp::Rcout << "Expit" << std::endl;
+    Rcpp::Rcout << prob_dist << std::endl;
+    
     prob_dist= (1/arma::accu(prob_dist)) * prob_dist;
-    // Rcpp::Rcout << prob_dist << std::endl;
+    Rcpp::Rcout << "Prob dist" << std::endl;
+    Rcpp::Rcout << prob_dist << std::endl;
     
     return prob_dist;
 }
@@ -1084,6 +1101,7 @@ Rcpp::List update_b_i_up(const arma::vec EIDs, const arma::vec &par,
         
         // Looping through subject state space ---------------------------------
         for (int k = 0; k < n_i - (t_pt_length - 1); k++) {
+        // for (int k = n_i - t_pt_length; k >= 0; k--) {
             
             // All possible state transitions given current time point ---------
             arma::mat Omega_set;

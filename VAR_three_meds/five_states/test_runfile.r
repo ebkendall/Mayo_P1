@@ -58,14 +58,14 @@ for(i in EIDs){
 # Also, write a sanity check code to ensure that the proposal probabilities are what we expect
 # Then, dig into MH ratio and see how we can incorporate the response values
 # -----------------------------------------------------------------------------
-i = 502250
-ii = which(EIDs == i)
-EIDs_temp = i
-par_temp = true_pars
-Y_temp = Y[Y[,"EID"] == i, ]
-z_temp = z[Y[,"EID"] == i, ]
-n_i = nrow(Y_temp)
-b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
+# i = 502250
+# ii = which(EIDs == i)
+# EIDs_temp = i
+# par_temp = true_pars
+# Y_temp = Y[Y[,"EID"] == i, ]
+# z_temp = z[Y[,"EID"] == i, ]
+# n_i = nrow(Y_temp)
+# b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
 
 
 
@@ -80,6 +80,7 @@ ii = which(EIDs == EIDs_temp)
 Y_temp = Y[Y[,"EID"] == i, ]
 z_temp = z[Y[,"EID"] == i, ]
 n_i = nrow(Y_temp)
+b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
 
 # Initialize a state sequence -------------------------------------------------
 init_logit = true_pars[par_index$vec_init]
@@ -141,6 +142,7 @@ t_pt_length = 2
 
 it_length = 5000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
+Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 for(it in 1:it_length) {
     print(it)
     
