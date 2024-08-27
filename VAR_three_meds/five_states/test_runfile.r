@@ -72,8 +72,9 @@ for(i in EIDs){
 # -----------------------------------------------------------------------------
 # Focusing on subject 259825 --------------------------------------------------
 # -----------------------------------------------------------------------------
-i = 166350
+# i = 166350
 # i = 259825
+i = 425400
 EIDs_temp = i
 par_temp = true_pars
 ii = which(EIDs == EIDs_temp)
@@ -140,73 +141,74 @@ bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
 n_cores = 10
 t_pt_length = 2
 
-it_length = 5000
+it_length = 2000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 for(it in 1:it_length) {
     print(it)
     
-    B_Dn = update_b_i_gibbs(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
+    B_Dn = update_b_i_MH(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
                          z_temp, Dn_temp, Xn_temp, Dn_omega_temp, W_temp, 
                          bleed_indicator_temp, n_cores, t_pt_length)
     B_temp = B_Dn[[1]]
+    Dn_temp = B_Dn[[2]]
     
     post_prob_b[it, ] = B_temp[[1]]
 }
 
-pb = barplot(rbind(colMeans(post_prob_b[, 1:n_i] == 1),
-              colMeans(post_prob_b[, 1:n_i] == 2),
-              colMeans(post_prob_b[, 1:n_i] == 3),
-              colMeans(post_prob_b[, 1:n_i] == 4),
-              colMeans(post_prob_b[, 1:n_i] == 5)), 
+pb = barplot(rbind(colMeans(post_prob_b[1:2000, 1:n_i] == 1),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 2),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 3),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 4),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 5)), 
         col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
         xlab='time', space=0, col.main='green', border=NA, axes = F, plot = F)
 
-barplot(rbind(colMeans(post_prob_b[, 1:n_i] == 1),
-              colMeans(post_prob_b[, 1:n_i] == 2),
-              colMeans(post_prob_b[, 1:n_i] == 3),
-              colMeans(post_prob_b[, 1:n_i] == 4),
-              colMeans(post_prob_b[, 1:n_i] == 5)), 
+barplot(rbind(colMeans(post_prob_b[1:2000, 1:n_i] == 1),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 2),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 3),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 4),
+              colMeans(post_prob_b[1:2000, 1:n_i] == 5)), 
         col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
         xlab='time', space=0, col.main='green', border=NA,
         xlim=range(pb) + c(-0.5,0.5)) 
 grid( nx=20, NULL, col='white')
 axis( side=1, at=1:n_i-0.5, labels = b_i_true)
 
-post_prob_b = post_prob_b_no = matrix(nrow = 1000, ncol = n_i)
-for(it in 1:1000) {
-    print(it)
-    prev_prob = 1
-    for(k in 1:(n_i - t_pt_length + 1)) {
-        if (k == 1) {
-            # () -> () -> 1-5
-            omega_set = omega_list_4[[1]][[b_i[t_pt_length+1]]]
-            omega_set_no = omega_list_4[[1]][[b_i_no[t_pt_length+1]]]
-        } else if (k <= n_i - t_pt_length) {
-            # 1-5 -> () -> () -> 1-5
-            omega_set = omega_list_4[[2]][b_i[k - 1], b_i[k + t_pt_length]][[1]]
-            omega_set_no = omega_list_4[[2]][b_i_no[k - 1], b_i_no[k + t_pt_length]][[1]]
-        } else if (k == n_i - t_pt_length + 1) {
-            # 1-5 -> () -> ()
-            omega_set = omega_list_4[[3]][[b_i[n_i - t_pt_length]]]
-            omega_set_no = omega_list_4[[3]][[b_i_no[n_i - t_pt_length]]]
-        }
-        
-        # Informed sampling
-        ss_prob = state_prob_gibbs(k, n_i, t_pt_length, true_pars, par_index, z_i, b_i, omega_set, prev_prob)
-        # row_ind = sample(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]))
-        row_ind = csample_num(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]), replace = F)
-        prev_prob = ss_prob[row_ind, 2]
-        b_i[k:(k+t_pt_length-1)] = c(omega_set[row_ind,])
-        
-        # Uninformed sampling
-        row_ind_no = sample(x = 1:nrow(omega_set_no), size = 1)
-        b_i_no[k:(k+t_pt_length-1)] = c(omega_set_no[row_ind_no,])
-    }
-    
-    post_prob_b[it, ] = b_i
-    post_prob_b_no[it, ] = b_i_no
-}
+# post_prob_b = post_prob_b_no = matrix(nrow = 1000, ncol = n_i)
+# for(it in 1:1000) {
+#     print(it)
+#     prev_prob = 1
+#     for(k in 1:(n_i - t_pt_length + 1)) {
+#         if (k == 1) {
+#             # () -> () -> 1-5
+#             omega_set = omega_list_4[[1]][[b_i[t_pt_length+1]]]
+#             omega_set_no = omega_list_4[[1]][[b_i_no[t_pt_length+1]]]
+#         } else if (k <= n_i - t_pt_length) {
+#             # 1-5 -> () -> () -> 1-5
+#             omega_set = omega_list_4[[2]][b_i[k - 1], b_i[k + t_pt_length]][[1]]
+#             omega_set_no = omega_list_4[[2]][b_i_no[k - 1], b_i_no[k + t_pt_length]][[1]]
+#         } else if (k == n_i - t_pt_length + 1) {
+#             # 1-5 -> () -> ()
+#             omega_set = omega_list_4[[3]][[b_i[n_i - t_pt_length]]]
+#             omega_set_no = omega_list_4[[3]][[b_i_no[n_i - t_pt_length]]]
+#         }
+#         
+#         # Informed sampling
+#         ss_prob = state_prob_gibbs(k, n_i, t_pt_length, true_pars, par_index, z_i, b_i, omega_set, prev_prob)
+#         # row_ind = sample(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]))
+#         row_ind = csample_num(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]), replace = F)
+#         prev_prob = ss_prob[row_ind, 2]
+#         b_i[k:(k+t_pt_length-1)] = c(omega_set[row_ind,])
+#         
+#         # Uninformed sampling
+#         row_ind_no = sample(x = 1:nrow(omega_set_no), size = 1)
+#         b_i_no[k:(k+t_pt_length-1)] = c(omega_set_no[row_ind_no,])
+#     }
+#     
+#     post_prob_b[it, ] = b_i
+#     post_prob_b_no[it, ] = b_i_no
+# }
 
 
 # barplot(rbind(colMeans(post_prob_b_no[, 1:n_i] == 1),

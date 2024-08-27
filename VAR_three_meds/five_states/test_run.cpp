@@ -326,7 +326,7 @@ Rcpp::List update_b_i_up(const arma::vec EIDs, const arma::vec &par,
 } 
 
 // [[Rcpp::export]]
-arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length, 
+arma::mat state_prob_MH(const int k, const int n_i, int t_pt_length, 
                         const arma::vec &par, const arma::field<arma::uvec> &par_index, 
                         const arma::mat &y_i, const arma::mat &z_i, const arma::vec &b_i,
                         const arma::vec &alpha_i, const arma::field<arma::mat> &x_i,
@@ -370,9 +370,19 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
     arma::vec init_logit = {1, exp(vec_init_content(0)), exp(vec_init_content(1)),
                             exp(vec_init_content(2)), exp(vec_init_content(3))}; 
     arma::vec P_init = init_logit / arma::accu(init_logit); 
+    
+    arma::vec curr_b_i_k;
+    if(k == 1) {
+        curr_b_i_k = b_i.rows(0, omega_set.n_cols - 1);
+    } else if (k <= n_i - t_pt_length) {
+        curr_b_i_k = b_i.rows(k - 1, k + t_pt_length - 2);
+    } else if (k == n_i - t_pt_length + 1) {
+        curr_b_i_k = b_i.rows(k - 1, k + t_pt_length - 2);
+    }
     // ------------------------------------------------------------------------
     
-    arma::vec prob_dist(omega_set.n_rows, arma::fill::ones);
+    // Columns: proposal distribution, remaining likelihood, indicator
+    arma::mat prob_dist(omega_set.n_rows, 3, arma::fill::zeros);
     
     for(int j = 0; j < omega_set.n_rows; j++) {
         
@@ -394,6 +404,14 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
             ss_j.rows(k - 1, k + t_pt_length - 2) = omega_set.row(j).t();
             t_pts = arma::linspace(k - 1, n_i - 1, n_i - k + 1);
         } 
+        
+        // Check if the new state sequence is the same as b_i -----------------
+        arma::vec state_diff = curr_b_i_k - omega_set.row(j).t();
+        if(arma::any(state_diff != 0)) {
+            prob_dist(j,2) = 0;
+        } else {
+            prob_dist(j,2) = 1;
+        }
         
         // Create new design matrix -------------------------------------------
         arma::field<arma::mat> Dn_ss_j(ss_j.n_elem);
@@ -423,6 +441,7 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
         // Likelihood computations ---------------------------------------------
         double like_comp_prob = 0;
         double like_comp_resp = 0;
+        double like_comp_MH   = 0;
         for(int jj = 0; jj < t_pts.n_elem; jj++) {
             
             int t_j = t_pts(jj);
@@ -461,10 +480,10 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
                     double q12 = exp(q12_sub);
                     
                     arma::mat Q = { {   1,   q1,  0,  q2,  0},
-                    {   0,    1, q3,  q4,  0},
-                    {  q5,   q6,  1,  q7,  0},
-                    {   0,   q8,  0,   1, q9},
-                    { q10,  q11,  0, q12,  1}}; 
+                                    {   0,    1, q3,  q4,  0},
+                                    {  q5,   q6,  1,  q7,  0},
+                                    {   0,   q8,  0,   1, q9},
+                                    { q10,  q11,  0, q12,  1}}; 
                     
                     arma::vec q_row_sums = arma::sum(Q, 1);
                     arma::mat P_i = Q.each_col() / q_row_sums;
@@ -498,29 +517,37 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
                 
                 arma::vec y_1 = y_i.col(t_j);
                 arma::vec nu_1 = Dn_ss_j(t_j) * alpha_i 
-                + Dn_omega(t_j) * w_i 
-                + x_i(t_j) * vec_beta;
+                                + Dn_omega(t_j) * w_i 
+                                + x_i(t_j) * vec_beta;
                 arma::vec like_y = dmvnorm(y_1.t(), nu_1, Gamma, true);
                 
-                like_comp_resp = like_comp_resp + arma::as_scalar(like_y);
+                if(jj < t_pt_length + 1) {
+                    like_comp_resp = like_comp_resp + arma::as_scalar(like_y);
+                } else {
+                    like_comp_MH = like_comp_MH + arma::as_scalar(like_y);
+                }
                 
-            } else { 
+            } else {
                 arma::vec vec_A = A_all_state.col(ss_j(t_j) - 1);
                 arma::mat A_1 = arma::diagmat(vec_A);
                 
                 arma::vec y_k_1 = y_i.col(t_j - 1);
                 arma::vec y_k = y_i.col(t_j);
                 arma::vec nu_k_1 = Dn_ss_j(t_j - 1) * alpha_i 
-                + Dn_omega(t_j - 1) * w_i 
-                + x_i(t_j - 1) * vec_beta;
+                                    + Dn_omega(t_j - 1) * w_i 
+                                    + x_i(t_j - 1) * vec_beta;
                 arma::vec nu_k = Dn_ss_j(t_j) * alpha_i 
-                + Dn_omega(t_j) * w_i 
-                + x_i(t_j) * vec_beta;
+                                    + Dn_omega(t_j) * w_i 
+                                    + x_i(t_j) * vec_beta;
                 
                 arma::vec mean_k = nu_k + A_1 * (y_k_1 - nu_k_1);
                 arma::vec like_y_k = dmvnorm(y_k.t(), mean_k, R, true);
                 
-                like_comp_resp = like_comp_resp + arma::as_scalar(like_y_k);
+                if(jj < t_pt_length + 1) {
+                    like_comp_resp = like_comp_resp + arma::as_scalar(like_y_k);
+                } else {
+                    like_comp_MH = like_comp_MH + arma::as_scalar(like_y_k);
+                }
             }
             // Rcpp::Rcout << "prob: " << like_comp_prob << std::endl;
             // Rcpp::Rcout << "resp: " << like_comp_resp << std::endl;
@@ -529,32 +556,33 @@ arma::vec state_prob_MH(const int k, const int n_i, int t_pt_length,
         Rcpp::Rcout << "Total: " << like_comp_prob + like_comp_resp << std::endl;
         Rcpp::Rcout << omega_set.row(j) << std::endl;
         
-        prob_dist(j) = like_comp_prob + like_comp_resp;
+        prob_dist(j,0) = like_comp_prob + like_comp_resp;
+        prob_dist(j,1) = like_comp_MH;
         // Rcpp::Rcout << ss_j.t() << std::endl;
         // Rcpp::Rcout << "prob = " << prob_dist(j) << std::endl;
     }
     
     // For numerical stability, we will scale on the log-scale
-    double prob_log_avg = arma::mean(prob_dist);
+    double prob_log_avg = arma::mean(prob_dist.col(0));
     Rcpp::Rcout << "Avg: " << prob_log_avg << std::endl;
     
-    prob_dist = prob_dist - prob_log_avg;
+    prob_dist.col(0) = prob_dist.col(0) - prob_log_avg;
     Rcpp::Rcout << "Centered: " << std::endl;
-    Rcpp::Rcout << prob_dist << std::endl;
+    Rcpp::Rcout << prob_dist.col(0) << std::endl;
     
-    prob_dist = exp(prob_dist);
+    prob_dist.col(0) = exp(prob_dist.col(0));
     
     Rcpp::Rcout << "Expit" << std::endl;
-    Rcpp::Rcout << prob_dist << std::endl;
+    Rcpp::Rcout << prob_dist.col(0) << std::endl;
     
-    prob_dist= (1/arma::accu(prob_dist)) * prob_dist;
+    prob_dist.col(0)= (1/arma::accu(prob_dist.col(0))) * prob_dist.col(0);
     Rcpp::Rcout << "Prob dist" << std::endl;
     Rcpp::Rcout << prob_dist << std::endl;
     
-    // This will now need to return the log-likelihood for the remainder of the
-    // process to do the MH ratio ---------------------------------------------
-    
-    
+    arma::uvec num_non_zero = arma::find(prob_dist.col(2) == 1);
+    if(num_non_zero.n_elem > 1) {
+        Rcpp::Rcout << "bad indicator" << std::endl;
+    }
     
     return prob_dist;
 }
@@ -615,7 +643,9 @@ Rcpp::List update_b_i_MH(const arma::vec EIDs, const arma::vec &par,
         
         // Looping through subject state space ---------------------------------
         for (int k = 0; k < n_i - (t_pt_length - 1); k++) {
-            // for (int k = n_i - t_pt_length; k >= 0; k--) {
+            
+            arma::vec pr_B = B_temp;
+            arma::field<arma::mat> pr_Dn(Dn_temp.n_elem);
             
             // All possible state transitions given current time point ---------
             arma::mat Omega_set;
@@ -628,28 +658,28 @@ Rcpp::List update_b_i_MH(const arma::vec EIDs, const arma::vec &par,
             } 
             
             // Learn the proposal distribution ---------------------------------
-            arma::vec ss_prob = state_prob_gibbs(k+1, n_i, t_pt_length, par,
-                                                 par_index, y_i, z_temp, B_temp,
-                                                 A_temp, Xn_temp, Dn_omega_temp,
-                                                 W_temp, Omega_set);
+            arma::mat ss_prob = state_prob_MH(k+1, n_i, t_pt_length, par,
+                                              par_index, y_i, z_temp, B_temp,
+                                              A_temp, Xn_temp, Dn_omega_temp,
+                                              W_temp, Omega_set);
             
             arma::vec x_sample = arma::linspace(1, Omega_set.n_rows, Omega_set.n_rows);
-            arma::vec row_ind = RcppArmadillo::sample(x_sample, 1, false, ss_prob);
+            arma::vec row_ind = RcppArmadillo::sample(x_sample, 1, false, ss_prob.col(0));
             
-            // Gibbs update ----------------------------------------------------
-            B_temp.rows(k, k+t_pt_length-1) = Omega_set.row(row_ind(0)-1).t();
+            // Format ----------------------------------------------------------
+            pr_B.rows(k, k+t_pt_length-1) = Omega_set.row(row_ind(0)-1).t();
             
-            arma::vec twos(B_temp.n_elem, arma::fill::zeros);
+            arma::vec twos(pr_B.n_elem, arma::fill::zeros);
             arma::vec threes = twos; // THREE STATE
             arma::vec fours = twos;
             arma::vec fives = twos;
             
-            twos.elem(arma::find(B_temp == 2)) += 1;
-            threes.elem(arma::find(B_temp == 3)) += 1; // THREE STATE
-            fours.elem(arma::find(B_temp == 4)) += 1;
-            fives.elem(arma::find(B_temp == 5)) += 1;
+            twos.elem(arma::find(pr_B == 2)) += 1;
+            threes.elem(arma::find(pr_B == 3)) += 1; // THREE STATE
+            fours.elem(arma::find(pr_B == 4)) += 1;
+            fives.elem(arma::find(pr_B == 5)) += 1;
             
-            arma::vec ones(B_temp.n_elem, arma::fill::ones);
+            arma::vec ones(pr_B.n_elem, arma::fill::ones);
             
             arma::mat bigB = arma::join_rows(ones, arma::cumsum(twos));
             bigB = arma::join_rows(bigB, arma::cumsum(threes)); // THREE STATE
@@ -658,8 +688,18 @@ Rcpp::List update_b_i_MH(const arma::vec EIDs, const arma::vec &par,
             
             arma::mat I = arma::eye(4,4);
             for(int jj = 0; jj < n_i; jj++) {
-                Dn_temp(jj) = arma::kron(I, bigB.row(jj));
+                pr_Dn(jj) = arma::kron(I, bigB.row(jj));
             } 
+            
+            // log MH-ratio ----------------------------------------------------
+            arma::vec row_ind_prev = x_sample.elem(arma::find(ss_prob.col(2) == 1));
+            double diff_check = ss_prob(row_ind(0)-1, 1) - ss_prob(row_ind_prev(0)-1, 1);
+            double min_log = log(arma::randu(arma::distr_param(0,1)));
+            if(diff_check > min_log){
+                B_temp = pr_B;
+                Dn_temp = pr_Dn;
+            } 
+            
         }
         B_return(ii) = B_temp;
         Dn_return(ii) = Dn_temp;
