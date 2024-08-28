@@ -5,7 +5,7 @@ df_num = 1
 data_name = paste0('Data_updates/data_format_', df_num, '.rda')
 load(data_name)
 
-it_num = 3
+it_num = 4
 set.seed(2018)
 N = length(unique(data_format[,"EID"]))
 EIDs = unique(data_format[,"EID"])
@@ -165,7 +165,7 @@ sigma_upsilon = Upsilon = matrix(pars_mean[par_index$vec_sigma_upsilon], ncol = 
 
 A_mat = matrix(pars_mean[par_index$vec_A], nrow = 4)
 vec_A = c(A_mat)
-correct_scale_A = exp(vec_A) / (1 + exp(vec_A))
+correct_scale_A = (exp(vec_A) - 1) / (1 + exp(vec_A)) # Support (-1,1)
 A_mat_scale = matrix(correct_scale_A, nrow = 4)
 
 # columns: hemo, hr, map, lactate

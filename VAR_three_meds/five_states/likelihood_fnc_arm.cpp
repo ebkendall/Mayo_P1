@@ -370,8 +370,8 @@ arma::field<arma::field<arma::mat>> get_Omega_list(const arma::imat &adj_mat, in
     return Omega_List;
 }
 
-const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_multi = get_Omega_list(adj_mat, 2);
-const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_sub_multi = get_Omega_list(adj_mat_sub, 2);
+const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_multi = get_Omega_list(adj_mat, 3);
+const arma::field<arma::field<arma::mat>> Omega_List_GLOBAL_sub_multi = get_Omega_list(adj_mat_sub, 3);
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -474,26 +474,27 @@ arma::vec log_f_i_cpp(const int i, const int ii, arma::vec t_pts, const arma::ve
   arma::mat invR = arma::inv_sympd(R);
   
   arma::vec vec_A_total = par.elem(par_index(3) - 1);
-  arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                            exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                            exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                            exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                            exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                            exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                            exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                            exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                            exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                            exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                           exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                           exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                           exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                           exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                           exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                           exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                           exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                           exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                           exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                           exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  // Transform to support (-1,1)
+  arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                            (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                            (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                            (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                            (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                            (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                            (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                            (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                            (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                            (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                            (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                            (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                            (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                            (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                            (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                            (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                            (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                            (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                            (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                            (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
   arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
@@ -831,26 +832,28 @@ arma::mat state_prob_MH(const int k, const int n_i, int t_pt_length,
     arma::mat invR = arma::inv_sympd(R);
     
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                              exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                              exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                              exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                              exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                              exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                              exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                              exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                              exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                              exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                              exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                              exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                              exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                              exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                              exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                              exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                              exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                              exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                              exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
+    
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5);
     
     arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
@@ -1212,26 +1215,27 @@ arma::vec state_prob_gibbs(const int k, const int n_i, int t_pt_length,
     arma::mat invR = arma::inv_sympd(R);
     
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                              exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                              exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                              exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                              exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                              exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                              exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                              exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                              exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                              exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                              exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                              exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                              exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                              exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                              exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                              exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                              exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                              exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                              exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5);
     
     arma::vec vec_zeta_content = par.elem(par_index(5) - 1);
@@ -1397,8 +1401,8 @@ arma::vec state_prob_gibbs(const int k, const int n_i, int t_pt_length,
             // Rcpp::Rcout << "resp: " << like_comp_resp << std::endl;
         } 
         
-        Rcpp::Rcout << "Total: " << like_comp_prob + like_comp_resp << std::endl;
-        Rcpp::Rcout << omega_set.row(j) << std::endl;
+        // Rcpp::Rcout << "Total: " << like_comp_prob + like_comp_resp << std::endl;
+        // Rcpp::Rcout << omega_set.row(j) << std::endl;
         
         prob_dist(j) = like_comp_prob + like_comp_resp;
         // Rcpp::Rcout << ss_j.t() << std::endl;
@@ -1406,21 +1410,23 @@ arma::vec state_prob_gibbs(const int k, const int n_i, int t_pt_length,
     }
     
     // For numerical stability, we will scale on the log-scale
-    double prob_log_avg = arma::mean(prob_dist);
-    Rcpp::Rcout << "Avg: " << prob_log_avg << std::endl;
+    double prob_log_max = prob_dist.max();
+    // Rcpp::Rcout << "Max: " << prob_log_max << std::endl;
+    // double prob_log_avg = arma::mean(prob_dist);
+    // Rcpp::Rcout << "Avg: " << prob_log_avg << std::endl;
     
-    prob_dist = prob_dist - prob_log_avg;
-    Rcpp::Rcout << "Centered: " << std::endl;
-    Rcpp::Rcout << prob_dist << std::endl;
+    prob_dist = prob_dist - prob_log_max;
+    // Rcpp::Rcout << "Centered: " << std::endl;
+    // Rcpp::Rcout << prob_dist << std::endl;
     
     prob_dist = exp(prob_dist);
     
-    Rcpp::Rcout << "Expit" << std::endl;
-    Rcpp::Rcout << prob_dist << std::endl;
+    // Rcpp::Rcout << "Expit" << std::endl;
+    // Rcpp::Rcout << prob_dist << std::endl;
     
     prob_dist= (1/arma::accu(prob_dist)) * prob_dist;
-    Rcpp::Rcout << "Prob dist" << std::endl;
-    Rcpp::Rcout << prob_dist << std::endl;
+    // Rcpp::Rcout << "Prob dist" << std::endl;
+    // Rcpp::Rcout << prob_dist << std::endl;
     
     return prob_dist;
 }
@@ -1629,26 +1635,27 @@ arma::field <arma::vec> update_alpha_i_cpp( const arma::vec &EIDs, const arma::v
   arma::field<arma::vec> A(EIDs.n_elem);
   
   arma::vec vec_A_total = par.elem(par_index(3) - 1);
-  arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                            exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                            exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                            exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                            exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                            exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                            exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                            exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                            exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                            exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                            exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                            exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                            exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                            exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                            exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                            exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                            exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                            exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                            exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                            exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+  // Transform to support (-1,1)
+  arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                            (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                            (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                            (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                            (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                            (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                            (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                            (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                            (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                            (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                            (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                            (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                            (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                            (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                            (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                            (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                            (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                            (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                            (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                            (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
   arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
   
   // omp_set_num_threads(n_cores);
@@ -1787,26 +1794,27 @@ arma::field <arma::vec> update_omega_i_cpp( const arma::vec &EIDs, const arma::v
     arma::field<arma::vec> W(EIDs.n_elem);
     
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                              exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                              exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                              exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                              exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                              exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                              exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                              exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                              exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                              exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                              exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                              exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                              exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                              exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                              exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                              exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                              exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                              exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                              exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
     // omp_set_num_threads(n_cores);
@@ -2053,26 +2061,27 @@ arma::vec update_beta_Upsilon_R_cpp( const arma::vec &EIDs, arma::vec par,
     arma::mat invR = arma::inv_sympd(R);
 
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
     arma::vec vec_beta = par.elem(vec_beta_ind - 1);
@@ -2228,26 +2237,27 @@ arma::mat update_Y_i_cpp( const arma::vec &EIDs, const arma::vec &par,
     arma::mat invR = arma::inv_sympd(R);
 
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
     
       // omp_set_num_threads(n_cores);
@@ -2446,26 +2456,27 @@ Rcpp::List proposal_R_cpp(const int nu_R, const arma::mat psi_R,
     //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
     arma::vec eids = Y.col(0);
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
     arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
@@ -2526,26 +2537,27 @@ Rcpp::List proposal_R_cpp_new(const int nu_R, const arma::mat psi_R, arma::mat c
     //                (6) init, (7) omega_tilde, (8) vec_upsilon_omega
     arma::vec eids = Y.col(0);
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                                exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                                exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                                exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                                exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                                exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                                exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                                exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                                exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                                exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                                exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                                exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                                exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                                exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                                exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                                exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                                exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                                exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                                exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                                exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
 
     arma::mat psi_prop_R_interm(4, 4, arma::fill::zeros);
@@ -2640,26 +2652,27 @@ arma::mat small_impute_Y_i_cpp( const int i, const int ii, const arma::vec &par,
     arma::mat invR = arma::inv_sympd(R);
     
     arma::vec vec_A_total = par.elem(par_index(3) - 1);
-    arma::vec vec_A_scale = { exp(vec_A_total(0)) / (1+exp(vec_A_total(0))),
-                              exp(vec_A_total(1)) / (1+exp(vec_A_total(1))),
-                              exp(vec_A_total(2)) / (1+exp(vec_A_total(2))),
-                              exp(vec_A_total(3)) / (1+exp(vec_A_total(3))),
-                              exp(vec_A_total(4)) / (1+exp(vec_A_total(4))),
-                              exp(vec_A_total(5)) / (1+exp(vec_A_total(5))),
-                              exp(vec_A_total(6)) / (1+exp(vec_A_total(6))),
-                              exp(vec_A_total(7)) / (1+exp(vec_A_total(7))),
-                              exp(vec_A_total(8)) / (1+exp(vec_A_total(8))),
-                              exp(vec_A_total(9)) / (1+exp(vec_A_total(9))),
-                              exp(vec_A_total(10)) / (1+exp(vec_A_total(10))),
-                              exp(vec_A_total(11)) / (1+exp(vec_A_total(11))),
-                              exp(vec_A_total(12)) / (1+exp(vec_A_total(12))),
-                              exp(vec_A_total(13)) / (1+exp(vec_A_total(13))),
-                              exp(vec_A_total(14)) / (1+exp(vec_A_total(14))),
-                              exp(vec_A_total(15)) / (1+exp(vec_A_total(15))),
-                              exp(vec_A_total(16)) / (1+exp(vec_A_total(16))),
-                              exp(vec_A_total(17)) / (1+exp(vec_A_total(17))),
-                              exp(vec_A_total(18)) / (1+exp(vec_A_total(18))),
-                              exp(vec_A_total(19)) / (1+exp(vec_A_total(19)))};
+    // Transform to support (-1,1)
+    arma::vec vec_A_scale = { (exp(vec_A_total(0)) - 1) / (1+exp(vec_A_total(0))),
+                              (exp(vec_A_total(1)) - 1) / (1+exp(vec_A_total(1))),
+                              (exp(vec_A_total(2)) - 1) / (1+exp(vec_A_total(2))),
+                              (exp(vec_A_total(3)) - 1) / (1+exp(vec_A_total(3))),
+                              (exp(vec_A_total(4)) - 1) / (1+exp(vec_A_total(4))),
+                              (exp(vec_A_total(5)) - 1) / (1+exp(vec_A_total(5))),
+                              (exp(vec_A_total(6)) - 1) / (1+exp(vec_A_total(6))),
+                              (exp(vec_A_total(7)) - 1) / (1+exp(vec_A_total(7))),
+                              (exp(vec_A_total(8)) - 1) / (1+exp(vec_A_total(8))),
+                              (exp(vec_A_total(9)) - 1) / (1+exp(vec_A_total(9))),
+                              (exp(vec_A_total(10)) - 1) / (1+exp(vec_A_total(10))),
+                              (exp(vec_A_total(11)) - 1) / (1+exp(vec_A_total(11))),
+                              (exp(vec_A_total(12)) - 1) / (1+exp(vec_A_total(12))),
+                              (exp(vec_A_total(13)) - 1) / (1+exp(vec_A_total(13))),
+                              (exp(vec_A_total(14)) - 1) / (1+exp(vec_A_total(14))),
+                              (exp(vec_A_total(15)) - 1) / (1+exp(vec_A_total(15))),
+                              (exp(vec_A_total(16)) - 1) / (1+exp(vec_A_total(16))),
+                              (exp(vec_A_total(17)) - 1) / (1+exp(vec_A_total(17))),
+                              (exp(vec_A_total(18)) - 1) / (1+exp(vec_A_total(18))),
+                              (exp(vec_A_total(19)) - 1) / (1+exp(vec_A_total(19)))};
     arma::mat A_all_state = arma::reshape(vec_A_scale, 4, 5); // THREE STATE
         
     arma::vec vec_init_content = par.elem(par_index(6) - 1);

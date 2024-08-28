@@ -4,7 +4,7 @@ library(Rcpp)
 
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 
-sim_dat_num = 3
+sim_dat_num = 4
 load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
 data_format = use_data
 
@@ -70,11 +70,17 @@ for(i in EIDs){
 
 
 # -----------------------------------------------------------------------------
-# Focusing on subject 259825 --------------------------------------------------
+# Focusing on a subject -------------------------------------------------------
 # -----------------------------------------------------------------------------
+# Data set 3
 # i = 166350
 # i = 259825
-i = 425400
+# i = 425400
+# Data set 4
+i = 288775
+# i = 259825
+# i = 194350
+# i = 234375
 EIDs_temp = i
 par_temp = true_pars
 ii = which(EIDs == EIDs_temp)
@@ -139,9 +145,9 @@ Dn_omega_temp = list(); Dn_omega_temp[[1]] = Dn_omega[[ii]]
 W_temp = list(); W_temp[[1]] = W[[ii]]
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
 n_cores = 10
-t_pt_length = 2
+t_pt_length = 3
 
-it_length = 2000
+it_length = 1000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
 for(it in 1:it_length) {
@@ -156,19 +162,19 @@ for(it in 1:it_length) {
     post_prob_b[it, ] = B_temp[[1]]
 }
 
-pb = barplot(rbind(colMeans(post_prob_b[1:2000, 1:n_i] == 1),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 2),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 3),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 4),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 5)), 
+pb = barplot(rbind(colMeans(post_prob_b[1:it_length, 1:n_i] == 1),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 2),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 3),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 4),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 5)), 
         col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
         xlab='time', space=0, col.main='green', border=NA, axes = F, plot = F)
 
-barplot(rbind(colMeans(post_prob_b[1:2000, 1:n_i] == 1),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 2),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 3),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 4),
-              colMeans(post_prob_b[1:2000, 1:n_i] == 5)), 
+barplot(rbind(colMeans(post_prob_b[1:it_length, 1:n_i] == 1),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 2),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 3),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 4),
+              colMeans(post_prob_b[1:it_length, 1:n_i] == 5)), 
         col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
         xlab='time', space=0, col.main='green', border=NA,
         xlim=range(pb) + c(-0.5,0.5)) 
