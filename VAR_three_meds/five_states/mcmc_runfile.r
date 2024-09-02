@@ -21,11 +21,11 @@ data_format = NULL
 if(simulation) {
     steps  = 50000
     burnin =  5000
-    sim_dat_num = 3
+    sim_dat_num = 4
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 7
+    trialNum = 8
     
     max_ind = 5
 } else {

@@ -215,7 +215,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # ----------------------------------------------------------------------
         
         # Metropolis-within-Gibbs update of the state space --------------------
-        # print("Update b_i"); s_time = Sys.time()
+        s_time = Sys.time()
         B_Dn = update_b_i_MH(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
                               Xn, Dn_omega, W, bleed_indicator, n_cores, t_pt_length)
         B = B_Dn[[1]]; names(B) = EIDs
@@ -232,7 +232,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # B = B_Dn[[1]]; names(B) = EIDs
         # Dn = B_Dn[[2]]; names(Dn) = EIDs
         # Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
-        # e_time = Sys.time() - s_time; print(e_time)
+        e_time = Sys.time() - s_time; print(e_time)
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------
