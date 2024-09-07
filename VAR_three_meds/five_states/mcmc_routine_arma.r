@@ -23,7 +23,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
     EIDs = as.character(unique(Y[,'EID']))
     
-    t_pt_length = 2 # DONT FORGET TO CHANGE THIS NUMBER IN THE .cpp FILE
+    t_pt_length = 4 # DONT FORGET TO CHANGE THIS NUMBER IN THE .cpp FILE
 
     # Index of observed versus missing data
     # 1 = observed, 0 = missing
@@ -217,7 +217,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # Metropolis-within-Gibbs update of the state space --------------------
         s_time = Sys.time()
         B_Dn = update_b_i_MH(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-                              Xn, Dn_omega, W, bleed_indicator, n_cores, t_pt_length)
+                             Xn, Dn_omega, W, bleed_indicator, n_cores, 
+                             t_pt_length, T)
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
         

@@ -128,7 +128,7 @@ for(k in 1:n_i){
     }
     
 }
-print(b_i)
+print(rbind(b_i, b_i_true))
 #  ----------------------------------------------------------------------------
 
 B[[ii]] = matrix(b_i, ncol = 1)
@@ -145,24 +145,24 @@ Dn_omega_temp = list(); Dn_omega_temp[[1]] = Dn_omega[[ii]]
 W_temp = list(); W_temp[[1]] = W[[ii]]
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
 n_cores = 10
-t_pt_length = 3
+t_pt_length = 4
 
-it_length = 100
+it_length = 1000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
 Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
-# start_t = Sys.time()
+start_t = Sys.time()
 for(it in 1:it_length) {
-    print(it)
+    if(it %% 100 == 0) {print(it)}
     
-    B_Dn = update_b_i_gibbs(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
+    B_Dn = update_b_i_MH(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
                          z_temp, Dn_temp, Xn_temp, Dn_omega_temp, W_temp, 
-                         bleed_indicator_temp, n_cores, t_pt_length)
+                         bleed_indicator_temp, n_cores, t_pt_length, T)
     B_temp = B_Dn[[1]]
     Dn_temp = B_Dn[[2]]
     
     post_prob_b[it, ] = B_temp[[1]]
 }
-# end_t = Sys.time(); print(end_t - start_t)
+end_t = Sys.time(); print(end_t - start_t)
 
 pb = barplot(rbind(colMeans(post_prob_b[1:it_length, 1:n_i] == 1),
               colMeans(post_prob_b[1:it_length, 1:n_i] == 2),
@@ -182,6 +182,7 @@ barplot(rbind(colMeans(post_prob_b[1:it_length, 1:n_i] == 1),
         xlim=range(pb) + c(-0.5,0.5)) 
 grid( nx=20, NULL, col='white')
 axis( side=1, at=1:n_i-0.5, labels = b_i_true)
+print(b_i_true)
 
 # post_prob_b = post_prob_b_no = matrix(nrow = 1000, ncol = n_i)
 # for(it in 1:1000) {
