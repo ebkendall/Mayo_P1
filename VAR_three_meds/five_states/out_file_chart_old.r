@@ -3,13 +3,13 @@ library(plotrix)
 
 simulation = T
 all_seeds = F
-long_chain = T
+long_chain = F
 
 if(simulation) {
     data_num = 3
     
-    trialNum = 8
-    itNum = 5
+    trialNum = 9
+    itNum = 4
 } else {
     trialNum = 1
     itNum = 1
@@ -19,7 +19,7 @@ if(simulation) {
 if(all_seeds) {
     seed_list = 1:3
 } else {
-    seed_list = 2
+    seed_list = 1
 }
 
 # Load the model output -------------------------------------------------------

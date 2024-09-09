@@ -25,7 +25,7 @@ if(simulation) {
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 9
+    trialNum = 1
     
     max_ind = 5
 } else {
@@ -114,9 +114,6 @@ if(simulation) {
 
     par = true_pars
     Dn_omega = Dn_omega_sim
-    
-    # # Artificially increase the noise of the VAR process
-    # par[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
     
     b_chain = data_format[, "b_true"]
 } else {

@@ -33,7 +33,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-    mpi = list(c(par_index$vec_init),
+    mpi = list(#c(par_index$vec_init),
                c(par_index$vec_zeta[1:4]),
                c(par_index$vec_zeta[5:8]),
                c(par_index$vec_zeta[9:14]),
@@ -42,8 +42,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_A[c(2,6,10,14,18)]),
                c(par_index$vec_A[c(3,7,11,15,19)]),
                c(par_index$vec_A[c(4,8,12,16,20)]),
-               c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
-               c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
+               #c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
+               #c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -215,7 +215,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # ----------------------------------------------------------------------
         
         # Metropolis-within-Gibbs update of the state space --------------------
-        s_time = Sys.time()
+        # s_time = Sys.time()
         B_Dn = update_b_i_MH(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
                              Xn, Dn_omega, W, bleed_indicator, n_cores, 
                              t_pt_length, T)
@@ -233,7 +233,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # B = B_Dn[[1]]; names(B) = EIDs
         # Dn = B_Dn[[2]]; names(Dn) = EIDs
         # Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
-        e_time = Sys.time() - s_time; print(e_time)
+        # e_time = Sys.time() - s_time; print(e_time)
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------
@@ -253,174 +253,174 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         # Save the parameter updates made in the Gibbs steps before Metropolis steps
         chain[chain_ind,] = par
         
-        # log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B,
-        #                                 Y, z, Dn, Xn, Dn_omega, W, n_cores)
-        # 
-        # if(!is.finite(log_target_prev)){
-        #     print("Infinite log-posterior; Gibbs update went wrong")
-        #     print(paste0("value: ", log_target_prev))
-        #     break
-        # }
-        # 
-        # 
-        # # print("Update metropolis step"); s_time = Sys.time()
-        # # Metropolis-within-Gibbs updates -------------------------------------
-        # for(j in 1:n_group) {
-        #     ind_j = mpi[[j]]
-        # 
-        #     # Fix the R and zeta parameters the first half of burnin to help
-        #     # the state space move
-        #     if(ttt < burnin/2){
-        #         if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
-        #             next
-        #         }
-        #         if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
-        #             next
-        #         }
-        #     }
-        # 
-        #     proposal = par
-        # 
-        #     if(sum(ind_j %in% par_index$vec_R) == 0) {
-        #         # logit_init, zeta, logit A1
-        #         proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],
-        #                                    sigma=pscale[[j]]*pcov[[j]])
-        # 
-        #         log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index,
-        #                                    A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
-        # 
-        #         if(ttt < burnin){
-        #             while(!is.finite(log_target)){
-        #                 print('bad proposal')
-        #                 proposal = par
-        # 
-        #                 proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],
-        #                                            sigma=pcov[[j]]*pscale[j])
-        # 
-        #                 log_target = log_post_cpp( as.numeric(EIDs), proposal,
-        #                                            par_index, A, B, Y, z, Dn,
-        #                                            Xn, Dn_omega, W, n_cores)
-        #             }
-        #         }
-        # 
-        #         if(!is.finite(log_target) | is.nan(log_target)) {
-        #             # Ensuring that we do not have problems from C++
-        #             print(paste0("bad proposal post burnin: ", log_target))
-        #             log_target = -Inf
-        #         }
-        # 
-        #         if( log_target - log_target_prev > log(runif(1,0,1)) ){
-        #             log_target_prev = log_target
-        #             par[ind_j] = proposal[ind_j]
-        #             accept[j] = accept[j] +1
-        #         }
-        # 
-        #         chain[chain_ind,ind_j] = par[ind_j]
-        # 
-        #         # Proposal tuning scheme ---------------------------------------
-        #         if(ttt < burnin){
-        #             # During the burnin period, update the proposal covariance in each step
-        #             # to capture the relationships within the parameters vectors for each
-        #             # transition.  This helps with mixing.
-        #             if(ttt == 100)  pscale[j] = 1
-        # 
-        #             if (length(ind_j) > 1) {
-        #                 if(100 <= ttt & ttt <= 2000){
-        #                     temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-        #                     pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-        # 
-        #                 } else if(2000 < ttt){
-        #                     temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-        #                     pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-        #                 }
-        #             } else {
-        #                 if(100 <= ttt & ttt <= 2000){
-        #                     temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-        #                     pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-        # 
-        #                 } else if(2000 < ttt){
-        #                     temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-        #                     pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-        #                 }
-        #             }
-        # 
-        #             if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
-        # 
-        #             # Tune the proposal covariance for each transition to achieve
-        #             # reasonable acceptance ratios.
-        #             if(ttt %% 30 == 0){
-        #                 if(ttt %% 480 == 0){
-        #                     accept[j] = 0
-        # 
-        #                 } else if( accept[j] / (ttt %% 480) < .4 ){
-        #                     pscale[j] = (.75^2)*pscale[j]
-        # 
-        #                 } else if( accept[j] / (ttt %% 480) > .5 ){
-        #                     pscale[j] = (1.25^2)*pscale[j]
-        #                 }
-        #             }
-        #         }
-        #         # --------------------------------------------------------------
-        # 
-        #     } else {
-        #         # Updating R ---------------------------------------------------
-        # 
-        #         # Prior for R ---------------------------
-        #         nu_R = 1000
-        #         psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
-        #         psi_R = (nu_R - 4 - 1) * psi_R
-        # 
-        #         # q(R* | R(t)) -----------------------------
-        #         curr_R = matrix(par[ind_j], nrow = 4)
-        #         psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn,
-        #                                            A, par, par_index, as.numeric(EIDs),
-        #                                            B, Dn_omega, W)
-        #         q_s_star_t = psi_nu_star_t[[1]] / pscale[j]
-        #         q_nu_star_t = floor(psi_nu_star_t[[2]] / pscale[j])
-        # 
-        #         # Proposal R -----------------------------
-        #         proposal[ind_j] = c(rinvwishart(nu = q_nu_star_t, S = q_s_star_t))
-        # 
-        #         # q(R(t) | R*) -----------------------------
-        #         prop_R = matrix(proposal[ind_j], nrow = 4)
-        #         psi_nu_t_star = proposal_R_cpp_new(nu_R, psi_R, prop_R, Y, Dn, Xn,
-        #                                            A, par, par_index, as.numeric(EIDs),
-        #                                            B, Dn_omega, W)
-        #         q_s_t_star = psi_nu_t_star[[1]] / pscale[j]
-        #         q_nu_t_star = floor(psi_nu_t_star[[2]] / pscale[j])
-        # 
-        #         log_prop      = dinvwishart(Sigma = prop_R,
-        #                                     nu = q_nu_star_t,
-        #                                     S = q_s_star_t, log = T)
-        #         log_prop_prev = dinvwishart(Sigma = curr_R,
-        #                                     nu = q_nu_t_star,
-        #                                     S = q_s_t_star, log = T)
-        # 
-        #         log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index,
-        #                                    A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
-        # 
-        #         if(!is.finite(log_target + log_prop_prev - log_target_prev - log_prop) | is.nan(log_target + log_prop_prev - log_target_prev - log_prop)) {
-        #             # Ensuring that we do not have problems from C++
-        #             print("Current R")
-        #             print(curr_R)
-        #             print("Prop R")
-        #             print(prop_R)
-        #             print(paste0("log_target: ", log_target))
-        #             print(paste0("log_prop_prev: ", log_prop_prev))
-        #             print(paste0("log_target_prev: ", log_target_prev))
-        #             print(paste0("log_prop: ", log_prop))
-        #             print(log_target + log_prop_prev - log_target_prev - log_prop)
-        #         }
-        # 
-        #         if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
-        #             log_target_prev = log_target
-        #             par[ind_j] = proposal[ind_j]
-        #             accept[j] = accept[j] +1
-        #         }
-        # 
-        #         chain[chain_ind,ind_j] = par[ind_j]
-        #     }
-        # }
+        log_target_prev = log_post_cpp( as.numeric(EIDs), par, par_index, A, B,
+                                        Y, z, Dn, Xn, Dn_omega, W, n_cores)
+        
+        if(!is.finite(log_target_prev)){
+            print("Infinite log-posterior; Gibbs update went wrong")
+            print(paste0("value: ", log_target_prev))
+            break
+        }
+        
+        
+        # print("Update metropolis step"); s_time = Sys.time()
+        # Metropolis-within-Gibbs updates -------------------------------------
+        for(j in 1:n_group) {
+            ind_j = mpi[[j]]
+        
+            # Fix the R and zeta parameters the first half of burnin to help
+            # the state space move
+            if(ttt < burnin/2){
+                if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
+                    next
+                }
+                if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
+                    next
+                }
+            }
+        
+            proposal = par
+        
+            if(sum(ind_j %in% par_index$vec_R) == 0) {
+                # logit_init, zeta, logit A1
+                proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],
+                                           sigma=pscale[[j]]*pcov[[j]])
+        
+                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index,
+                                           A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+        
+                if(ttt < burnin){
+                    while(!is.finite(log_target)){
+                        print('bad proposal')
+                        proposal = par
+        
+                        proposal[ind_j] = rmvnorm( n=1, mean=par[ind_j],
+                                                   sigma=pcov[[j]]*pscale[j])
+        
+                        log_target = log_post_cpp( as.numeric(EIDs), proposal,
+                                                   par_index, A, B, Y, z, Dn,
+                                                   Xn, Dn_omega, W, n_cores)
+                    }
+                }
+        
+                if(!is.finite(log_target) | is.nan(log_target)) {
+                    # Ensuring that we do not have problems from C++
+                    print(paste0("bad proposal post burnin: ", log_target))
+                    log_target = -Inf
+                }
+        
+                if( log_target - log_target_prev > log(runif(1,0,1)) ){
+                    log_target_prev = log_target
+                    par[ind_j] = proposal[ind_j]
+                    accept[j] = accept[j] +1
+                }
+        
+                chain[chain_ind,ind_j] = par[ind_j]
+        
+                # Proposal tuning scheme ---------------------------------------
+                if(ttt < burnin){
+                    # During the burnin period, update the proposal covariance in each step
+                    # to capture the relationships within the parameters vectors for each
+                    # transition.  This helps with mixing.
+                    if(ttt == 100)  pscale[j] = 1
+        
+                    if (length(ind_j) > 1) {
+                        if(100 <= ttt & ttt <= 2000){
+                            temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+                            pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+        
+                        } else if(2000 < ttt){
+                            temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+                            pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+                        }
+                    } else {
+                        if(100 <= ttt & ttt <= 2000){
+                            temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
+                            pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+        
+                        } else if(2000 < ttt){
+                            temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
+                            pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
+                        }
+                    }
+        
+                    if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
+        
+                    # Tune the proposal covariance for each transition to achieve
+                    # reasonable acceptance ratios.
+                    if(ttt %% 30 == 0){
+                        if(ttt %% 480 == 0){
+                            accept[j] = 0
+        
+                        } else if( accept[j] / (ttt %% 480) < .4 ){
+                            pscale[j] = (.75^2)*pscale[j]
+        
+                        } else if( accept[j] / (ttt %% 480) > .5 ){
+                            pscale[j] = (1.25^2)*pscale[j]
+                        }
+                    }
+                }
+                # --------------------------------------------------------------
+        
+            } else {
+                # Updating R ---------------------------------------------------
+        
+                # Prior for R ---------------------------
+                nu_R = 1000
+                psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
+                psi_R = (nu_R - 4 - 1) * psi_R
+        
+                # q(R* | R(t)) -----------------------------
+                curr_R = matrix(par[ind_j], nrow = 4)
+                psi_nu_star_t = proposal_R_cpp_new(nu_R, psi_R, curr_R, Y, Dn, Xn,
+                                                   A, par, par_index, as.numeric(EIDs),
+                                                   B, Dn_omega, W)
+                q_s_star_t = psi_nu_star_t[[1]] / pscale[j]
+                q_nu_star_t = floor(psi_nu_star_t[[2]] / pscale[j])
+        
+                # Proposal R -----------------------------
+                proposal[ind_j] = c(rinvwishart(nu = q_nu_star_t, S = q_s_star_t))
+        
+                # q(R(t) | R*) -----------------------------
+                prop_R = matrix(proposal[ind_j], nrow = 4)
+                psi_nu_t_star = proposal_R_cpp_new(nu_R, psi_R, prop_R, Y, Dn, Xn,
+                                                   A, par, par_index, as.numeric(EIDs),
+                                                   B, Dn_omega, W)
+                q_s_t_star = psi_nu_t_star[[1]] / pscale[j]
+                q_nu_t_star = floor(psi_nu_t_star[[2]] / pscale[j])
+        
+                log_prop      = dinvwishart(Sigma = prop_R,
+                                            nu = q_nu_star_t,
+                                            S = q_s_star_t, log = T)
+                log_prop_prev = dinvwishart(Sigma = curr_R,
+                                            nu = q_nu_t_star,
+                                            S = q_s_t_star, log = T)
+        
+                log_target = log_post_cpp( as.numeric(EIDs), proposal, par_index,
+                                           A, B, Y, z, Dn, Xn, Dn_omega, W, n_cores)
+        
+                if(!is.finite(log_target + log_prop_prev - log_target_prev - log_prop) | is.nan(log_target + log_prop_prev - log_target_prev - log_prop)) {
+                    # Ensuring that we do not have problems from C++
+                    print("Current R")
+                    print(curr_R)
+                    print("Prop R")
+                    print(prop_R)
+                    print(paste0("log_target: ", log_target))
+                    print(paste0("log_prop_prev: ", log_prop_prev))
+                    print(paste0("log_target_prev: ", log_target_prev))
+                    print(paste0("log_prop: ", log_prop))
+                    print(log_target + log_prop_prev - log_target_prev - log_prop)
+                }
+        
+                if( log_target + log_prop_prev - log_target_prev - log_prop > log(runif(1,0,1)) ){
+                    log_target_prev = log_target
+                    par[ind_j] = proposal[ind_j]
+                    accept[j] = accept[j] +1
+                }
+        
+                chain[chain_ind,ind_j] = par[ind_j]
+            }
+        }
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Restart the acceptance ratio at burnin
