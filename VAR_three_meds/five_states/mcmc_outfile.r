@@ -43,12 +43,12 @@ additional_labels = c("Gamma(1,1) stable", "Gamma(2,2) stable", "Gamma(3,3) stab
 dir = 'Model_out/'
 
 if(simulation) {
-    index_seeds = c(1:3)
-    trialNum = 5
-    itNum = 1
+    index_seeds = c(1:1)
+    trialNum = 1
+    itNum = 2
     long_chain = T
     
-    data_num = 3
+    data_num = 4
     load(paste0('Data_sim/true_pars_', data_num, '.rda'))
     true_par = true_pars     
 } else {

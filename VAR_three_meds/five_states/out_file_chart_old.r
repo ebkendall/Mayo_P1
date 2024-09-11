@@ -6,10 +6,10 @@ all_seeds = F
 long_chain = F
 
 if(simulation) {
-    data_num = 3
+    data_num = 4
     
-    trialNum = 9
-    itNum = 4
+    trialNum = 1
+    itNum = 2
 } else {
     trialNum = 1
     itNum = 1
@@ -205,7 +205,15 @@ if(simulation) {
     state_2_mode  = state_seq_mode[state_2_info]
     
     print("Correct identification of bleeding")
-    print(sum(state_2_truth == state_2_mode) / length(state_2_mode))   
+    print(sum(state_2_truth == state_2_mode) / length(state_2_mode))  
+    
+    # Sensitivity of state 2: Pr(predict S2 | true S2)
+    predict_at_true_S2 = state_seq_mode[ss_truth == 2]
+    print(paste0("Sensitivity of S2 = ", mean(predict_at_true_S2 == 2)))
+    
+    # Specificity of state 2: Pr(predict not S2 | true not S2)
+    predict_not_S2 = state_seq_mode[ss_truth != 2]
+    print(paste0("Specificity of S2 = ", mean(predict_not_S2 != 2)))
 }
     
     

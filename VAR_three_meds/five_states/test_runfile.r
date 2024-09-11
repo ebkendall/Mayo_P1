@@ -80,7 +80,8 @@ for(i in EIDs){
 # i = 288775
 # i = 259825
 # i = 194350
-i = 234375
+# i = 234375
+i = 747775
 EIDs_temp = i
 par_temp = true_pars
 ii = which(EIDs == EIDs_temp)
@@ -88,6 +89,7 @@ Y_temp = Y[Y[,"EID"] == i, ]
 z_temp = z[Y[,"EID"] == i, ]
 n_i = nrow(Y_temp)
 b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
+dat_temp = data_format[data_format[,"EID"] == i,]
 
 # Initialize a state sequence -------------------------------------------------
 init_logit = true_pars[par_index$vec_init]
@@ -99,9 +101,11 @@ colnames(zeta) = c('(1) 1->2', '(2) 1->4','(3) 2->3', '(4) 2->4', '(5) 3->1',
                    '(11) 5->2', '(12) 5->4')
 set.seed(1)
 b_i = NULL
+stat_dist = matrix(ncol = 5, nrow = n_i)
 for(k in 1:n_i){
     if(k==1){
         b_i = sample(1:5, size=1, prob=P_i)
+        stat_dist[k,] = P_i
     } else{
         q1   = exp(z_temp[k,, drop=F] %*% zeta[,  1, drop=F]) 
         q2   = exp(z_temp[k,, drop=F] %*% zeta[,  2, drop=F])
@@ -125,6 +129,9 @@ for(k in 1:n_i){
         P_i = Q / rowSums(Q)
         # Sample the latent state sequence
         b_i = c( b_i, sample(1:5, size=1, prob=P_i[tail(b_i,1),]))
+        if(k == n_i) print(P_i)
+        
+        stat_dist[k,] = stat_dist[k-1,,drop=F] %*% P_i
     }
     
 }
@@ -132,6 +139,7 @@ print(rbind(b_i, b_i_true))
 #  ----------------------------------------------------------------------------
 
 B[[ii]] = matrix(b_i, ncol = 1)
+# B[[ii]] = matrix(rep(1,length(b_i)), ncol = 1)
 
 Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, true_pars, par_index, x, 10)
 Dn = Dn_Xn[[1]]; names(Dn) = EIDs
@@ -145,7 +153,7 @@ Dn_omega_temp = list(); Dn_omega_temp[[1]] = Dn_omega[[ii]]
 W_temp = list(); W_temp[[1]] = W[[ii]]
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
 n_cores = 10
-t_pt_length = 4
+t_pt_length = 2
 
 it_length = 1000
 post_prob_b = post_prob_b_no = matrix(nrow = it_length, ncol = n_i)
@@ -156,7 +164,7 @@ for(it in 1:it_length) {
     
     B_Dn = update_b_i_MH(EIDs_temp, par_temp, par_index, A_temp, B_temp, Y_temp, 
                          z_temp, Dn_temp, Xn_temp, Dn_omega_temp, W_temp, 
-                         bleed_indicator_temp, n_cores, t_pt_length, T)
+                         bleed_indicator_temp, n_cores, t_pt_length, F)
     B_temp = B_Dn[[1]]
     Dn_temp = B_Dn[[2]]
     

@@ -34,10 +34,15 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
     mpi = list(#c(par_index$vec_init),
-               c(par_index$vec_zeta[1:4]),
-               c(par_index$vec_zeta[5:8]),
-               c(par_index$vec_zeta[9:14]),
-               c(par_index$vec_zeta[15:24]),
+               c(par_index$vec_zeta[c(1,5, 7,11,15,21)]),    # baselines (w/    S2)
+               c(par_index$vec_zeta[c(3,9,13,17,19,23)]),    # baselines (w/out S2)
+               c(par_index$vec_zeta[c(2,12,16,22)]),         # RBC > 0 (to S2)
+               c(par_index$vec_zeta[c(4,14,18,24)]),         # RBC > 0 (no S2)
+               c(par_index$vec_zeta[c(6,8,10,20)]),          # RBC < 0 
+               # c(par_index$vec_zeta[1:4]),
+               # c(par_index$vec_zeta[5:8]),
+               # c(par_index$vec_zeta[9:14]),
+               # c(par_index$vec_zeta[15:24]),
                c(par_index$vec_A[c(1,5,9,13,17)]),
                c(par_index$vec_A[c(2,6,10,14,18)]),
                c(par_index$vec_A[c(3,7,11,15,19)]),
