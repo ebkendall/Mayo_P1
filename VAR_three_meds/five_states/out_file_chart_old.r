@@ -9,7 +9,7 @@ if(simulation) {
     data_num = 4
     
     trialNum = 1
-    itNum = 2
+    itNum = 4
 } else {
     trialNum = 1
     itNum = 1
