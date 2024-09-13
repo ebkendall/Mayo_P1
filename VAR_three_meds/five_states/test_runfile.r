@@ -69,8 +69,7 @@ for(i in EIDs){
 # -----------------------------------------------------------------------------
 # Focusing on a few subjects --------------------------------------------------
 # -----------------------------------------------------------------------------
-id_list = c(194350, 234375, 259825, 288775, 747775)
-EIDs_temp = id_list
+EIDs_temp = c(194350, 234375, 259825, 288775, 747775)
 par_temp = true_pars
 ii_s = which(EIDs %in% EIDs_temp)
 Y_temp_big = Y[Y[,"EID"] %in% EIDs_temp, ]
@@ -259,3 +258,33 @@ for(j in 2:length(EIDs_temp)) {
     lines(x = accur_b[,1], y = accur_b[,j+1], lwd = 2, col = j)
 }
 dev.off()
+
+
+# # Look at accuracy across all sampling schemes
+# EIDs_temp = c(194350, 234375, 259825, 288775, 747775)
+# pdf(paste0('Plots/sampling_out_summary.pdf'))
+# par(mfrow = c(4,1), mar=c(2,4,2,4))
+# for(t in 2:4) {
+#     for(s in 1:4) {
+#         load(paste0('Model_out/sampling_out_',s,'_',t,'.rda'))
+#         accur_b = sampling_out$accur_b; rm(sampling_out)
+#         plot(x = accur_b[,1], y = accur_b[,2], type = 'l', ylim=c(0,1), lwd=2,
+#              xlab = 'compute time (sec.)', ylab = 'state accuracy (at each it.)')
+#         for(j in 2:length(EIDs_temp)) {
+#             lines(x = accur_b[,1], y = accur_b[,j+1], lwd = 1, lty = j)
+#         }
+#         avg_correct = rowMeans(accur_b[,2:ncol(accur_b)])
+#         lines(x = accur_b[,1], y = avg_correct, lwd = 2, col = 'red')
+#         time_convg = accur_b[min(which(avg_correct == max(avg_correct))),1]
+#         abline(v = time_convg, col = 'blue')
+#         # axis(1, at=time_convg, labels=c(time_convg), col = 'blue') 
+#         mtext(side=3, line=0, at=-0.07, adj=0, cex=0.7, paste0('Sampling opt = ', s, ', p = ', t, 
+#                                                                ' (',round(time_convg,digits=2), ', ', 
+#                                                                round(max(avg_correct),digits=2), ')'))
+#     }
+# }
+# dev.off()
+# 
+# # Plot a grid to compare converge time to max correctness (and compare to time per step)
+
+
