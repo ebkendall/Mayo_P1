@@ -46,7 +46,6 @@ B = list()
 for(i in EIDs){
     A[[i]] = alpha_i_mat[[which(EIDs == i)]]
     W[[i]] = omega_i_mat[[which(EIDs == i)]]
-    # B[[i]] = matrix(1, nrow = sum(Y[,"EID"] == i), ncol = 1)
     B[[i]] = matrix(data_format[data_format[,"EID"] == i, "b_true"], ncol = 1)
 }
 
@@ -66,22 +65,6 @@ for(i in EIDs){
 # z_temp = z[Y[,"EID"] == i, ]
 # n_i = nrow(Y_temp)
 # b_i_true = data_format[data_format[,"EID"] == i,"b_true"]
-
-
-
-# -----------------------------------------------------------------------------
-# Focusing on a subject -------------------------------------------------------
-# -----------------------------------------------------------------------------
-# Data set 3
-# i = 166350
-# i = 259825
-# i = 425400
-# Data set 4
-# i = 288775
-# i = 259825
-# i = 194350
-# i = 234375
-# i = 747775
 
 # -----------------------------------------------------------------------------
 # Focusing on a few subjects --------------------------------------------------
@@ -145,7 +128,6 @@ for(i in EIDs_temp) {
     }
     
     B[[which(EIDs == i)]] = matrix(b_i, ncol = 1)
-    # B[[ii]] = matrix(1, nrow = length(b_i), ncol = 1)
 }
 
 
@@ -165,7 +147,7 @@ for(i in 1:length(EIDs_temp)) {
 }
 
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
-n_cores = 10
+n_cores = 2
 #  ----------------------------------------------------------------------------
 
 # Sampling type ---------------------------------------------------------------
@@ -174,17 +156,19 @@ n_cores = 10
 # samp_type = 3: sub. likelihood  MH
 # samp_type = 4: Gibbs update
 
-testing_combo_list = cbind(rep(1:4, 4), rep(2:5, each=4))
 
-# Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
-# args = commandArgs(TRUE)
-# samp_and_p = as.numeric(args[1]) # a number between 1 and 16
-samp_and_p = 1
+args = commandArgs(TRUE)
+samp_type = as.numeric(args[1]) # 1 - 4
+t_pt_length = 5
 
-samp_type = testing_combo_list[samp_and_p, 1]
-t_pt_length = testing_combo_list[samp_and_p, 2]
+print(paste0("Sampling scheme: ", samp_type))
 
-it_length = 2000
+# samp_and_p = as.numeric(args[1]) # 1 - 16
+# testing_combo_list = cbind(rep(1:4, 4), rep(2:5, each=4))
+# samp_type = testing_combo_list[samp_and_p, 1]
+# t_pt_length = testing_combo_list[samp_and_p, 2]
+
+it_length = 10000
 post_prob_b = matrix(nrow = it_length, ncol = nrow(Y_temp_big))
 accur_b = matrix(0, nrow = it_length, ncol = length(EIDs_temp) + 1)
 colnames(accur_b) = c('t_diff', paste0('percent_', EIDs_temp))
@@ -249,19 +233,19 @@ pdf(paste0('Plots/sampling_out_',samp_type,'_',t_pt_length,'.pdf'))
 par(mfrow = c(2,1))
 for(i in 1:length(EIDs_temp)) {
     b_ind = which(Y_temp_big[,"EID"] == EIDs_temp[i])
-    pb = barplot(rbind(colMeans(post_prob_b[1:it_length, b_ind] == 1),
-                       colMeans(post_prob_b[1:it_length, b_ind] == 2),
-                       colMeans(post_prob_b[1:it_length, b_ind] == 3),
-                       colMeans(post_prob_b[1:it_length, b_ind] == 4),
-                       colMeans(post_prob_b[1:it_length, b_ind] == 5)), 
+    pb = barplot(rbind(colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 1),
+                       colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 2),
+                       colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 3),
+                       colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 4),
+                       colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 5)), 
                  col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
                  xlab='time', space=0, col.main='black', border=NA, axes = F, plot = F)
     
-    barplot(rbind(colMeans(post_prob_b[1:it_length, b_ind] == 1),
-                  colMeans(post_prob_b[1:it_length, b_ind] == 2),
-                  colMeans(post_prob_b[1:it_length, b_ind] == 3),
-                  colMeans(post_prob_b[1:it_length, b_ind] == 4),
-                  colMeans(post_prob_b[1:it_length, b_ind] == 5)), 
+    barplot(rbind(colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 1),
+                  colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 2),
+                  colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 3),
+                  colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 4),
+                  colMeans(post_prob_b[1:nrow(post_prob_b), b_ind] == 5)), 
             col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
             xlab='true states', space=0, col.main='black', border=NA,
             xlim=range(pb) + c(-0.5,0.5), main = EIDs_temp[i]) 
@@ -275,114 +259,3 @@ for(j in 2:length(EIDs_temp)) {
     lines(x = accur_b[,1], y = accur_b[,j+1], lwd = 2, col = j)
 }
 dev.off()
-
-# post_prob_b_no = matrix(nrow = 1000, ncol = n_i)
-# for(it in 1:1000) {
-#     print(it)
-#     prev_prob = 1
-#     for(k in 1:(n_i - t_pt_length + 1)) {
-#         if (k == 1) {
-#             # () -> () -> 1-5
-#             omega_set = omega_list_4[[1]][[b_i[t_pt_length+1]]]
-#             omega_set_no = omega_list_4[[1]][[b_i_no[t_pt_length+1]]]
-#         } else if (k <= n_i - t_pt_length) {
-#             # 1-5 -> () -> () -> 1-5
-#             omega_set = omega_list_4[[2]][b_i[k - 1], b_i[k + t_pt_length]][[1]]
-#             omega_set_no = omega_list_4[[2]][b_i_no[k - 1], b_i_no[k + t_pt_length]][[1]]
-#         } else if (k == n_i - t_pt_length + 1) {
-#             # 1-5 -> () -> ()
-#             omega_set = omega_list_4[[3]][[b_i[n_i - t_pt_length]]]
-#             omega_set_no = omega_list_4[[3]][[b_i_no[n_i - t_pt_length]]]
-#         }
-#         
-#         # Informed sampling
-#         ss_prob = state_prob_gibbs(k, n_i, t_pt_length, true_pars, par_index, z_i, b_i, omega_set, prev_prob)
-#         # row_ind = sample(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]))
-#         row_ind = csample_num(x = 1:nrow(omega_set), size = 1, prob = c(ss_prob[,1]), replace = F)
-#         prev_prob = ss_prob[row_ind, 2]
-#         b_i[k:(k+t_pt_length-1)] = c(omega_set[row_ind,])
-#         
-#         # Uninformed sampling
-#         row_ind_no = sample(x = 1:nrow(omega_set_no), size = 1)
-#         b_i_no[k:(k+t_pt_length-1)] = c(omega_set_no[row_ind_no,])
-#     }
-#     
-#     post_prob_b[it, ] = b_i
-#     post_prob_b_no[it, ] = b_i_no
-# }
-
-
-# barplot(rbind(colMeans(post_prob_b_no[, 1:n_i] == 1),
-#               colMeans(post_prob_b_no[, 1:n_i] == 2),
-#               colMeans(post_prob_b_no[, 1:n_i] == 3),
-#               colMeans(post_prob_b_no[, 1:n_i] == 4),
-#               colMeans(post_prob_b_no[, 1:n_i] == 5)), 
-#         col=c( 'dodgerblue', 'firebrick1', 'yellow2', 'green', 'darkgray'), 
-#         xlab='time', space=0, col.main='green', border=NA,
-#         xlim=range(pb) + c(-0.5,0.5)) 
-# grid( nx=20, NULL, col='white')
-# axis( side=1, at=1:n_i-0.5, col.axis='green', labels = 1:n_i)
-
-
-# -----------------------------------------------------------------------------
-# Focusing on subject 72450 ---------------------------------------------------
-# -----------------------------------------------------------------------------
-# Rcpp::sourceCpp("likelihood_fnc_arm.cpp")
-# 
-# i = 72450
-# ii = which(EIDs == i)
-# t_pts = c(28:54)
-# A = alpha_i_mat[[ii]]
-# Y_temp = Y[Y[,"EID"] == i, ]
-# z_temp = z[Y[,"EID"] == i, ]
-# Dn_omega_temp = Dn_omega[[ii]]
-# W_temp = W[[ii]]
-# 
-# sub_interest = data_format[data_format[,"EID"] == i, ]
-# 
-# 
-# b_tester = function(b) {
-#     
-#     B[[ii]] = matrix(b, ncol = 1)
-#     
-#     Dn_Xn = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
-#     Dn = Dn_Xn[[1]]; names(Dn) = EIDs
-#     Xn = Dn_Xn[[2]]
-#     
-#     Dn_temp = Dn[[ii]]
-#     Xn_temp = Xn[[ii]]
-#     
-#     like_val = log_f_i_cpp(i, ii, t_pts, par, par_index, A, B[[ii]], Y_temp, z_temp, Dn_temp,
-#                            Xn_temp, Dn_omega_temp, W_temp)
-#     
-#     return(like_val)
-# }
-# 
-# # Initial state sequence
-# b_tester(rep(1, 54))
-# # True state sequence
-# b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-#            2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3))
-# # Correct identification of change
-# b_tester(c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-#            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2))
-
-
-# # -----------------------------------------------------------------------------
-# # Function that initializes the state space based on the "highest" likelihood -
-# # -----------------------------------------------------------------------------
-# Xn_initial = update_Dn_Xn_cpp( as.numeric(EIDs), B, Y, par, par_index, x, 10)
-# Xn = Xn_initial[[2]]
-# 
-# B = list()
-# B = initialize_b_i(as.numeric(EIDs), par, par_index, A, Y, z, Xn, Dn_omega, W, 10)
-
-# # How close is this to the true state sequences
-# true_B = data_format[,"b_true"]
-# initial_B = c(do.call( rbind, B))
-# side_by_side_state = cbind(data_format[,"EID"], cbind(true_B, initial_B))
-# not_correct = side_by_side_state[(side_by_side_state[,2] != side_by_side_state[,3]), ]
-# 
-# print(paste0("proportion incorrect: ", nrow(not_correct) / nrow(side_by_side_state)))
-# # -----------------------------------------------------------------------------
-# # -----------------------------------------------------------------------------
