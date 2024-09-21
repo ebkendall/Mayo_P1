@@ -206,8 +206,8 @@ for(i in EIDs){
     
     B[[i]] = matrix(b_temp, ncol = 1)
 }
-
-
+# save(B, file = 'Data_sim/init_B.rda')
+load('Data_sim/init_B.rda')
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")
