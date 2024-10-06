@@ -1,33 +1,42 @@
 source('mcmc_routine_arma.r')
 
 args = commandArgs(TRUE)
-seed_num = as.numeric(args[1])
-# seed_num = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+sampling_num = as.numeric(args[1])
+seed_num = NULL
+if(sampling_num <= 4) {
+    seed_num = 1
+} else if(sampling_num > 4 & sampling_num <= 8) {
+    seed_num = 2
+    sampling_num = sampling_num - 4
+} else {
+    seed_num = 3
+    sampling_num = sampling_num - 8
+} 
 
-df_num_list = rep(1:10, each = 3)
-df_num = df_num_list[seed_num]
+# df_num_list = rep(1:10, each = 3)
+# df_num = df_num_list[seed_num]
+df_num = 4
 
 set.seed(seed_num)
-
-ind_list = rep(1:3, 10)
-
-ind = ind_list[seed_num]
-print(ind)
+ind = seed_num
+# ind_list = rep(1:3, 10)
+# ind = ind_list[seed_num]
+# print(ind)
 
 simulation = T
-
 data_format = NULL
 
 if(simulation) {
-    steps  = 50000
+    steps  = 20000
     burnin =  5000
     sim_dat_num = 4
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
     trialNum = 1
-    
     max_ind = 5
+
+    print(paste0('seed ', seed_num, ' samp ', sampling_num, ' trial ', trialNum))
 } else {
     steps  = 50000
     burnin = 5000
@@ -249,7 +258,7 @@ print(round(sqrt(diag_gamma), 3))
 s_time = Sys.time()
 mcmc_out = mcmc_routine( par, par_index, A, W, B, Y, x, z, steps, burnin, ind, 
                          trialNum, Dn_omega, simulation, bleed_indicator, 
-                         max_ind, df_num)
+                         max_ind, df_num, sampling_num)
 e_time = Sys.time() - s_time; print(e_time)
 
 

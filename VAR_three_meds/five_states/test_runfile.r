@@ -49,23 +49,6 @@ for(i in EIDs){
 # -----------------------------------------------------------------------------
 # Focusing on a few subjects --------------------------------------------------
 # -----------------------------------------------------------------------------
-# set.seed(1)
-# EID_group = vector(mode = 'list', length = 100)
-# EID_group[[1]] = c(194350, 234375, 259825, 288775, 747775)
-# EID_num = as.numeric(EIDs)
-# EID_ordering = sample(EID_num[-which(EID_num %in% c(194350, 234375, 259825, 288775, 747775))],
-#                       size = 495, replace = F)
-# for(e in 1:(length(EID_group)-1)) {
-#     EID_group[[e+1]] = EID_ordering[(5*(e-1)+1):(5*(e-1)+5)]
-# }
-# save(EID_group, file = 'Data_sim/EID_group.rda')
-# load('Data_sim/EID_group.rda')
-# 
-# args = commandArgs(TRUE)
-# e_num = as.numeric(args[1])
-# print(paste0("EID group: ", e_num))
-# EIDs_temp = EID_group[[e_num]]
-
 EIDs_temp = as.numeric(EIDs)
 # EIDs_temp = c(194350, 234375, 259825, 288775, 747775)
 par_temp = true_pars
@@ -158,7 +141,7 @@ for(i in 1:length(EIDs_temp)) {
 }
 
 bleed_indicator_temp = bleed_indicator[Y[,"EID"] %in% EIDs_temp]
-n_cores = 15
+n_cores = 16
 #  ----------------------------------------------------------------------------
 
 it_length = 10000
@@ -286,56 +269,104 @@ save(sampling_out,
 #     }
 # }
 # dev.off()
-# 
-# # Look at accuracy across all sampling schemes (posterior mode up to that time point)
-# Mode <- function(x) {
-#     ux <- unique(x)
-#     return(ux[which.max(tabulate(match(x, ux)))])
-# }
-# 
+
+# Look at accuracy across all sampling schemes (posterior mode up to that time point)
+Mode <- function(x) {
+    ux <- unique(x)
+    return(ux[which.max(tabulate(match(x, ux)))])
+}
+
 # EIDs_temp = c(194350, 234375, 259825, 288775, 747775)
 # pdf(paste0('Plots/sampling_out_summary_mode.pdf'))
-# par(mfrow = c(4,1), mar=c(2,4,2,4))
-# for(p in 2:5) {
-#     for(s in 1:4) {
-#         print(paste0(s, ", ", p))
-#         load(paste0('Model_out/sampling_out_',s,'_',p,'.rda'))
-#         seq_keep = seq(10, nrow(sampling_out$post_prob_b), by = 10)
-#         post_prob = sampling_out$post_prob_b[seq_keep, ]
-#         accur_b = sampling_out$accur_b[seq_keep, ]; rm(sampling_out)
-#         for(i in 1:nrow(post_prob)) {
-#             curr_mode = apply(post_prob[1:i, ,drop = F], 2, Mode)
-#             for(sub in 2:ncol(accur_b)) {
-#                 b_ind = which(Y_temp_big[,"EID"] == EIDs_temp[sub-1])
-#                 accur_b[i, sub] = mean(curr_mode[b_ind] == b_i_true[b_ind])
-#             }
-#         }
-#         
-#         plot(x = accur_b[,1], y = accur_b[,2], type = 'l', ylim=c(0,1), lwd=2,
-#              xlab = 'compute time (sec.)', ylab = 'state accuracy (at each it.)',
-#              col = 1)
-#         for(j in 2:length(EIDs_temp)) {
-#             lines(x = accur_b[,1], y = accur_b[,j+1], lwd = 1, lty = j, col = j+1)
-#         }
-#         avg_correct = rowMeans(accur_b[,2:ncol(accur_b)])
-#         lines(x = accur_b[,1], y = avg_correct, lwd = 2, col = 'red')
-#         time_convg = accur_b[min(which(avg_correct == max(avg_correct))),1]
-#         abline(v = time_convg, col = 'blue')
-#         
-#         convg_times = accur_b[apply(accur_b[,2:ncol(accur_b)], 2, which.max), 1]
-#         mean_convg = mean(convg_times)
-#         abline(v = mean_convg, col = 'orange')
-#         # axis(1, at=time_convg, labels=c(time_convg), col = 'blue')
-#         mtext(side=3, line=0, at=-0.07, adj=0, cex=0.7, paste0('Sampling opt = ', s, ', p = ', p,
-#                                                                ' (',round(mean_convg,digits=2), ', ',
-#                                                                round(max(avg_correct),digits=2), ')'))
-#         if(s==1) {
-#             legend(x = "bottomright", legend = c("avg.", EIDs_temp),
-#                    col = c(2,1,3:(length(EIDs_temp)+1)),lwd = 2)
-#         }
-#     }
-# }
-# dev.off()
+EIDs_temp = as.numeric(EIDs)
+pdf('Plots/sampling_out_full.pdf')
+par(mfrow = c(4,1), mar=c(2,4,2,4))
+for(p in 3:4) {
+    for(s in 1:4) {
+        print(paste0(s, ", ", p))
+        load(paste0('Model_out/sampling_out_full_',s,'_',p,'.rda'))
+        seq_keep = 1:min(1000, nrow(sampling_out$post_prob_b))
+        # if(nrow(sampling_out$post_prob_b) > 5000) {
+        #     seq_keep = seq(10, nrow(sampling_out$post_prob_b), by = 10)
+        # } else {
+        #     seq_keep = 1:nrow(sampling_out$post_prob_b)
+        # }
+        
+        post_prob = sampling_out$post_prob_b[seq_keep, ]
+        accur_b = sampling_out$accur_b[seq_keep, ]; rm(sampling_out)
+        # for(i in 1:nrow(post_prob)) {
+        #     curr_mode = apply(post_prob[1:i, ,drop = F], 2, Mode)
+        #     for(sub in 2:ncol(accur_b)) {
+        #         b_ind = which(Y_temp_big[,"EID"] == EIDs_temp[sub-1])
+        #         accur_b[i, sub] = mean(curr_mode[b_ind] == b_i_true[b_ind])
+        #     }
+        # }
+
+        plot(x = accur_b[,1], y = accur_b[,2], type = 'l', ylim=c(0,1), lwd=2,
+             xlab = 'compute time (sec.)', ylab = 'state accuracy (at each it.)',
+             col = 1)
+        # for(j in 2:length(EIDs_temp)) {
+        #     lines(x = accur_b[,1], y = accur_b[,j+1], lwd = 1, lty = j, col = j+1)
+        # }
+        # avg_correct = rowMeans(accur_b[,2:ncol(accur_b)])
+        # lines(x = accur_b[,1], y = avg_correct, lwd = 2, col = 'red')
+        avg_correct = accur_b[,2]
+        time_convg = accur_b[min(which(avg_correct == max(avg_correct))),1]
+        abline(v = time_convg, col = 'blue')
+
+        # convg_times = accur_b[apply(accur_b[,2:ncol(accur_b)], 2, which.max), 1]
+        # mean_convg = mean(convg_times)
+        # abline(v = mean_convg, col = 'orange')
+        # axis(1, at=time_convg, labels=c(time_convg), col = 'blue')
+        mtext(side=3, line=0, at=-0.07, adj=0, cex=0.7, paste0('Sampling opt = ', s, ', p = ', p,
+                                                               ' (',round(time_convg,digits=2), ', ',
+                                                               round(max(avg_correct),digits=2), ')'))
+        # if(s==1) {
+        #     legend(x = "bottomright", legend = c("avg.", EIDs_temp),
+        #            col = c(2,1,3:(length(EIDs_temp)+1)),lwd = 2)
+        # }
+        
+        print("Summary of identifying correct states with mode")
+        state_seq_mode = apply(post_prob, 2, Mode)
+        if(length(b_i_true) != length(state_seq_mode)) {
+            print("ERROR")
+        } else {
+            print(sum(b_i_true == state_seq_mode) / length(state_seq_mode))   
+        }
+        
+        print("Average (across subject) of proportion of correct states with mode")
+        
+        prop_sub = rep(0, length(EIDs))
+        for(j in 1:length(EIDs)) {
+            sub_ind_j = which(use_data[,"EID"] == EIDs[j])
+            ss_truth_j = b_i_true[sub_ind_j]
+            state_seq_mode_j = state_seq_mode[sub_ind_j]
+            
+            prop_sub[j] = sum(ss_truth_j == state_seq_mode_j) / length(state_seq_mode_j)
+        }
+        
+        print(summary(prop_sub))
+        print(sort(prop_sub))
+        
+        eid_poor = EIDs[prop_sub < 0.9]
+        
+        state_2_info = which(b_i_true == 2)
+        state_2_truth = b_i_true[state_2_info]
+        state_2_mode  = state_seq_mode[state_2_info]
+        
+        print("Correct identification of bleeding")
+        print(sum(state_2_truth == state_2_mode) / length(state_2_mode))  
+        
+        # Sensitivity of state 2: Pr(predict S2 | true S2)
+        predict_at_true_S2 = state_seq_mode[b_i_true == 2]
+        print(paste0("Sensitivity of S2 = ", mean(predict_at_true_S2 == 2)))
+        
+        # Specificity of state 2: Pr(predict not S2 | true not S2)
+        predict_not_S2 = state_seq_mode[b_i_true != 2]
+        print(paste0("Specificity of S2 = ", mean(predict_not_S2 != 2)))
+    }
+}
+dev.off()
 # 
 # # Plot a grid to compare converge time to max correctness (and compare to time per step)
 # mean_convg_mat1 = mean_convg_mat2 = max_correct_mat = num_steps = matrix(nrow=4,ncol=4)
