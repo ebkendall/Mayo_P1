@@ -40,10 +40,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_zeta[c(2,12,16,22)]),         # RBC > 0 (to S2)
                c(par_index$vec_zeta[c(4,14,18,24)]),         # RBC > 0 (no S2)
                c(par_index$vec_zeta[c(6,8,10,20)]),          # RBC < 0 
-               # c(par_index$vec_zeta[1:4]),
-               # c(par_index$vec_zeta[5:8]),
-               # c(par_index$vec_zeta[9:14]),
-               # c(par_index$vec_zeta[15:24]),
                c(par_index$vec_A[c(1,5,9,13,17)]),
                c(par_index$vec_A[c(2,6,10,14,18)]),
                c(par_index$vec_A[c(3,7,11,15,19)]),
@@ -189,7 +185,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         chain_ind = floor(chain_ind / 10) + 1
 
         if(!simulation) {
-            # Imputing the missing Y values ----------------------------------------
+            # Imputing the missing Y values ------------------------------------
             # print("Update Y"); s_time = Sys.time()
             Y = update_Y_i_cpp( as.numeric(EIDs), par, par_index, A, Y, Dn, Xn,
                                 otype, Dn_omega, W, B, n_cores)
@@ -233,18 +229,6 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         }
         B = B_Dn[[1]]; names(B) = EIDs
         Dn = B_Dn[[2]]; names(Dn) = EIDs
-        
-        # B_Dn = update_b_i_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-        #                       Xn, Dn_omega, W, bleed_indicator, n_cores)
-        # B = B_Dn[[1]]; names(B) = EIDs
-        # Dn = B_Dn[[2]]; names(Dn) = EIDs
-        
-        # # Simultaneous update of state space, B, and imputation of data, Y -----
-        # B_Dn = update_b_i_impute_cpp(as.numeric(EIDs), par, par_index, A, B, Y, z, Dn,
-        #                        Xn, Dn_omega, W, bleed_indicator, n_cores, otype)
-        # B = B_Dn[[1]]; names(B) = EIDs
-        # Dn = B_Dn[[2]]; names(Dn) = EIDs
-        # Y = B_Dn[[3]]; colnames(Y) = c('EID','hemo', 'hr', 'map', 'lactate', 'RBC_rule', 'clinic_rule')
         # e_time = Sys.time() - s_time; print(e_time)
         # ----------------------------------------------------------------------
         # ----------------------------------------------------------------------

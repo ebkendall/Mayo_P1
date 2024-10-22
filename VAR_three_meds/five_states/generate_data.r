@@ -5,8 +5,8 @@ df_num = 1
 data_name = paste0('Data_updates/data_format_', df_num, '.rda')
 load(data_name)
 
-it_num = 4
-set.seed(2018)
+it_num = 5
+set.seed(2024)
 N = length(unique(data_format[,"EID"]))
 EIDs = unique(data_format[,"EID"])
 
@@ -115,14 +115,14 @@ par_index$vec_upsilon_omega = 577:664
 save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 
 # Loading the parameter values to base this off of
-# prev_file = paste0('Model_out/mcmc_out_interm_', 3, '_10it', 1, '.rda')
-prev_file = "Model_out/OG/mcmc_out_interm_3_1it2.rda"
-load(prev_file)
+# prev_file = "Model_out/OG/mcmc_out_interm_3_1it2.rda"
+# load(prev_file)
+# pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
+# rownames(pars_mean) = NULL
 
-pars_mean = colMeans(mcmc_out_temp$chain[800:nrow(mcmc_out_temp$chain),])
-rownames(pars_mean) = NULL
+pars_mean = rep(0, tail(par_index$vec_upsilon_omega, 1))
 
-pars_mean[par_index$vec_beta] = c(0.25, -1, 2, -0.25)
+pars_mean[par_index$vec_beta] = c(0.5, -2, 2, -0.5)
 pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -3,          3, -0.2, -0.2,
                                         88.69780576,  10.04150472,        -8, -0.5, -0.5,
                                         79.74903940, -10.04150472,         8,  0.5, -0.5,
