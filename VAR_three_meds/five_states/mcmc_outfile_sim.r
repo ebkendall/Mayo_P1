@@ -1,12 +1,12 @@
 dir = 'Model_out/'
 
-trialNum = 1
-sampNum = 4
+trialNum = 2
+sampNum = 1
 itNum = 1
-index_seeds = c(1:3)
+index_seeds = c(1)
 long_chain = T
 
-data_num = 4
+data_num = 5
 load(paste0('Data_sim/true_pars_', data_num, '.rda'))
 true_par = true_pars
 

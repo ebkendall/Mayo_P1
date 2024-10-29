@@ -123,37 +123,43 @@ save(par_index, file = paste0('Data_sim/true_par_index_', it_num, '.rda'))
 pars_mean = rep(0, tail(par_index$vec_upsilon_omega, 1))
 
 pars_mean[par_index$vec_beta] = c(0.5, -2, 2, -0.5)
-pars_mean[par_index$vec_alpha_tilde] = c(9.57729783,          -3,          3, -0.2, -0.2,
-                                        88.69780576,  10.04150472,        -8, -0.5, -0.5,
-                                        79.74903940, -10.04150472,         8,  0.5, -0.5,
-                                          5.2113319,   3.5360813, -3.6866748,  0.2,  0.2)
-pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  4, 2, 2, 25, 25, 
-                                                  100, 9, 9, 25, 25, 
-                                                  100, 9, 9, 25, 25, 
-                                                    4, 2, 2, 25, 25)))
 
-#    transitions:                         1->2,         1->4,         2->3,         2->4, 
-#                                         3->1,         3->2,         3->4,         4->2, 
-#                                         4->5,         5->1,         5->2,         5->4
-# pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
-#                                   -9.4459,  -1, -7.2404,   2, -5.2151,   1, -7.1778, 2.5, 
-#                                   -2.6523,   0, -9.4459,  -1, -7.2404, 3.5, -5.2151,   1)
-pars_mean[par_index$vec_zeta] = c(-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
-                                  -7.4459,  -1, -6.2404,   2, -5.2151,   1, -5.1778, 2.5, 
-                                  -4.6523,   0, -6.4459,  -1, -7.2404, 3.5, -5.2151,   1)
+pars_mean[par_index$vec_alpha_tilde] = c(9.57729783, -1,  1, 0, 0,
+                                        88.69780576,  5, -5, 0, 0,
+                                        79.74903940, -5,  5, 0, 0,
+                                          5.2113319,  1, -1, 0, 0)
+pars_mean[par_index$vec_sigma_upsilon] = c(diag(c(  3, 0.01, 0.01, 0.25, 0.25, 
+                                                  100,    1,    1,    1,    1, 
+                                                  100,    1,    1,    1,    1, 
+                                                    3, 0.01, 0.01, 0.25, 0.25)))
+
+pars_mean[par_index$vec_A] = c(rep(1.5, 4),
+                               rep(-1, 4),
+                               rep(0.1, 4),
+                               rep(0, 4),
+                               rep(0.1, 4))
+
+pars_mean[par_index$vec_R] = c(diag(c(9, 81, 81, 9)))
+
+#    transitions:                    1->2,         1->4,         2->3,         2->4, 
+#                                    3->1,         3->2,         3->4,         4->2, 
+#                                    4->5,         5->1,         5->2,         5->4
+pars_mean[par_index$vec_zeta] = c(-4.7405, 4.5, -5.2152,   1, -3.6473,-0.5, -3.1475, -0.2, 
+                                  -6.4459,  -1, -3.9404,   2, -4.2151,   1, -4.1778, 2.5, 
+                                  -3.0523,   0, -6.4459,-0.2, -4.2404, 3.5, -4.2151,   1)
 
 
-pars_mean[par_index$vec_init] = c(-1, -0.5, -0.1, -0.3)
+pars_mean[par_index$vec_init] = c(-1, 0, -0.5, 0.1)
 
-pars_mean[par_index$omega_tilde]= 3*c(-1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
+pars_mean[par_index$omega_tilde]= c(  -1, -1,  1, -1,  1,  1, -1, -1, -1,  1,  1,  1,  1,
                                       -1,  1,  1,  1, -1,  1, -1,  1, -1, -1, -1, -1, -1,
                                       -1, -1, -1, -1,  1, -1,  1, -1, -1,  1,  1, -1,  1,
                                       -1, -1,  1,  1, -1, -1, -1, -1, -1, -1,  1, -1,  1,
                                        1, -1,  1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1,
                                       -1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  1,  1, -1,
                                       -1, -1,  1, -1, -1, -1, -1, -1, -1,  1)
-pars_mean[par_index$vec_A] = 1.5
-pars_mean[par_index$vec_R] = c(diag(c(4.58, 98.2, 101.3, 7.6)))
+
+pars_mean[par_index$vec_upsilon_omega] = rep(-4, length(par_index$vec_upsilon_omega))
 
 
 # Parameters ------------------------------------------------------------------
@@ -192,7 +198,8 @@ omega_i_mat = vector(mode = "list", length = N)
 bleed_indicator_update = NULL
 Dn_omega_sim = vector(mode = 'list', length = N)
 
-for (www in 1:1) {
+# for (www in 1:1) {
+www = 1
     
     Dir = 'Data_sim/'
     
@@ -216,6 +223,15 @@ for (www in 1:1) {
         
         x_i = x[ Y[,'EID']==as.numeric(id_num),, drop=F]
         z_i = z[ Y[,'EID']==as.numeric(id_num),, drop=F]
+        new_z_i = cbind(rep(1, nrow(z_i)), rep(0, nrow(z_i)))
+        for(zz in 1:n_i) {
+            if(z_i[zz, 2] != 0) {
+                z_val = z_i[zz, 2] * exp(-0.25 * 0:(n_i - zz))
+                new_z_i[zz:nrow(new_z_i), 2] = new_z_i[zz:nrow(new_z_i), 2] + z_val
+            }
+        }
+        # new_z_i = z_i
+        
         bleed_ind_i = bleed_indicator[Y[,'EID']==as.numeric(id_num)]
         
         bleed_indicator_update = c(bleed_indicator_update, bleed_ind_i)
@@ -229,22 +245,26 @@ for (www in 1:1) {
         }
         
         P_i = exp(init_logit) / sum(exp(init_logit))
+        b_i = NULL
+        stat_dist = matrix(nrow = n_i, ncol = 5)
         for(k in 1:n_i){
             if(k==1){
                 b_i = sample(1:5, size=1, prob=P_i)
+                stat_dist[k,] = P_i
+                # print(P_i)
             } else{
-                q1   = exp(z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
-                q2   = exp(z_i[k,, drop=F] %*% zeta[,  2, drop=F])
-                q3   = exp(z_i[k,, drop=F] %*% zeta[,  3, drop=F])
-                q4   = exp(z_i[k,, drop=F] %*% zeta[,  4, drop=F])
-                q5   = exp(z_i[k,, drop=F] %*% zeta[,  5, drop=F]) 
-                q6   = exp(z_i[k,, drop=F] %*% zeta[,  6, drop=F])
-                q7   = exp(z_i[k,, drop=F] %*% zeta[,  7, drop=F])
-                q8   = exp(z_i[k,, drop=F] %*% zeta[,  8, drop=F])
-                q9   = exp(z_i[k,, drop=F] %*% zeta[,  9, drop=F]) 
-                q10  = exp(z_i[k,, drop=F] %*% zeta[,  10, drop=F])
-                q11  = exp(z_i[k,, drop=F] %*% zeta[,  11, drop=F])
-                q12  = exp(z_i[k,, drop=F] %*% zeta[,  12, drop=F])
+                q1   = exp(new_z_i[k,, drop=F] %*% zeta[,  1, drop=F]) 
+                q2   = exp(new_z_i[k,, drop=F] %*% zeta[,  2, drop=F])
+                q3   = exp(new_z_i[k,, drop=F] %*% zeta[,  3, drop=F])
+                q4   = exp(new_z_i[k,, drop=F] %*% zeta[,  4, drop=F])
+                q5   = exp(new_z_i[k,, drop=F] %*% zeta[,  5, drop=F]) 
+                q6   = exp(new_z_i[k,, drop=F] %*% zeta[,  6, drop=F])
+                q7   = exp(new_z_i[k,, drop=F] %*% zeta[,  7, drop=F])
+                q8   = exp(new_z_i[k,, drop=F] %*% zeta[,  8, drop=F])
+                q9   = exp(new_z_i[k,, drop=F] %*% zeta[,  9, drop=F]) 
+                q10  = exp(new_z_i[k,, drop=F] %*% zeta[,  10, drop=F])
+                q11  = exp(new_z_i[k,, drop=F] %*% zeta[,  11, drop=F])
+                q12  = exp(new_z_i[k,, drop=F] %*% zeta[,  12, drop=F])
                 
                 Q = matrix(c(   1,   q1,  0,  q2,  0,
                                 0,    1, q3,  q4,  0,
@@ -254,6 +274,8 @@ for (www in 1:1) {
                 
                 P_i = Q / rowSums(Q)
                 # Sample the latent state sequence
+                stat_dist[k,] = c(stat_dist[k-1,,drop=F] %*% P_i)
+                # print(P_i[tail(b_i,1),])
                 b_i = c( b_i, sample(1:5, size=1, prob=P_i[tail(b_i,1),]))
             }
             
@@ -285,9 +307,9 @@ for (www in 1:1) {
         Y_i = matrix(nrow = n_i, ncol = 4)
         
         vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
-        while(vec_alpha_i[2] > 0 | vec_alpha_i[3] < 0) {
-            vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
-        }
+        # while(vec_alpha_i[2] > 0 | vec_alpha_i[3] < 0) {
+        #     vec_alpha_i = rmvnorm( n=1, mean=c(alpha_tilde), sigma=Upsilon)
+        # }
         
         vec_omega_i = rmvnorm( n=1, mean=c(omega), sigma=diag(upsilon_omega))
 
@@ -349,7 +371,7 @@ for (www in 1:1) {
         }
         
         use_data = rbind( use_data, cbind( id_num, t_i, Y_i, b_i, 
-                                           z_i[,2],
+                                           new_z_i[,2],
                                            x_i[,1], 
                                            rules))
     }
@@ -367,7 +389,7 @@ for (www in 1:1) {
     
     print(paste0("RBC rule is found in ", length(rbc_bleed_correct), " patients"))
     print(paste0(sum(rbc_bleed_correct == 1), " were correct with the bleed event"))
-}
+# }
 
 bleed_indicator = bleed_indicator_update
 

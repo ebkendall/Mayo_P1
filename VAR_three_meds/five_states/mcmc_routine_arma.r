@@ -34,7 +34,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # Metropolis Parameter Index for MH within Gibbs updates
     # Ordering of the transition rate parameters:
     # 1->2, 1->4, 2->3, 2->4, 3->1, 3->2, 3->4, 4->2, 4->5, 5->1, 5->2, 5->4
-    mpi = list(c(par_index$vec_init),
+    mpi = list(# c(par_index$vec_init),
                c(par_index$vec_zeta[c(1,5, 7,11,15,21)]),    # baselines (w/    S2)
                c(par_index$vec_zeta[c(3,9,13,17,19,23)]),    # baselines (w/out S2)
                c(par_index$vec_zeta[c(2,12,16,22)]),         # RBC > 0 (to S2)
@@ -44,8 +44,8 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
                c(par_index$vec_A[c(2,6,10,14,18)]),
                c(par_index$vec_A[c(3,7,11,15,19)]),
                c(par_index$vec_A[c(4,8,12,16,20)]),
-               c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
-               c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
+               # c(par_index$vec_upsilon_omega[c(1:16, 36:57)]),
+               # c(par_index$vec_upsilon_omega[c(17:35, 58:88)]),
                c(par_index$vec_R))
 
     n_group = length(mpi)
@@ -157,7 +157,7 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     # --------------------------------------------------------------------------
   
     # Begin the MCMC algorithm -------------------------------------------------
-    chain_length_MASTER = 1001
+    chain_length_MASTER = 10000
     chain = matrix( 0, chain_length_MASTER, length(par)) # steps
     B_chain = hc_chain = hr_chain = bp_chain = la_chain = matrix( 0, chain_length_MASTER, nrow(Y)) # steps-burnin
     accept = rep( 0, n_group)
@@ -178,11 +178,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
     mcmc_start_t = Sys.time()
     for(ttt in 2:steps){
 
-        chain_ind = ttt %% 10000
-        if(chain_ind == 0) chain_ind = 10000
-
-        # Thinning the saved chain index
-        chain_ind = floor(chain_ind / 10) + 1
+        if(ttt %% 10000 == 0) {
+            chain_ind = 10000
+        } else {
+            chain_ind = ttt - chain_length_MASTER * floor(ttt / chain_length_MASTER)
+        }
+        
+        # chain_ind = ttt %% 10000
+        # if(chain_ind == 0) chain_ind = 10000
+        # # Thinning the saved chain index
+        # chain_ind = floor(chain_ind / 10) + 1
 
         if(!simulation) {
             # Imputing the missing Y values ------------------------------------
@@ -207,9 +212,9 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
 
         # Gibbs updates of the omega_i -----------------------------------------
         # print("Update omega_i"); s_time = Sys.time()
-        W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
-                                Dn_omega, A, B, n_cores)
-        names(W) = EIDs
+        # W = update_omega_i_cpp( as.numeric(EIDs), par, par_index, Y, Dn, Xn,
+        #                         Dn_omega, A, B, n_cores)
+        # names(W) = EIDs
         # e_time = Sys.time() - s_time; print(e_time)
 
         # ----------------------------------------------------------------------
@@ -236,14 +241,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         
         # Gibbs updates of the alpha~, omega~, beta, & Upsilon parameters ------
         # print("Update beta_upsilon"); s_time = Sys.time()
-        par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
-                                         Dn, Xn, Dn_omega, W, B, n_cores)
+        # par = update_beta_Upsilon_R_cpp( as.numeric(EIDs), par, par_index, A, Y,
+        #                                  Dn, Xn, Dn_omega, W, B, n_cores)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update alpha tilde"); s_time = Sys.time()
         par = update_alpha_tilde_cpp( as.numeric(EIDs), par, par_index, A, Y)
         # e_time = Sys.time() - s_time; print(e_time)
         # print("Update omega tilde"); s_time = Sys.time()
-        par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
+        # par = update_omega_tilde_cpp( as.numeric(EIDs), par, par_index, W, Y)
         # e_time = Sys.time() - s_time; print(e_time)
 
         # Save the parameter updates made in the Gibbs steps before Metropolis steps
@@ -264,16 +269,16 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         for(j in 1:n_group) {
             ind_j = mpi[[j]]
         
-            # Fix the R and zeta parameters the first half of burnin to help
-            # the state space move
-            if(ttt < burnin/2){
-                if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
-                    next
-                }
-                if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
-                    next
-                }
-            }
+            # # Fix the R and zeta parameters the first half of burnin to help
+            # # the state space move
+            # if(ttt < burnin/2){
+            #     if(sum(ind_j %in% par_index$vec_R) == length(ind_j)) {
+            #         next
+            #     }
+            #     if(sum(ind_j %in% par_index$vec_zeta) == length(ind_j)) {
+            #         next
+            #     }
+            # }
         
             proposal = par
         
@@ -313,57 +318,46 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         
                 chain[chain_ind,ind_j] = par[ind_j]
         
-                # Proposal tuning scheme ---------------------------------------
+                # Proposal tuning scheme ------------------------------------------------
                 if(ttt < burnin){
                     # During the burnin period, update the proposal covariance in each step
                     # to capture the relationships within the parameters vectors for each
                     # transition.  This helps with mixing.
                     if(ttt == 100)  pscale[j] = 1
-        
-                    if (length(ind_j) > 1) {
-                        if(100 <= ttt & ttt <= 2000){
-                            temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-                            pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-        
-                        } else if(2000 < ttt){
-                            temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-                            pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
-                        }
-                    } else {
-                        if(100 <= ttt & ttt <= 2000){
-                            temp_chain = chain[1:(floor(ttt/10) + 1),ind_j]
-                            pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-        
-                        } else if(2000 < ttt){
-                            temp_chain = chain[(floor((ttt-2000) / 10) + 1):(floor(ttt/10) + 1),ind_j]
-                            pcov[[j]] = matrix(var(temp_chain[ !duplicated(temp_chain)]))
-                        }
+                    
+                    if(100 <= ttt & ttt <= 2000){
+                        temp_chain = chain[1:ttt,ind_j]
+                        pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
+                        
+                    } else if(2000 < ttt){
+                        temp_chain = chain[(ttt-2000):ttt,ind_j]
+                        pcov[[j]] = cov(temp_chain[ !duplicated(temp_chain),, drop=F])
                     }
-        
                     if( sum( is.na(pcov[[j]]) ) > 0)  pcov[[j]] = diag( length(ind_j) )
-        
+                    
                     # Tune the proposal covariance for each transition to achieve
                     # reasonable acceptance ratios.
                     if(ttt %% 30 == 0){
                         if(ttt %% 480 == 0){
                             accept[j] = 0
-        
-                        } else if( accept[j] / (ttt %% 480) < .4 ){
+                            
+                        } else if( accept[j] / (ttt %% 480) < .4 ){ 
                             pscale[j] = (.75^2)*pscale[j]
-        
-                        } else if( accept[j] / (ttt %% 480) > .5 ){
+                            
+                        } else if( accept[j] / (ttt %% 480) > .5 ){ 
                             pscale[j] = (1.25^2)*pscale[j]
                         }
                     }
                 }
-                # --------------------------------------------------------------
+                # -----------------------------------------------------------------------
         
             } else {
                 # Updating R ---------------------------------------------------
         
                 # Prior for R ---------------------------
                 nu_R = 1000
-                psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
+                # psi_R = diag(c(4.58, 98.2, 101.3, 7.6))
+                psi_R = diag(c(9, 81, 81, 9))
                 psi_R = (nu_R - 4 - 1) * psi_R
         
                 # q(R* | R(t)) -----------------------------
@@ -432,9 +426,14 @@ mcmc_routine = function( par, par_index, A, W, B, Y, x, z, steps, burnin, ind,
         if(ttt%%1==0)  cat('--->',ttt,'\n')
         if(ttt > burnin & ttt%%10000==0) {
             mcmc_end_t = Sys.time() - mcmc_start_t; print(mcmc_end_t)
-            mcmc_out_temp = list( chain=chain, B_chain=B_chain, hc_chain=hc_chain, 
-                                hr_chain=hr_chain, bp_chain=bp_chain, 
-                                la_chain = la_chain, A_chain = A_chain,
+            index_keep = seq(1, chain_length_MASTER, by = 5)
+            mcmc_out_temp = list(chain    = chain[index_keep,], 
+                                 B_chain  = B_chain[index_keep,], 
+                                 hc_chain = hc_chain[index_keep,], 
+                                 hr_chain = hr_chain[index_keep,],
+                                 bp_chain = bp_chain[index_keep,], 
+                                 la_chain = la_chain[index_keep,],
+                                 # A_chain  = A_chain,
                                 otype=otype, accept=accept/length(burnin:ttt), 
                                 pscale=pscale, pcov = pcov, par_index=par_index)
             if(simulation) {

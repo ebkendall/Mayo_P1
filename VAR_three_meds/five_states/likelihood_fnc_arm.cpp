@@ -744,9 +744,9 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // transitions:                    1->2,         1->4,         2->3,         2->4, 
   //                                 3->1,         3->2,         3->4,         4->2, 
   //                                 4->5,         5->1,         5->2,         5->4
-  arma::vec vec_zeta_mean = {-6.2405, 3.5, -5.2152,   1, -3.6473,  -2, -5.1475,  -2, 
-                             -7.4459,  -1, -6.2404,   2, -5.2151,   1, -5.1778, 2.5, 
-                             -4.6523,   0, -6.4459,  -1, -7.2404, 3.5, -5.2151,   1};
+  arma::vec vec_zeta_mean = {-4.7405, 4.5, -5.2152,   1, -3.6473,-0.5, -3.1475, -0.2, 
+                             -6.4459,  -1, -3.9404,   2, -4.2151,   1, -4.1778, 2.5, 
+                             -3.0523,   0, -6.4459,-0.2, -4.2404, 3.5, -4.2151,   1};
   arma::vec scalar_1 = {4, 1, 4, 1, 4, 1, 4, 1, 
                         4, 1, 4, 1, 4, 1, 4, 1, 
                         4, 1, 4, 1, 4, 1, 4, 1};
@@ -776,7 +776,13 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   // A_1 priors ----------------------------------------------------------------
   arma::vec vec_A1_content = par.elem(par_index(3) - 1);
   
-  arma::vec vec_A1_mean(vec_A1_content.n_elem, arma::fill::zeros);
+  // arma::vec vec_A1_mean(vec_A1_content.n_elem, arma::fill::zeros);
+  arma::vec vec_A1_mean = { 1.5,  1.5,  1.5,  1.5,
+                           -1.0, -1.0, -1.0, -1.0,
+                            0.1,  0.1,  0.1,  0.1,  
+                              0,    0,    0,    0,
+                            0.1,  0.1,  0.1,  0.1};
+  
   arma::vec A1_scalar(vec_A1_content.n_elem, arma::fill::ones);
   A1_scalar = 2 * A1_scalar;
   arma::mat A1_sd = arma::diagmat(A1_scalar);
@@ -790,7 +796,7 @@ double log_post_cpp(const arma::vec &EIDs, const arma::vec &par, const arma::fie
   
   int nu_R = 1000;
   //   arma::mat Psi_R(4,4,arma::fill::eye);
-  arma::vec scalar_vec_R = {4.58, 98.2, 101.3, 7.6};
+  arma::vec scalar_vec_R = {9, 81, 81, 9};
   scalar_vec_R = (nu_R - 4 - 1) * scalar_vec_R;
   arma::mat Psi_R = arma::diagmat(scalar_vec_R);
   
@@ -2516,17 +2522,17 @@ arma::vec update_alpha_tilde_cpp( const arma::vec EIDs, arma::vec par,
     // 88.69780576,  10.04150472,        -8, -0.5, -0.5,
     // 79.74903940, -10.04150472,         8,  0.5, -0.5,
     // 5.2113319,   3.5360813, -3.6866748,  0.2,  0.2
-    arma::vec vec_alpha_tilde_0 = {9.57729783,          -1,        0.1, 0, 0,
-                                  88.69780576,  7.04150472,         -6, 0, 0,
-                                  79.74903940, -7.04150472,          6, 0, 0,
-                                    5.2113319,   0.5360813, -0.6866748, 0, 0}; // THREE STATE
+    arma::vec vec_alpha_tilde_0 = {9.57729783, -1,  1, 0, 0,
+                                   88.69780576,  5, -5, 0, 0,
+                                   79.74903940, -5,  5, 0, 0,
+                                   5.2113319,  1, -1, 0, 0}; // THREE STATE
     
     // The prior PRECISION matrix for vec_alpha_tilde
     // arma::vec inv_Sigma_alpha_diag = {1, 1, 1, 0.0025, 0.01, 0.01, 0.0025, 0.01, 0.01, 1, 1, 1};
-    arma::vec inv_Sigma_alpha_diag = {0.04, 0.04, 0.04, 0.01, 0.01,
-                                      0.01, 0.04, 0.04, 0.01, 0.01,
-                                      0.01, 0.04, 0.04, 0.01, 0.01,
-                                      0.04, 0.04, 0.04, 0.01, 0.01}; // THREE STATE
+    arma::vec inv_Sigma_alpha_diag = {0.04, 0.25, 0.25, 0.04, 0.04,
+                                      0.04, 0.25, 0.25, 0.04, 0.04,
+                                      0.04, 0.25, 0.25, 0.04, 0.04,
+                                      0.04, 0.25, 0.25, 0.04, 0.04}; // THREE STATE
     
     arma::mat inv_Sigma_alpha = arma::diagmat(inv_Sigma_alpha_diag);
     

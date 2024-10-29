@@ -29,11 +29,11 @@ data_format = NULL
 if(simulation) {
     steps  = 20000
     burnin =  5000
-    sim_dat_num = 4
+    sim_dat_num = 5
     
     load(paste0('Data_sim/use_data1_', sim_dat_num, '.rda'))
     data_format = use_data
-    trialNum = 1
+    trialNum = 3
     max_ind = 5
 
     print(paste0('seed ', seed_num, ' samp ', sampling_num, ' trial ', trialNum))
@@ -216,7 +216,7 @@ for(i in EIDs){
     B[[i]] = matrix(b_temp, ncol = 1)
 }
 # save(B, file = 'Data_sim/init_B.rda')
-load('Data_sim/init_B.rda')
+# load('Data_sim/init_B.rda')
 # -----------------------------------------------------------------------------
 
 print("Starting values for the chain")
